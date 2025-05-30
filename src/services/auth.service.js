@@ -39,7 +39,16 @@ export const updateCurrentUser = async (data) => {
 };
 
 
-
+// Apply for membership
+export const applyForMembership = async (applicationData) => {
+  try {
+    const response = await api.post('/auth/apply', applicationData);
+    return response.data;
+  } catch (error) {
+    console.error('Error applying for membership:', error);
+    throw error.response?.data || { message: 'Membership application failed' };
+  }
+};
 
 export const logout = () => {
   localStorage.removeItem('token');

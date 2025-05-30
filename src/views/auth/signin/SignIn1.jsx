@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 /* eslint-disable prettier/prettier */
 /* eslint-disable no-unused-vars */
 import React, { useEffect } from 'react';
@@ -7,13 +8,13 @@ import { NavLink, Link } from 'react-router-dom';
 import Breadcrumb from '../../../layouts/AdminLayout/Breadcrumb';
 import logo from '../../../assets/images/music.png';
 
-
 import AuthLogin from './JWTLogin';
 
 const Signin1 = () => {
   useEffect(() => {
     document.title = 'Bienvenue | CSO Plateforme';
   }, []);
+
   return (
     <React.Fragment>
       <Breadcrumb />
@@ -35,13 +36,22 @@ const Signin1 = () => {
               </div>
               <h3 className="mb-4">Se connecter</h3>
               <AuthLogin />
-              <p className="mb-2 text-muted">
+              {/* <p className="mb-2 text-muted">
                 Forgot password?{' '}
                 <NavLink to={'#'} className="f-w-400">
                   Reset
                 </NavLink>
+              </p> */}
+              <p className="mb-0 text-muted">
+                Vous n'êtes pas membre ?{' '}
+                <Button
+                  variant="link"
+                  className="f-w-400 p-0"
+                  onClick={() => window.location.href = '/choriste/formulaire'}
+                >
+                  Devenez membre
+                </Button>
               </p>
-            
             </Card.Body>
           </Card>
         </div>

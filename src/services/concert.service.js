@@ -36,3 +36,9 @@ export const getConcertAttendanceEligibility = async (concertId, choristeId) => 
   const res = await api.get(`/concerts/${concertId}/attendance/${choristeId}`);
   return res.data;
 };
+
+
+export const getFinalParticipantsForConcert = async (concertId) => {
+  const res = await api.get(`/concerts/${concertId}/available-choristes`);
+  return res.data;
+};

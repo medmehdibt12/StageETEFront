@@ -12,6 +12,20 @@ const useMenuItems = () => {
       icon: 'feather icon-user-plus'
     },
     {
+      id: 'manage-membership',
+      title: 'Gérer les Adhésions',
+      type: 'item',
+      url: '/admin/manage-membership',
+      icon: 'feather icon-user-plus'
+    },
+    {
+      id: 'manage-choriste',
+      title: 'Liste des Choristes ',
+      type: 'item',
+      url: '/admin/manage-choriste',
+      icon: 'feather icon-users'
+    },
+    {
       id: 'manage-oeuvres',
       title: 'Gérer les Œuvres',
       type: 'item',
@@ -69,6 +83,13 @@ const useMenuItems = () => {
       type: 'item',
       icon: 'feather icon-calendar',
       url: '/choriste/concerts'
+    },
+    {
+      id: 'declare-conge',
+      title: 'Déclarer un congé',
+      type: 'item',
+      icon: 'feather icon-pause-circle',
+      url: '/choriste/declare-conge'
     }
   ];
 
@@ -79,6 +100,13 @@ const useMenuItems = () => {
       type: 'item',
       icon: 'feather icon-calendar',
       url: '/program/season-programme'
+    },
+    {
+      id: 'gerer-conge',
+      title: 'Gérer les congés',
+      type: 'item',
+      icon: 'feather icon-calendar',
+      url: '/manager/manage-duty'
     }
   ]; // Add later if needed
 

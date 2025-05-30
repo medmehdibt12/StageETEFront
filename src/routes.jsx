@@ -46,6 +46,10 @@ const routes = [
     element: lazy(() => import('./views/auth/signin/SignIn1'))
   },
   {
+    path: '/choriste/formulaire', // New route for Formulaire
+    element: lazy(() => import('./views/choristeSidebarContents/formulaire/Formulaire'))
+  },
+  {
     path: '*',
     guard: RequireAuth,
     layout: AdminLayout,
@@ -69,6 +73,14 @@ const routes = [
         element: lazy(() => import('./views/adminSidebarContents/oeuvres/ManageOeuvres'))
       },
       {
+        path: '/admin/manage-membership',
+        element: lazy(() => import('./views/adminSidebarContents/membership/ManageMembership'))
+      },
+      {
+        path: '/admin/manage-choriste',
+        element: lazy(() => import('./views/adminSidebarContents/choriste/ManageChoriste'))
+      },
+      {
         path: '/admin/manage-concerts',
         element: lazy(() => import('./views/adminSidebarContents/concerts/ManageConcerts'))
       },
@@ -80,6 +92,7 @@ const routes = [
         path: '/admin/final-participants',
         element: lazy(() => import('./views/adminSidebarContents/participants/FinalParticipants'))
       },
+    
 
       // 🔽 Common
       {
@@ -91,6 +104,10 @@ const routes = [
       {
         path: '/choriste/season-programme',
         element: lazy(() => import('./views/choristeSidebarContents/season/SeasonProgramme'))
+      },
+      {
+        path: '/choriste/declare-conge',
+        element: lazy(() => import('./views/choristeSidebarContents/record/DeclareRecord'))
       },
       {
         path: '/choriste/repetitions',
@@ -105,6 +122,10 @@ const routes = [
       {
         path: '/program/season-programme',
         element: lazy(() => import('./views/choristeSidebarContents/season/SeasonProgramme'))
+      },
+        {
+        path: '/manager/manage-duty',
+        element: lazy(() => import('./views/managerSidebarContents/record/ManageLeave'))
       },
       {
         path: '*',

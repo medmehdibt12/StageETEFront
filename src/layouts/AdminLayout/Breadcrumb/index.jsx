@@ -12,11 +12,16 @@ const titleMap = {
   "/admin/manage-rehearsals": "Gérer les Répétitions",
   "/admin/manage-eliminations": "Gérer les Éliminations",
   "/admin/final-participants": "Participants Finaux",
+  "/admin/manage-membership": "Gérer les Adhésions",
+  "/admin/manage-choriste": "Liste des Choristes",
   "/user/profile": "Mon Profil",
   "/choriste/season-programme": "Programme de la Saison",
   "/choriste/repetitions": "Liste des Répétitions",
   "/choriste/concerts": "Disponibilité aux Concerts",
+  "/choriste/declare-conge": "Déclarer un Congé",
+  "/manager/manage-duty": "Gérer les Congés",
   // "/program/season-programme": "Liste des Concerts",
+  // 
 
   // Add other protected paths here
 };
