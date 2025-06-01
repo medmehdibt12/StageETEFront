@@ -124,6 +124,13 @@ const useMenuItems = () => {
       type: 'item',
       icon: 'feather icon-calendar', // season program calendar
       url: '/program/season-programme'
+    },
+    {
+      id: 'list-choriste',
+      title: 'Liste des Choristes',
+      type: 'item',
+      url: '/chef/list-choriste',
+      icon: 'feather icon-users' // list of users/groups
     }
   ];
 

@@ -172,7 +172,7 @@ const RehearsalsList = () => {
                       padding: "6px 18px",
                     }}
                   >
-                    <CheckCircle size={16} /> Validated
+                    <CheckCircle size={16} /> Présent
                   </Button>
                 );
               } else if (isAfter) {

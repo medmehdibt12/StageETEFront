@@ -21,6 +21,7 @@ const titleMap = {
   "/choriste/declare-conge": "Déclarer un Congé",
   "/manager/manage-duty": "Gérer les Congés",
   "/manager/modify-tessiture": "Gérer les Tessitures",
+  "/chef/list-choriste": "Liste des Choristes",
   // "/program/season-programme": "Liste des Concerts",
   // 
 

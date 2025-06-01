@@ -13,12 +13,12 @@ const genderOptions = [
   { value: 'Femme', label: 'Femme' },
 ];
 
-const pupitreOptions = [
-  { value: 'soprano', label: 'Soprano' },
-  { value: 'alto', label: 'Alto' },
-  { value: 'ténor', label: 'Ténor' },
-  { value: 'basse', label: 'Basse' },
-];
+// const pupitreOptions = [
+//   { value: 'soprano', label: 'Soprano' },
+//   { value: 'alto', label: 'Alto' },
+//   { value: 'ténor', label: 'Ténor' },
+//   { value: 'basse', label: 'Basse' },
+// ];
 
 const EditProfileModal = ({ show, onHide }) => {
   const { user, refreshUser } = useAuth();
@@ -34,7 +34,7 @@ const EditProfileModal = ({ show, onHide }) => {
         gender: user.gender || '',
         nationality: user.nationality || '',
         birthDate: user.birthDate ? user.birthDate.slice(0, 10) : '',
-        pupitre: user.pupitre || '',
+        // pupitre: user.pupitre || '',
       });
 
       if (user.avatar) {
@@ -171,7 +171,7 @@ const EditProfileModal = ({ show, onHide }) => {
                   </Form.Group>
                 </Col>
 
-                <Col md={6} className="mt-2">
+                <Col xs={12} className="mt-2">
                   <Form.Group>
                     <Form.Label>Date de naissance</Form.Label>
                     <Form.Control
@@ -183,7 +183,7 @@ const EditProfileModal = ({ show, onHide }) => {
                   </Form.Group>
                 </Col>
 
-                <Col md={6} className="mt-2">
+                {/* <Col md={6} className="mt-2">
                   <Form.Group>
                     <Form.Label>Pupitre</Form.Label>
                     <Select
@@ -193,7 +193,7 @@ const EditProfileModal = ({ show, onHide }) => {
                       placeholder="Sélectionner"
                     />
                   </Form.Group>
-                </Col>
+                </Col> */}
               </>
             )}
           </Row>

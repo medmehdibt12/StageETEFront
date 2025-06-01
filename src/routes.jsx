@@ -130,6 +130,12 @@ const routes = [
         path: '/manager/modify-tessiture',
         element: lazy(() => import('./views/managerSidebarContents/tessiture/GestionTessiture'))
       },
+
+      // 🔽 Chef Pages
+      {
+        path: '/chef/list-choriste',
+        element: lazy(() => import('./views/chefSidebarContents/choriste/ListChoriste'))
+      },
       {
         path: '*',
         exact: 'true',

@@ -106,7 +106,7 @@ function ManageMembership() {
   return (
     <Container style={{ marginTop: '40px' }}>
       <h2 className="text-center mb-4" style={{ color: '#4b2e2e' }}>
-        Gestion des candidatures des choristes
+        {/* Gestion des candidatures des choristes */}
       </h2>
 
       {memberships.length === 0 ? (
