@@ -82,3 +82,21 @@ export const getAcceptedMemberships = async () => {
   return res.data;
 };
 
+export const updatePupitre = async (userId, pupitre) => {
+  try {
+    const response = await api.put(`/users/${userId}/voc-pupitre`, { pupitre });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Erreur lors de la mise à jour de la tessiture.");
+  }
+};
+
+
+export const getActiveChoristes = async () => {
+  try {
+    const res = await api.get('/users/active');
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Erreur lors de la récupération des choristes actifs.");
+  }
+};

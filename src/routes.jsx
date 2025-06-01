@@ -92,7 +92,6 @@ const routes = [
         path: '/admin/final-participants',
         element: lazy(() => import('./views/adminSidebarContents/participants/FinalParticipants'))
       },
-    
 
       // 🔽 Common
       {
@@ -123,9 +122,13 @@ const routes = [
         path: '/program/season-programme',
         element: lazy(() => import('./views/choristeSidebarContents/season/SeasonProgramme'))
       },
-        {
+      {
         path: '/manager/manage-duty',
         element: lazy(() => import('./views/managerSidebarContents/record/ManageLeave'))
+      },
+      {
+        path: '/manager/modify-tessiture',
+        element: lazy(() => import('./views/managerSidebarContents/tessiture/GestionTessiture'))
       },
       {
         path: '*',
