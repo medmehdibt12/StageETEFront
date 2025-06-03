@@ -10,7 +10,16 @@ import {
   updateOeuvre,
   // deleteOeuvrePermanent,
 } from "../../../services/oeuvre.service";
-import { Button, Form, Modal, Table, Col, Row, Spinner } from "react-bootstrap";
+import {
+  Button,
+  Form,
+  Modal,
+  Table,
+  Col,
+  Row,
+  Spinner,
+  Badge,
+} from "react-bootstrap";
 import Swal from "sweetalert2";
 import { Formik } from "formik";
 import * as Yup from "yup";
@@ -31,25 +40,23 @@ const ManageOeuvres = () => {
     value: g,
   }));
 
-const fetchOeuvres = async () => {
-  setLoading(true);
-  try {
-    const data = await getOeuvres();
-    setOeuvres(data);
+  const fetchOeuvres = async () => {
+    setLoading(true);
+    try {
+      const data = await getOeuvres();
+      setOeuvres(data);
 
-    // ⤵️ Combine static + dynamic genres
-    const fetchedGenres = data.map((o) => o.genre).filter(Boolean);
-    const allGenres = [...baseGenres, ...fetchedGenres];
-    const uniqueGenres = [...new Set(allGenres)];
-    setGenres(uniqueGenres);
-
-  } catch (err) {
-    console.error("Erreur de chargement", err);
-  } finally {
-    setLoading(false);
-  }
-};
-
+      // ⤵️ Combine static + dynamic genres
+      const fetchedGenres = data.map((o) => o.genre).filter(Boolean);
+      const allGenres = [...baseGenres, ...fetchedGenres];
+      const uniqueGenres = [...new Set(allGenres)];
+      setGenres(uniqueGenres);
+    } catch (err) {
+      console.error("Erreur de chargement", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchOeuvres();
@@ -64,33 +71,14 @@ const fetchOeuvres = async () => {
     currentPage * ITEMS_PER_PAGE
   );
 
-  // const handlePermanentDelete = async (id) => {
-  //   const { isConfirmed } = await Swal.fire({
-  //     title: "Supprimer définitivement ?",
-  //     text: "Cette action est irréversible.",
-  //     icon: "warning",
-  //     showCancelButton: true,
-  //     confirmButtonText: "Oui, supprimer",
-  //   });
-  //   if (isConfirmed) {
-  //     await deleteOeuvrePermanent(id);
-  //     fetchOeuvres();
-  //     Swal.fire(
-  //       "Supprimée",
-  //       "L’œuvre a été supprimée définitivement.",
-  //       "success"
-  //     );
-  //   }
-  // };
-
   // opens the PDF in a SweetAlert iframe
   const handlePdfPreview = (filename) => {
     Swal.fire({
       title: "Aperçu PDF",
       html: `<iframe
-      src="${BACKEND_URL}/uploads/documents/${filename}"
-      width="100%" height="600px" style="border:none;"
-    ></iframe>`,
+        src="${BACKEND_URL}/uploads/documents/${filename}"
+        width="100%" height="600px" style="border:none;"
+      ></iframe>`,
       width: 800,
       showCloseButton: true,
       showConfirmButton: false,
@@ -100,7 +88,6 @@ const fetchOeuvres = async () => {
   // opens the PDF in a new tab for download
   const handlePdfDownload = (filename) => {
     const url = `${BACKEND_URL}/uploads/documents/${filename}`;
-    // open in a new blank tab
     window.open(url, "_blank");
   };
 
@@ -138,7 +125,7 @@ const fetchOeuvres = async () => {
                 <th>Compositeurs</th>
                 <th>Arrangeurs</th>
                 <th>Genre</th>
-                <th>Chœur requis</th>
+                <th className="text-center">Chœur requis</th>
                 <th>Paroles (PDF)</th>
                 <th>Partition (PDF)</th>
                 <th>Actions</th>
@@ -151,10 +138,15 @@ const fetchOeuvres = async () => {
                   <td>{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
                   <td>{o.title}</td>
                   <td>{o.composers.join(", ")}</td>
-
                   <td>{o.arrangers.join(", ")}</td>
                   <td>{o.genre || "-"}</td>
-                  <td>{o.requiresChoir ? "Oui" : "Non"}</td>
+                  <td className="text-center align-middle">
+                    {o.requiresChoir ? (
+                      <Badge bg="success">Oui</Badge>
+                    ) : (
+                      <Badge bg="secondary">Non</Badge>
+                    )}
+                  </td>
 
                   <td className="text-center align-middle">
                     {o.lyrics ? (
@@ -455,7 +447,7 @@ const fetchOeuvres = async () => {
                   </Col>
                 </Row>
 
-                <Form.Group>
+                <Form.Group className="mb-2">
                   <Form.Label>Genre</Form.Label>
                   <CreatableSelect
                     name="genre"

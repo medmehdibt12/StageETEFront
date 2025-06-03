@@ -17,6 +17,18 @@ const DeclareLeave = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // 1) Si l’utilisateur est en congé, on n’affiche ni formulaire ni bouton
+  if (user?.status === 'En congé') {
+    return (
+      <Container style={{ maxWidth: 600, marginTop: 50 }}>
+        <Card className="shadow-lg text-center p-4">
+          <h3>Vous êtes en congé</h3>
+          <p>Impossible de déclarer un nouveau congé pendant cette période.</p>
+        </Card>
+      </Container>
+    );
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -39,7 +51,6 @@ const DeclareLeave = () => {
     try {
       await declareLeave(userId, { startDate, endDate, reason });
 
-      // Show SweetAlert2 toast success notification
       MySwal.fire({
         toast: true,
         position: 'top-end',

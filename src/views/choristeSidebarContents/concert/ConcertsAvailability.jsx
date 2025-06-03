@@ -5,13 +5,36 @@ import {
   markConcertAvailability,
   getConcertAttendanceEligibility,
 } from "../../../services/concert.service";
-import { Card, Row, Col, Button, Spinner } from "react-bootstrap";
+import {
+  Card,
+  Row,
+  Col,
+  Button,
+  Spinner,
+  Form,
+  InputGroup,
+} from "react-bootstrap";
 import Swal from "sweetalert2";
+import Select from "react-select";
 import { useAuth } from "../../../contexts/AuthContext";
 import { CheckCircle, XCircle } from "lucide-react";
 
+const TIME_FILTER_OPTIONS = [
+  { value: "upcoming", label: "À venir" },
+  { value: "past", label: "Passés" },
+  { value: "all", label: "Tous" },
+];
+
 const ConcertsAvailability = () => {
   const { user } = useAuth();
+
+  // --------- Nouveaux états pour la recherche et le filtre "À venir / Passés / Tous" ---------
+  const [searchTerm, setSearchTerm] = useState("");
+  // Par défaut sur "À venir"
+  const [selectedTimeFilter, setSelectedTimeFilter] = useState(
+    TIME_FILTER_OPTIONS[0]
+  );
+
   const [concerts, setConcerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [markingIds, setMarkingIds] = useState([]);
@@ -28,6 +51,7 @@ const ConcertsAvailability = () => {
       const data = await getConcerts();
       setConcerts(data);
 
+      // Construire la map d'éligibilité pour chaque concert
       const updatedMap = {};
       for (const concert of data) {
         try {
@@ -68,27 +92,85 @@ const ConcertsAvailability = () => {
     }
   };
 
-  // Pagination logic
+  // Filtrer par date (À venir / Passés / Tous)
+  const now = new Date();
+  const byTimeFilter = (concert) => {
+    const concertDate = new Date(concert.dateHeure);
+    if (selectedTimeFilter.value === "upcoming") {
+      return concertDate > now;
+    } else if (selectedTimeFilter.value === "past") {
+      return concertDate <= now;
+    }
+    return true; // "all"
+  };
+
+  // Filtrer par terme de recherche (titre de concert)
+  const bySearchTerm = (concert) =>
+    concert.title.toLowerCase().includes(searchTerm.toLowerCase());
+
+  // Appliquer les deux filtres
+  const filteredConcerts = concerts.filter(
+    (c) => byTimeFilter(c) && bySearchTerm(c)
+  );
+
+  // Pagination
   const indexOfLast = currentPage * concertsPerPage;
   const indexOfFirst = indexOfLast - concertsPerPage;
-  const currentConcerts = concerts.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(concerts.length / concertsPerPage);
+  const currentConcerts = filteredConcerts.slice(indexOfFirst, indexOfLast);
+  const totalPages = Math.ceil(filteredConcerts.length / concertsPerPage);
 
   return (
     <div className="p-4">
-      <div className="text-center mb-5">
-        <h2 style={{ fontWeight: 600 }}>Disponibilité aux Concerts</h2>
-        <p className="text-muted">
-          Indiquez à quels concerts vous pouvez participer.
-        </p>
+      {/* 1) Filtre "À venir / Passés / Tous" en React-Select */}
+      <div style={{ maxWidth: 240, marginBottom: "1rem" }}>
+        <Select
+          options={TIME_FILTER_OPTIONS}
+          value={selectedTimeFilter}
+          onChange={(opt) => {
+            setSelectedTimeFilter(opt);
+            setCurrentPage(1);
+          }}
+          isSearchable={false}
+          placeholder="Afficher : "
+          styles={{
+            control: (provided) => ({
+              ...provided,
+              minHeight: "32px",
+              fontSize: "0.9rem",
+            }),
+            singleValue: (provided) => ({
+              ...provided,
+              marginLeft: 8,
+            }),
+            menu: (provided) => ({
+              ...provided,
+              fontSize: "0.9rem",
+            }),
+          }}
+        />
       </div>
+
+      {/* 2) Zone de recherche */}
+      <Form.Group className="mb-4" style={{ maxWidth: 400 }}>
+        <InputGroup>
+          <Form.Control
+            type="text"
+            placeholder="Rechercher par titre de concert..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1); // revenir à la première page si on change la recherche
+            }}
+          />
+        </InputGroup>
+      </Form.Group>
 
       {loading ? (
         <div className="text-center py-5">
           <Spinner animation="border" />
         </div>
-      ) : concerts.length === 0 ? (
-        <p className="text-muted text-center">Aucun concert prévu.</p>
+      ) : filteredConcerts.length === 0 ? (
+        <p className="text-muted text-center">Aucun concert correspondant.</p>
       ) : (
         <>
           <Row xs={1} md={2} lg={3} className="g-4">
@@ -98,7 +180,7 @@ const ConcertsAvailability = () => {
               );
               const isMarking = markingIds.includes(concert._id);
               const concertDate = new Date(concert.dateHeure);
-              const isFuture = concertDate > new Date();
+              const isFuture = concertDate > now;
               const isEligible = eligibilityMap[concert._id];
 
               return (
@@ -109,11 +191,10 @@ const ConcertsAvailability = () => {
                   >
                     <Card.Body>
                       <Card.Title style={{ fontWeight: 600 }}>
-                      {concert.title}
+                        {concert.title}
                       </Card.Title>
                       <Card.Text>
-                        <strong>📍 Lieu :</strong>{" "}
-                        {concert.location}
+                        <strong>📍 Lieu :</strong> {concert.location}
                         <br />
                         <strong>📅 Date :</strong>{" "}
                         {concertDate.toLocaleDateString("fr-FR")}
@@ -152,12 +233,23 @@ const ConcertsAvailability = () => {
                           >
                             <CheckCircle size={16} /> Disponible
                           </Button>
+                        ) : user.status === "En congé" ? (
+                          <Button
+                            variant="secondary"
+                            disabled
+                            size="sm"
+                            style={{ borderRadius: 20, opacity: 0.6 }}
+                          >
+                            En congé
+                          </Button>
                         ) : isFuture ? (
                           isEligible ? (
                             <Button
                               variant="outline-primary"
                               size="sm"
-                              onClick={() => handleMarkAvailable(concert._id)}
+                              onClick={() =>
+                                handleMarkAvailable(concert._id)
+                              }
                               disabled={isMarking}
                               style={{
                                 borderRadius: 20,
@@ -173,19 +265,21 @@ const ConcertsAvailability = () => {
                               size="sm"
                               style={{ borderRadius: 20 }}
                             >
-                              <XCircle size={16} /> Taux de présence insuffisant
+                              <XCircle size={16} /> Taux de présence
+                              insuffisant
                             </Button>
                           )
                         ) : (
                           <Button
                             variant="secondary"
                             disabled
-                            size="sm"
-                            style={{ borderRadius: 20, opacity: 0.6 }}
+                          size="sm"
+                           style={{ borderRadius: 20, opacity: 0.6 }}
                           >
-                            Concert passé
+                            Non disponible
                           </Button>
                         )}
+                      
                       </div>
                     </Card.Body>
                   </Card>
@@ -199,7 +293,9 @@ const ConcertsAvailability = () => {
             <div className="d-flex justify-content-center mt-4">
               <ul className="pagination">
                 <li
-                  className={`page-item ${currentPage === 1 ? "disabled" : ""}`}
+                  className={`page-item ${
+                    currentPage === 1 ? "disabled" : ""
+                  }`}
                 >
                   <button
                     className="page-link"
@@ -209,7 +305,9 @@ const ConcertsAvailability = () => {
                   </button>
                 </li>
                 <li
-                  className={`page-item ${currentPage === 1 ? "disabled" : ""}`}
+                  className={`page-item ${
+                    currentPage === 1 ? "disabled" : ""
+                  }`}
                 >
                   <button
                     className="page-link"
@@ -235,7 +333,9 @@ const ConcertsAvailability = () => {
                           </li>
                         )}
                         <li
-                          className={`page-item ${currentPage === n ? "active" : ""}`}
+                          className={`page-item ${
+                            currentPage === n ? "active" : ""
+                          }`}
                         >
                           <button
                             className="page-link"
@@ -248,7 +348,9 @@ const ConcertsAvailability = () => {
                     );
                   })}
                 <li
-                  className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}
+                  className={`page-item ${
+                    currentPage === totalPages ? "disabled" : ""
+                  }`}
                 >
                   <button
                     className="page-link"
@@ -258,7 +360,9 @@ const ConcertsAvailability = () => {
                   </button>
                 </li>
                 <li
-                  className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}
+                  className={`page-item ${
+                    currentPage === totalPages ? "disabled" : ""
+                  }`}
                 >
                   <button
                     className="page-link"

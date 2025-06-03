@@ -1,8 +1,9 @@
+/* eslint-disable react/no-unescaped-entities */
 import React, { useEffect, useState } from 'react';
 import Select from 'react-select';
-import { Container, Row, Col, Card, Spinner, Alert } from 'react-bootstrap';
+import { Container, Spinner, Alert, Tabs, Tab, Table, Form, InputGroup } from 'react-bootstrap';
 import { MdEmail } from 'react-icons/md';
-import { FaVenusMars, FaPhone, FaGlobe, FaMusic } from 'react-icons/fa';
+import { FaGlobe, FaUserAlt } from 'react-icons/fa';
 
 import { getConcerts, getFinalParticipantsForConcert } from '../../../services/concert.service';
 
@@ -13,34 +14,49 @@ const FinalParticipants = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch concerts
+  // Onglet actif parmi : "Toutes", "soprano", "alto", "ténor", "basse"
+  const [activeTab, setActiveTab] = useState('Toutes');
+
+  // ** NOUVEAU : état pour la recherche par nom **
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Les valeurs “officielles” des pupitres
+  const PUPITRE_VALUES = ['soprano', 'alto', 'ténor', 'basse'];
+
+  // Charger la liste des concerts pour le sélecteur
   useEffect(() => {
     const fetchConcerts = async () => {
       try {
         const data = await getConcerts();
-        const formattedConcerts = data.map((concert) => ({
+        const formatted = data.map((concert) => ({
           value: concert._id,
           label: `${concert.title} — ${new Date(concert.dateHeure).toLocaleDateString('fr-TN')}`
         }));
-        setConcerts(formattedConcerts);
-      } catch (err) {
+        setConcerts(formatted);
+      } catch {
         setError('Erreur lors du chargement des concerts.');
       }
     };
     fetchConcerts();
   }, []);
 
-  // Fetch participants for selected concert
+  // Dès qu’un concert est sélectionné, charger ses participants
   useEffect(() => {
     const fetchParticipants = async () => {
-      if (!selectedConcert) return;
+      if (!selectedConcert) {
+        setParticipants([]);
+        return;
+      }
       setLoading(true);
       try {
         const data = await getFinalParticipantsForConcert(selectedConcert.value);
         setParticipants(data);
         setError('');
-      } catch (err) {
+        // Remettre l’onglet sur “Toutes” à chaque sélection de concert
+        setActiveTab('Toutes');
+      } catch {
         setError('Erreur lors du chargement des participants.');
+        setParticipants([]);
       } finally {
         setLoading(false);
       }
@@ -48,104 +64,136 @@ const FinalParticipants = () => {
     fetchParticipants();
   }, [selectedConcert]);
 
-  // Group by pupitre
-  const groupedByPupitre = participants.reduce((acc, choriste) => {
-    const pupitre = choriste.pupitre || 'Non défini';
-    acc[pupitre] = acc[pupitre] || [];
-    acc[pupitre].push(choriste);
+  // Grouper temporairement par pupitre pour calculer les totaux
+  const countsByPupitre = PUPITRE_VALUES.reduce((acc, pup) => {
+    acc[pup] = participants.filter((c) => c.pupitre?.toLowerCase() === pup.toLowerCase()).length;
     return acc;
   }, {});
 
+  // Total de participants toutes catégories confondues
+  const totalCount = participants.length;
+
+  // ** NOUVELLE FONCTION : filtrer selon onglet + recherche par nom **
+  const getFilteredList = () => {
+    let filtered = [];
+    if (activeTab === 'Toutes') {
+      filtered = participants;
+    } else {
+      filtered = participants.filter((c) => c.pupitre?.toLowerCase() === activeTab.toLowerCase());
+    }
+
+    // Appliquer le filtre par nom si searchTerm n'est pas vide
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter((c) => {
+        const fullName = `${c.firstName} ${c.lastName}`.toLowerCase();
+        return fullName.includes(term);
+      });
+    }
+
+    return filtered;
+  };
+
   return (
     <Container style={{ marginTop: '40px' }}>
-      <h2 className="text-center mb-4" style={{ color: '#4b2e2e' }}>
-        Liste Finale des Participants au Concert
-      </h2>
-
-      {/* Select Concert */}
+      {/* Sélecteur de concert */}
       <div className="mb-4" style={{ maxWidth: 500, margin: '0 auto' }}>
         <label className="form-label fw-bold">Choisir un concert</label>
         <Select
           options={concerts}
           value={selectedConcert}
-          onChange={setSelectedConcert}
+          onChange={(val) => setSelectedConcert(val)}
           placeholder="Sélectionnez un concert..."
           isClearable
           styles={{
             control: (base) => ({
               ...base,
-
               boxShadow: 'none'
             })
           }}
         />
       </div>
 
-      {/* Loading */}
+      {/* Si on charge les participants */}
       {loading && (
         <div className="text-center py-5">
           <Spinner animation="border" variant="secondary" />
         </div>
       )}
 
-      {/* Error */}
+      {/* Si erreur */}
       {error && (
         <Alert variant="danger" className="text-center">
           {error}
         </Alert>
       )}
 
-      {/* No Participants */}
-      {!loading && selectedConcert && Object.keys(groupedByPupitre).length === 0 && (
+      {/* Si aucun concert n'est sélectionné */}
+      {!loading && !selectedConcert && <p className="text-center">Veuillez sélectionner un concert ci-dessus.</p>}
+
+      {/* Si concert sélectionné mais pas de participants */}
+      {!loading && selectedConcert && participants.length === 0 && (
         <p className="text-center">Aucun participant disponible pour ce concert.</p>
       )}
 
-      {/* Participants grouped by pupitre */}
-      {!loading &&
-        Object.entries(groupedByPupitre).map(([pupitre, choristes]) => (
-          <div key={pupitre} className="mb-5">
-            <h4
-              className="mb-3 d-flex align-items-center justify-content-between flex-wrap"
-              style={{ borderBottom: '1px solid black', paddingBottom: '4px' }}
-            >
-              <span className="d-flex align-items-center text-capitalize text-dark" style={{ fontSize: '1rem' }}>
-                <FaMusic className="me-1 text-primary" size={16} />
-                {pupitre}
-              </span>
-              <span className="badge rounded-pill bg-primary" style={{ fontSize: '0.8rem', padding: '0.25em 0.5em' }}>
-                {choristes.length} membre{choristes.length > 1 ? 's' : ''}
-              </span>
-            </h4>
+      {/* Si participants existants, afficher la zone de recherche + onglets */}
+      {!loading && selectedConcert && participants.length > 0 && (
+        <>
+          {/* === NOUVEAU : Champ de recherche par nom === */}
+          <Form.Group className="mb-3" style={{ maxWidth: 400 }}>
+            <InputGroup>
+              <Form.Control
+                type="text"
+                placeholder="Rechercher par nom..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </InputGroup>
+          </Form.Group>
 
-            <Row xs={1} sm={2} md={3} className="g-4">
-              {choristes.map((choriste) => (
-                <Col key={choriste._id}>
-                  <Card style={{ borderColor: '#8b5e3c', borderWidth: '2px' }} className="shadow-sm">
-                    <Card.Body>
-                      <Card.Title style={{ color: '#4b2e2e' }}>
-                        {choriste.firstName} {choriste.lastName}
-                      </Card.Title>
-                      <Card.Text className="text-muted" style={{ fontSize: '0.95rem' }}>
-                        <p>
-                          <MdEmail className="me-2 text-secondary" /> <strong>Email:</strong> {choriste.email}
-                        </p>
-                        <p>
-                          <FaVenusMars className="me-2 text-secondary" /> <strong>Genre:</strong> {choriste.gender}
-                        </p>
-                        <p>
-                          <FaPhone className="me-2 text-secondary" /> <strong>Téléphone:</strong> {choriste.phone}
-                        </p>
-                        <p>
-                          <FaGlobe className="me-2 text-secondary" /> <strong>Nationalité:</strong> {choriste.nationality}
-                        </p>
-                      </Card.Text>
-                    </Card.Body>
-                  </Card>
-                </Col>
+          {/* Onglets « Toutes (N) », « Soprano (n) », etc. */}
+          <Tabs activeKey={activeTab} onSelect={(tabKey) => setActiveTab(tabKey)} className="mb-4">
+            {/* Onglet "Toutes" */}
+            <Tab eventKey="Toutes" title={`Toutes les tessitures (${totalCount})`} />
+
+            {/* Onglet pour chaque pupitre */}
+            {PUPITRE_VALUES.map((pup) => (
+              <Tab key={pup} eventKey={pup} title={`${pup.charAt(0).toUpperCase() + pup.slice(1)} (${countsByPupitre[pup]})`} />
+            ))}
+          </Tabs>
+
+          {/* Tableau du pupitre actif après filtres */}
+          <Table striped bordered hover responsive className="align-middle">
+            <thead>
+              <tr>
+                <th style={{ minWidth: '200px' }}>Nom</th>
+                <th style={{ minWidth: '250px' }}>Email</th>
+                <th style={{ minWidth: '200px' }}>Nationalité</th>
+              </tr>
+            </thead>
+            <tbody>
+              {getFilteredList().map((choriste) => (
+                <tr key={choriste._id}>
+                  <td>
+                    <div className="d-flex align-items-center">
+                      <FaUserAlt className="me-2 text-secondary" />
+                      {choriste.firstName} {choriste.lastName}
+                    </div>
+                  </td>
+                  <td>
+                    <MdEmail className="me-2 text-secondary" />
+                    {choriste.email}
+                  </td>
+                  <td>
+                    <FaGlobe className="me-2 text-secondary" />
+                    {choriste.nationality || '-'}
+                  </td>
+                </tr>
               ))}
-            </Row>
-          </div>
-        ))}
+            </tbody>
+          </Table>
+        </>
+      )}
     </Container>
   );
 };

@@ -104,7 +104,7 @@ function ManageLeave() {
 
   return (
     <Container style={{ marginTop: 40, maxWidth: 1200 }}>
-      <h2 className="mb-4 text-center fw-bold">Demandes de Congé</h2>
+      {/* <h2 className="mb-4 text-center fw-bold">Declaration de Congé</h2> */}
 
       {/* Search input */}
       <Form.Group controlId="searchName" className="mb-4" style={{ maxWidth: 400 }}>

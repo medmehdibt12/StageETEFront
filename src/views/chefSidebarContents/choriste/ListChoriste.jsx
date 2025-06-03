@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Card, Row, Col, Spinner, Alert, Button } from 'react-bootstrap';
+import { Container, Card, Row, Col, Spinner, Alert, Button, Form, Pagination } from 'react-bootstrap';
 import { getAcceptedMemberships } from '../../../services/accounts.service';
 import { FaEnvelope, FaVenusMars, FaBirthdayCake, FaGlobe, FaIdCard, FaPhone, FaBriefcase, FaRulerVertical, FaMusic } from 'react-icons/fa';
+
+const ITEMS_PER_PAGE = 6;
 
 function ListChoriste() {
   const [choristers, setChoristers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchChoristers = async () => {
     setLoading(true);
@@ -34,11 +38,31 @@ function ListChoriste() {
     });
   };
 
+  const filteredChoristers = choristers.filter((c) => `${c.firstName} ${c.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const totalPages = Math.ceil(filteredChoristers.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const currentChoristers = filteredChoristers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <Container style={{ marginTop: 40, maxWidth: 1200 }}>
-      <h2 className="text-center mb-4" style={{ color: '#4b2e2e', fontWeight: 700, fontSize: '2rem' }}>
-        Liste des Choristes
-      </h2>
+      <Form.Group className="mb-4 d-flex" controlId="searchChoriste">
+        <Form.Control
+          type="text"
+          placeholder="Rechercher par nom ou prénom"
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setCurrentPage(1); // reset page on search
+          }}
+          style={{ maxWidth: '320px' }}
+        />
+      </Form.Group>
 
       {loading && (
         <div className="d-flex justify-content-center align-items-center" style={{ minHeight: 250 }}>
@@ -57,14 +81,14 @@ function ListChoriste() {
         </Alert>
       )}
 
-      {!loading && !error && choristers.length === 0 && (
+      {!loading && !error && filteredChoristers.length === 0 && (
         <p className="text-center text-muted" style={{ fontSize: '1.1rem' }}>
-          Aucun choriste accepté pour le moment.
+          Aucun choriste trouvé.
         </p>
       )}
 
       <Row xs={1} sm={2} md={2} lg={3} className="g-4">
-        {choristers.map((choriste) => (
+        {currentChoristers.map((choriste) => (
           <Col key={choriste._id}>
             <Card
               className="h-100 shadow-sm"
@@ -122,6 +146,19 @@ function ListChoriste() {
           </Col>
         ))}
       </Row>
+
+      {/* Pagination */}
+      {filteredChoristers.length > ITEMS_PER_PAGE && (
+        <div className="d-flex justify-content-center mt-4">
+          <Pagination>
+            {[...Array(totalPages)].map((_, idx) => (
+              <Pagination.Item key={idx + 1} active={currentPage === idx + 1} onClick={() => handlePageChange(idx + 1)}>
+                {idx + 1}
+              </Pagination.Item>
+            ))}
+          </Pagination>
+        </div>
+      )}
     </Container>
   );
 }

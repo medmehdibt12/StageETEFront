@@ -13,7 +13,7 @@ const useMenuItems = () => {
     },
     {
       id: 'manage-membership',
-      title: 'Gérer les Adhésions',
+      title: 'Listes des candidats',
       type: 'item',
       url: '/admin/manage-membership',
       icon: 'feather icon-user-check' // membership approvals
@@ -46,16 +46,16 @@ const useMenuItems = () => {
       url: '/admin/manage-rehearsals',
       icon: 'feather icon-clock' // rehearsal times
     },
-    {
-      id: 'manage-eliminations',
-      title: 'Gérer les Éliminations',
-      type: 'item',
-      url: '/admin/manage-eliminations',
-      icon: 'feather icon-user-x' // removing users
-    },
+    // {
+    //   id: 'manage-eliminations',
+    //   title: 'Gérer les Éliminations',
+    //   type: 'item',
+    //   url: '/admin/manage-eliminations',
+    //   icon: 'feather icon-user-x' // removing users
+    // },
     {
       id: 'final-participants',
-      title: 'Participants Finaux',
+      title: 'Participants Finaux aux Concerts',
       type: 'item',
       url: '/admin/final-participants',
       icon: 'feather icon-award' // final participants / awards
@@ -103,14 +103,14 @@ const useMenuItems = () => {
     },
     {
       id: 'gerer-conge',
-      title: 'Gérer les Congés',
+      title: 'Liste Declaration des Congés',
       type: 'item',
       icon: 'feather icon-check-square', // manage leave requests
       url: '/manager/manage-duty'
     },
     {
       id: 'gerer-tessitures',
-      title: 'Gérer les Tessitures',
+      title: 'Modification des tessitures',
       type: 'item',
       icon: 'feather icon-sliders', // vocal range/settings
       url: '/manager/modify-tessiture'

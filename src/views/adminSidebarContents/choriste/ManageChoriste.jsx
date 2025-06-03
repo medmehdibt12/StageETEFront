@@ -1,12 +1,36 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Card, Row, Col, Spinner, Alert, Button } from 'react-bootstrap';
+import {
+  Container,
+  Card,
+  Row,
+  Col,
+  Spinner,
+  Alert,
+  Button,
+  Form,
+  Pagination
+} from 'react-bootstrap';
 import { getAcceptedMemberships } from '../../../services/accounts.service';
-import { FaEnvelope, FaVenusMars, FaBirthdayCake, FaGlobe, FaIdCard, FaPhone, FaBriefcase, FaRulerVertical, FaMusic } from 'react-icons/fa';
+import {
+  FaEnvelope,
+  FaVenusMars,
+  FaBirthdayCake,
+  FaGlobe,
+  FaIdCard,
+  FaPhone,
+  FaBriefcase,
+  FaRulerVertical,
+  FaMusic
+} from 'react-icons/fa';
 
 function ManageChoriste() {
   const [choristers, setChoristers] = useState([]);
+  const [filteredChoristers, setFilteredChoristers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 6;
 
   const fetchChoristers = async () => {
     setLoading(true);
@@ -14,6 +38,7 @@ function ManageChoriste() {
     try {
       const data = await getAcceptedMemberships();
       setChoristers(data);
+      setFilteredChoristers(data);
     } catch {
       setError('Impossible de récupérer les choristes acceptés.');
     } finally {
@@ -25,6 +50,15 @@ function ManageChoriste() {
     fetchChoristers();
   }, []);
 
+  useEffect(() => {
+    const term = searchTerm.toLowerCase();
+    const filtered = choristers.filter((ch) =>
+      `${ch.firstName} ${ch.lastName}`.toLowerCase().includes(term)
+    );
+    setFilteredChoristers(filtered);
+    setCurrentPage(1); // Reset to first page on new search
+  }, [searchTerm, choristers]);
+
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A';
     return new Date(dateStr).toLocaleDateString('fr-FR', {
@@ -34,11 +68,52 @@ function ManageChoriste() {
     });
   };
 
+  const totalPages = Math.ceil(filteredChoristers.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const currentChoristers = filteredChoristers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    return (
+      <Pagination className="justify-content-center mt-4">
+        <Pagination.Prev
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage((prev) => prev - 1)}
+        />
+        {Array.from({ length: totalPages }, (_, i) => (
+          <Pagination.Item
+            key={i + 1}
+            active={i + 1 === currentPage}
+            onClick={() => setCurrentPage(i + 1)}
+          >
+            {i + 1}
+          </Pagination.Item>
+        ))}
+        <Pagination.Next
+          disabled={currentPage === totalPages}
+          onClick={() => setCurrentPage((prev) => prev + 1)}
+        />
+      </Pagination>
+    );
+  };
+
   return (
     <Container style={{ marginTop: 40, maxWidth: 1200 }}>
-      <h2 className="text-center mb-4" style={{ color: '#4b2e2e', fontWeight: 700, fontSize: '2rem' }}>
-        Liste des Choristes
-      </h2>
+      <Row className="mb-4 align-items-center">
+        <Col md={6}>
+          <Form.Control
+            type="text"
+            placeholder="Rechercher par nom..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              borderRadius: '8px',
+              fontSize: '0.9rem'
+            }}
+          />
+        </Col>
+      </Row>
 
       {loading && (
         <div className="d-flex justify-content-center align-items-center" style={{ minHeight: 250 }}>
@@ -57,14 +132,14 @@ function ManageChoriste() {
         </Alert>
       )}
 
-      {!loading && !error && choristers.length === 0 && (
+      {!loading && !error && currentChoristers.length === 0 && (
         <p className="text-center text-muted" style={{ fontSize: '1.1rem' }}>
-          Aucun choriste accepté pour le moment.
+          Aucun choriste correspondant à votre recherche.
         </p>
       )}
 
       <Row xs={1} sm={2} md={2} lg={3} className="g-4">
-        {choristers.map((choriste) => (
+        {currentChoristers.map((choriste) => (
           <Col key={choriste._id}>
             <Card
               className="h-100 shadow-sm"
@@ -122,6 +197,8 @@ function ManageChoriste() {
           </Col>
         ))}
       </Row>
+
+      {renderPagination()}
     </Container>
   );
 }

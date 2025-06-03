@@ -41,12 +41,12 @@ const ManageAccounts = () => {
     { value: "Femme", label: "Femme" },
   ];
 
-  const pupitreOptions = [
-    { value: "soprano", label: "Soprano" },
-    { value: "alto", label: "Alto" },
-    { value: "ténor", label: "Ténor" },
-    { value: "basse", label: "Basse" },
-  ];
+  // const pupitreOptions = [
+  //   { value: "soprano", label: "Soprano" },
+  //   { value: "alto", label: "Alto" },
+  //   { value: "ténor", label: "Ténor" },
+  //   { value: "basse", label: "Basse" },
+  // ];
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -178,89 +178,125 @@ const ManageAccounts = () => {
     Swal.fire("Rétabli !", "Le compte a été rétabli.", "success");
   };
 
-  const handleSubmit = async (values, { setSubmitting, resetForm }) => {
-    try {
-      // 1) duplicate‐email check as before…
-      if (editingUser) {
-        const collision = users.find(
-          (u) => u.email === values.email && u._id !== editingUser._id
-        );
-        if (collision) {
-          Swal.fire("Erreur", "Cet utilisateur existe déjà.", "error");
-          setSubmitting(false);
-          return;
-        }
-      }
+const handleSubmit = async (values, { setSubmitting, resetForm }) => {
+  try {
+    // 1) Vérifier la présence du CIN uniquement si c’est un choriste
+    if (values.role === "choriste" && !values.cin) {
+      Swal.fire("Erreur", "Le CIN est requis pour un choriste.", "error");
+      setSubmitting(false);
+      return;
+    }
 
-      const currentUserId = localStorage.getItem("userId");
-      if (editingUser) {
-        // 2) decide if the email was changed
-        const emailChanged = editingUser.email !== values.email;
-
-        // 3) only show loader when emailChanged
-        if (emailChanged) {
-          Swal.fire({
-            title: "Modification du compte…",
-            text: "Veuillez patienter pendant l’envoi des identifiants.",
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            didOpen: () => Swal.showLoading(),
-          });
-        }
-
-        // 4) call update regardless
-        await updateUser(editingUser._id, values);
-        if (editingUser._id === currentUserId) {
-          await refreshUser();
-        }
-
-        // 5) close loader if it was opened
-        if (emailChanged) {
-          Swal.close();
-        }
-
-        // 6) show the appropriate success message
+    // 2) Vérifier doublon d’email OU de CIN (si choriste)
+    if (editingUser) {
+      const collision = users.find((u) => {
+        const sameEmail = u.email === values.email && u._id !== editingUser._id;
+        const sameCin =
+          values.role === "choriste" &&
+          u.cin === values.cin &&
+          u._id !== editingUser._id;
+        return sameEmail || sameCin;
+      });
+      if (collision) {
         Swal.fire(
-          "Succès",
-          emailChanged
-            ? "L'utilisateur a été modifié avec succès. Les identifiants ont été renvoyés à la nouvelle adresse email."
-            : "L'utilisateur a été modifié avec succès.",
-          "success"
+          "Erreur",
+          "Un utilisateur avec cet email ou ce CIN existe déjà.",
+          "error"
         );
-      } else {
-        // create branch unchanged…
+        setSubmitting(false);
+        return;
+      }
+    } else {
+      const collision = users.find((u) => {
+        const sameEmail = u.email === values.email;
+        const sameCin = values.role === "choriste" && u.cin === values.cin;
+        return sameEmail || sameCin;
+      });
+      if (collision) {
+        Swal.fire(
+          "Erreur",
+          "Un utilisateur avec cet email ou ce CIN existe déjà.",
+          "error"
+        );
+        setSubmitting(false);
+        return;
+      }
+    }
+
+    const currentUserId = localStorage.getItem("userId");
+
+    if (editingUser) {
+      // 3) Déterminer si l’email ou le CIN a changé
+      const emailChanged = editingUser.email !== values.email;
+      const cinChanged =
+        values.role === "choriste" && editingUser.cin !== values.cin;
+
+      // 4) Afficher loader si nécessaire
+      if (emailChanged || cinChanged) {
         Swal.fire({
-          title: "Création du compte…",
+          title: "Modification du compte…",
           text: "Veuillez patienter pendant l’envoi des identifiants.",
           allowOutsideClick: false,
           allowEscapeKey: false,
           didOpen: () => Swal.showLoading(),
         });
-        await createUser(values);
-        Swal.close();
-        Swal.fire(
-          "Succès",
-          "L’utilisateur a été créé avec succès. Les identifiants ont été envoyés par email.",
-          "success"
-        );
       }
 
-      // refresh list & reset form
-      fetchUsers();
-      resetForm();
-      setShowModal(false);
-      setEditingUser(null);
-    } catch (err) {
-      const message = err?.response?.data?.message || "Échec de l'opération.";
+      // 5) Appeler l’API de mise à jour
+      await updateUser(editingUser._id, values);
+      if (editingUser._id === currentUserId) {
+        await refreshUser();
+      }
+
+      // 6) Fermer le loader si on l’a ouvert
+      if (emailChanged || cinChanged) {
+        Swal.close();
+      }
+
+      // 7) Afficher message de succès
       Swal.fire(
-        "Erreur",
-        message.includes("exists") ? "Cet utilisateur existe déjà." : message,
-        "error"
+        "Succès",
+        emailChanged || cinChanged
+          ? "L'utilisateur a été modifié avec succès. Les identifiants ont été renvoyés à la nouvelle adresse email ou au nouveau CIN."
+          : "L'utilisateur a été modifié avec succès.",
+        "success"
       );
-    } finally {
-      setSubmitting(false);
+    } else {
+      // 8) Branche création
+      Swal.fire({
+        title: "Création du compte…",
+        text: "Veuillez patienter pendant l’envoi des identifiants.",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => Swal.showLoading(),
+      });
+      await createUser(values);
+      Swal.close();
+      Swal.fire(
+        "Succès",
+        "L’utilisateur a été créé avec succès. Les identifiants ont été envoyés par email.",
+        "success"
+      );
     }
-  };
+
+    // 9) Rafraîchir la liste, réinitialiser le formulaire, fermer la modale
+    fetchUsers();
+    resetForm();
+    setShowModal(false);
+    setEditingUser(null);
+  } catch (err) {
+    const message = err?.response?.data?.message || "Échec de l'opération.";
+    Swal.fire(
+      "Erreur",
+      message.includes("exists") ? "Cet utilisateur existe déjà." : message,
+      "error"
+    );
+  } finally {
+    setSubmitting(false);
+  }
+};
+
+
 
   return (
     <div className="p-4">
@@ -461,367 +497,337 @@ const ManageAccounts = () => {
         </>
       )}
 
-      <Modal show={showModal} onHide={() => setShowModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>
-            {editingUser ? "Modifier un utilisateur" : "Ajouter un utilisateur"}
-          </Modal.Title>
-        </Modal.Header>
-        <Formik
-          initialValues={{
-            firstName: editingUser?.firstName || "",
-            lastName: editingUser?.lastName || "",
-            email: editingUser?.email || "",
-            password: "",
-            role: editingUser?.role || "",
-            gender: editingUser?.gender || "",
-            height: editingUser?.height || "",
-            birthDate: editingUser?.birthDate || "",
-            nationality: editingUser?.nationality || "",
-            cin: editingUser?.cin || "",
-            hasMusicalKnowledge: editingUser?.hasMusicalKnowledge || false,
-            hasInstrumentalKnowledge:
-              editingUser?.hasInstrumentalKnowledge || false,
-            phone: editingUser?.phone || "",
-            pupitre: editingUser?.pupitre || "",
-          }}
-          validationSchema={Yup.lazy((values) => {
-            let shape = {
-              firstName: Yup.string().required("Le prénom est requis"),
-              lastName: Yup.string().required("Le nom est requis"),
-              email: Yup.string()
-                .email("Email invalide")
-                .required("Email requis"),
-              phone: Yup.string().required("Téléphone requis"),
-              role: Yup.string().required("Rôle requis"),
-            };
+    <Modal show={showModal} onHide={() => setShowModal(false)}>
+  <Modal.Header closeButton>
+    <Modal.Title>
+      {editingUser ? "Modifier un utilisateur" : "Ajouter un utilisateur"}
+    </Modal.Title>
+  </Modal.Header>
 
-            if (values.role === "choriste") {
-              shape = {
-                ...shape,
-                gender: Yup.string().required("Genre requis"),
-                birthDate: Yup.string().required("Date de naissance requise"),
-                nationality: Yup.string().required("Nationalité requise"),
-                cin: Yup.string().required("CIN requis"),
-                hasMusicalKnowledge: Yup.boolean().required(),
-                hasInstrumentalKnowledge: Yup.boolean().required(),
-                height: Yup.string().required("Taille requis"),
-                pupitre: Yup.string().required("Pupitre requis"),
-              };
-            }
-            return Yup.object().shape(shape);
-          })}
-          onSubmit={handleSubmit}
-        >
-          {({
-            values,
-            handleChange,
-            handleBlur,
-            handleSubmit,
-            isSubmitting,
-            touched,
-            errors,
-            dirty,
-            isValid,
-            setFieldValue,
-          }) => (
-            <Form noValidate onSubmit={handleSubmit}>
-              <Modal.Body>
-                <Row className="mb-2">
-                  <Col>
-                    <Form.Group>
-                      <Form.Label>Prénom</Form.Label>
-                      <Form.Control
-                        name="firstName"
-                        value={values.firstName}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        isInvalid={touched.firstName && !!errors.firstName}
-                      />
-                      <Form.Control.Feedback type="invalid">
-                        {errors.firstName}
-                      </Form.Control.Feedback>
-                    </Form.Group>
-                  </Col>
-                  <Col>
-                    <Form.Group>
-                      <Form.Label>Nom</Form.Label>
-                      <Form.Control
-                        name="lastName"
-                        value={values.lastName}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        isInvalid={touched.lastName && !!errors.lastName}
-                      />
-                      <Form.Control.Feedback type="invalid">
-                        {errors.lastName}
-                      </Form.Control.Feedback>
-                    </Form.Group>
-                  </Col>
-                </Row>
+  <Formik
+    initialValues={{
+      firstName: editingUser?.firstName || "",
+      lastName: editingUser?.lastName || "",
+      email: editingUser?.email || "",
+      password: "",
+      role: editingUser?.role || "",
+      gender: editingUser?.gender || "",
+      height: editingUser?.height || "",
+      birthDate: editingUser?.birthDate || "",
+      nationality: editingUser?.nationality || "",
+      cin: editingUser?.cin || "",
+      hasMusicalKnowledge: editingUser?.hasMusicalKnowledge || false,
+      hasInstrumentalKnowledge:
+        editingUser?.hasInstrumentalKnowledge || false,
+      phone: editingUser?.phone || "",
+      pupitre: editingUser?.pupitre || "",
+    }}
+    validationSchema={Yup.lazy((values) => {
+      let shape = {
+        firstName: Yup.string().required("Le prénom est requis"),
+        lastName: Yup.string().required("Le nom est requis"),
+        email: Yup.string()
+          .email("Email invalide")
+          .required("Email requis"),
+        phone: Yup.string().required("Téléphone requis"),
+        role: Yup.string().required("Rôle requis"),
+      };
 
-                <Form.Group className="mb-2">
-                  <Form.Label>Email</Form.Label>
-                  <Form.Control
-                    name="email"
-                    type="email"
-                    value={values.email}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    isInvalid={touched.email && !!errors.email}
-                  />
-                  <Form.Control.Feedback type="invalid">
-                    {errors.email}
-                  </Form.Control.Feedback>
-                </Form.Group>
+      if (values.role === "choriste") {
+        shape = {
+          ...shape,
+          gender: Yup.string().required("Genre requis"),
+          birthDate: Yup.string().required("Date de naissance requise"),
+          nationality: Yup.string().required("Nationalité requise"),
+          cin: Yup.string().required("CIN requis"),
+          hasMusicalKnowledge: Yup.boolean().required(),
+          hasInstrumentalKnowledge: Yup.boolean().required(),
+          height: Yup.string().required("Taille requise"),
+          pupitre: Yup.string().required("Pupitre requis"),
+        };
+      }
 
-                {/* {!editingUser && (
-                  <Form.Group className="mb-2">
-                    <Form.Label>Mot de passe</Form.Label>
+      return Yup.object().shape(shape);
+    })}
+    onSubmit={handleSubmit}
+  >
+    {({
+      values,
+      handleChange,
+      handleBlur,
+      handleSubmit,
+      isSubmitting,
+      touched,
+      errors,
+      dirty,
+      isValid,
+      setFieldValue,
+    }) => (
+      <Form noValidate onSubmit={handleSubmit}>
+        <Modal.Body>
+          <Row className="mb-2">
+            <Col>
+              <Form.Group>
+                <Form.Label>Prénom</Form.Label>
+                <Form.Control
+                  name="firstName"
+                  value={values.firstName}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  isInvalid={touched.firstName && !!errors.firstName}
+                />
+                <Form.Control.Feedback type="invalid">
+                  {errors.firstName}
+                </Form.Control.Feedback>
+              </Form.Group>
+            </Col>
+            <Col>
+              <Form.Group>
+                <Form.Label>Nom</Form.Label>
+                <Form.Control
+                  name="lastName"
+                  value={values.lastName}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  isInvalid={touched.lastName && !!errors.lastName}
+                />
+                <Form.Control.Feedback type="invalid">
+                  {errors.lastName}
+                </Form.Control.Feedback>
+              </Form.Group>
+            </Col>
+          </Row>
+
+          <Form.Group className="mb-2">
+            <Form.Label>Email</Form.Label>
+            <Form.Control
+              name="email"
+              type="email"
+              value={values.email}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              isInvalid={touched.email && !!errors.email}
+            />
+            <Form.Control.Feedback type="invalid">
+              {errors.email}
+            </Form.Control.Feedback>
+          </Form.Group>
+
+          <Form.Group className="mb-2">
+            <Form.Label>Téléphone</Form.Label>
+            <Form.Control
+              name="phone"
+              type="number"
+              value={values.phone}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              isInvalid={touched.phone && !!errors.phone}
+            />
+            <Form.Control.Feedback type="invalid">
+              {errors.phone}
+            </Form.Control.Feedback>
+          </Form.Group>
+
+          {/* Sélecteur de rôle */}
+          <Form.Group className="mb-2">
+            <Form.Label>Rôle</Form.Label>
+            <Select
+              options={roleOptions}
+              name="role"
+              value={roleOptions.find((o) => o.value === values.role)}
+              onChange={(o) => setFieldValue("role", o.value)}
+              onBlur={() => handleBlur({ target: { name: "role" } })}
+              className={touched.role && errors.role ? "is-invalid" : ""}
+            />
+            {touched.role && errors.role && (
+              <div className="invalid-feedback d-block">
+                {errors.role}
+              </div>
+            )}
+          </Form.Group>
+
+          {values.role === "choriste" && (
+            <>
+              {/* Genre */}
+              <Form.Group className="mb-2">
+                <Form.Label>Genre</Form.Label>
+                <Select
+                  options={genderOptions}
+                  name="gender"
+                  value={genderOptions.find((o) => o.value === values.gender)}
+                  onChange={(o) => setFieldValue("gender", o.value)}
+                  onBlur={() => handleBlur({ target: { name: "gender" } })}
+                  className={
+                    touched.gender && errors.gender ? "is-invalid" : ""
+                  }
+                />
+                {touched.gender && errors.gender && (
+                  <div className="invalid-feedback d-block">
+                    {errors.gender}
+                  </div>
+                )}
+              </Form.Group>
+
+              <Row className="mb-2">
+                <Col>
+                  <Form.Group>
+                    <Form.Label>Date de naissance</Form.Label>
                     <Form.Control
-                      name="password"
-                      type="password"
-                      value={values.password}
+                      type="date"
+                      name="birthDate"
+                      value={values.birthDate}
                       onChange={handleChange}
                       onBlur={handleBlur}
-                      isInvalid={touched.password && !!errors.password}
-                      placeholder="Un mot de passe sera généré automatiquement"
-                      disabled
+                      isInvalid={touched.birthDate && !!errors.birthDate}
                     />
                     <Form.Control.Feedback type="invalid">
-                      {errors.password}
+                      {errors.birthDate}
                     </Form.Control.Feedback>
                   </Form.Group>
-                )} */}
+                </Col>
+                <Col>
+                  <Form.Group>
+                    <Form.Label>CIN</Form.Label>
+                    <Form.Control
+                      name="cin"
+                      type="number"
+                      value={values.cin}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      isInvalid={touched.cin && !!errors.cin}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {errors.cin}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                </Col>
+              </Row>
 
-                {/* Téléphone */}
-                <Form.Group className="mb-2">
-                  <Form.Label>Téléphone</Form.Label>
-                  <Form.Control
-                    name="phone"
-                    value={values.phone}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    isInvalid={touched.phone && !!errors.phone}
-                    type="number"
-                  />
-                  <Form.Control.Feedback type="invalid">
-                    {errors.phone}
-                  </Form.Control.Feedback>
-                </Form.Group>
+              <Row className="mb-2">
+                <Col>
+                  <Form.Group>
+                    <Form.Label>Nationalité</Form.Label>
+                    <Form.Control
+                      name="nationality"
+                      value={values.nationality}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      isInvalid={
+                        touched.nationality && !!errors.nationality
+                      }
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {errors.nationality}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                </Col>
+                <Col>
+                  <Form.Group>
+                    <Form.Label>Taille (cm)</Form.Label>
+                    <Form.Control
+                      name="height"
+                      type="number"
+                      value={values.height}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      isInvalid={touched.height && !!errors.height}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {errors.height}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                </Col>
+              </Row>
 
-                {/* Role selector */}
-                <Form.Group className="mb-2">
-                  <Form.Label>Rôle</Form.Label>
-                  <Select
-                    options={roleOptions}
-                    name="role"
-                    value={roleOptions.find((o) => o.value === values.role)}
-                    onChange={(o) => setFieldValue("role", o.value)}
-                    onBlur={() => handleBlur({ target: { name: "role" } })}
-                    className={touched.role && errors.role ? "is-invalid" : ""}
-                  />
-                  {touched.role && errors.role && (
-                    <div className="invalid-feedback d-block">
-                      {errors.role}
-                    </div>
-                  )}
-                </Form.Group>
-
-                {values.role === "choriste" && (
-                  <>
-                    {/* Genre */}
-                    <Form.Group className="mb-2">
-                      <Form.Label>Genre</Form.Label>
-                      <Select
-                        options={genderOptions}
-                        name="gender"
-                        value={genderOptions.find(
-                          (o) => o.value === values.gender
-                        )}
-                        onChange={(o) => setFieldValue("gender", o.value)}
-                        onBlur={() =>
-                          handleBlur({ target: { name: "gender" } })
-                        }
-                        className={
-                          touched.gender && errors.gender ? "is-invalid" : ""
-                        }
-                      />
-                      {touched.gender && errors.gender && (
-                        <div className="invalid-feedback d-block">
-                          {errors.gender}
-                        </div>
-                      )}
-                    </Form.Group>
-
-                    <Row className="mb-2">
-                      <Col>
-                        <Form.Group>
-                          <Form.Label>Date de naissance</Form.Label>
-                          <Form.Control
-                            type="date"
-                            name="birthDate"
-                            value={values.birthDate}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            isInvalid={touched.birthDate && !!errors.birthDate}
-                          />
-                          <Form.Control.Feedback type="invalid">
-                            {errors.birthDate}
-                          </Form.Control.Feedback>
-                        </Form.Group>
-                      </Col>
-                      <Col>
-                        <Form.Group>
-                          <Form.Label>CIN</Form.Label>
-                          <Form.Control
-                            name="cin"
-                            value={values.cin}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            isInvalid={touched.cin && !!errors.cin}
-                            type="number"
-                          />
-                          <Form.Control.Feedback type="invalid">
-                            {errors.cin}
-                          </Form.Control.Feedback>
-                        </Form.Group>
-                      </Col>
-                    </Row>
-                    <Row className="mb-2">
-                      <Col>
-                        {/* Nationalité */}
-                        <Form.Group className="mb-2">
-                          <Form.Label>Nationalité</Form.Label>
-                          <Form.Control
-                            name="nationality"
-                            value={values.nationality}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            isInvalid={
-                              touched.nationality && !!errors.nationality
-                            }
-                          />
-                          <Form.Control.Feedback type="invalid">
-                            {errors.nationality}
-                          </Form.Control.Feedback>
-                        </Form.Group>
-                      </Col>
-                      <Col>
-                        {/* Taille */}
-                        <Form.Group className="mb-2">
-                          <Form.Label>Taille (cm)</Form.Label>
-                          <Form.Control
-                            name="height"
-                            value={values.height}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            isInvalid={touched.height && !!errors.height}
-                            type="number"
-                          />
-                          <Form.Control.Feedback type="invalid">
-                            {errors.height}
-                          </Form.Control.Feedback>
-                        </Form.Group>
-                      </Col>
-                    </Row>
-
-                    {/* Statut personnel */}
-                    {/* <Form.Group className="mb-2">
-                      <Form.Label>Statut personnel</Form.Label>
-                      <Select
-                        name="personalStatus"
-                        options={personalStatusOptions}
-                        value={personalStatusOptions.find(
-                          (o) => o.value === values.personalStatus
-                        )}
-                        onChange={(o) =>
-                          setFieldValue("personalStatus", o.value)
-                        }
-                        onBlur={() =>
-                          handleBlur({ target: { name: "personalStatus" } })
-                        }
-                        className={
-                          touched.personalStatus && errors.personalStatus
-                            ? "is-invalid"
-                            : ""
-                        }
-                      />
-                      {touched.personalStatus && errors.personalStatus && (
-                        <div className="invalid-feedback d-block">
-                          {errors.personalStatus}
-                        </div>
-                      )}
-                    </Form.Group> */}
-
-                    {/* Pupitre */}
-                    <Form.Group className="mb-2">
-                      <Form.Label>Pupitre</Form.Label>
-                      <Select
-                        options={pupitreOptions}
-                        name="pupitre"
-                        value={pupitreOptions.find(
-                          (o) => o.value === values.pupitre
-                        )}
-                        onChange={(o) => setFieldValue("pupitre", o.value)}
-                        onBlur={() =>
-                          handleBlur({ target: { name: "pupitre" } })
-                        }
-                        className={
-                          touched.pupitre && errors.pupitre ? "is-invalid" : ""
-                        }
-                      />
-                      {touched.pupitre && errors.pupitre && (
-                        <div className="invalid-feedback d-block">
-                          {errors.pupitre}
-                        </div>
-                      )}
-                    </Form.Group>
-
-                    <Row className="mb-2">
-                      <Col>
-                        <Form.Group>
-                          <Form.Check
-                            type="checkbox"
-                            label="Connaissance musicale"
-                            name="hasMusicalKnowledge"
-                            checked={values.hasMusicalKnowledge}
-                            onChange={handleChange}
-                          />
-                        </Form.Group>
-                      </Col>
-                      <Col>
-                        <Form.Group>
-                          <Form.Check
-                            type="checkbox"
-                            label="Pratique instrumentale"
-                            name="hasInstrumentalKnowledge"
-                            checked={values.hasInstrumentalKnowledge}
-                            onChange={handleChange}
-                          />
-                        </Form.Group>
-                      </Col>
-                    </Row>
-                  </>
+              {/* Pupitre (filtré selon le genre) */}
+              <Form.Group className="mb-2">
+                <Form.Label>Pupitre</Form.Label>
+                <Select
+                  name="pupitre"
+                  options={
+                    values.gender === "Homme"
+                      ? [
+                          { value: "ténor", label: "Ténor" },
+                          { value: "basse", label: "Basse" },
+                        ]
+                      : values.gender === "Femme"
+                      ? [
+                          { value: "soprano", label: "Soprano" },
+                          { value: "alto", label: "Alto" },
+                        ]
+                      : []
+                  }
+                  value={
+                    values.gender === "Homme"
+                      ? [
+                          { value: "ténor", label: "Ténor" },
+                          { value: "basse", label: "Basse" },
+                        ].find((o) => o.value === values.pupitre)
+                      : values.gender === "Femme"
+                      ? [
+                          { value: "soprano", label: "Soprano" },
+                          { value: "alto", label: "Alto" },
+                        ].find((o) => o.value === values.pupitre)
+                      : null
+                  }
+                  onChange={(o) => setFieldValue("pupitre", o.value)}
+                  onBlur={() =>
+                    handleBlur({ target: { name: "pupitre" } })
+                  }
+                  className={touched.pupitre && errors.pupitre ? "is-invalid" : ""}
+                />
+                {touched.pupitre && errors.pupitre && (
+                  <div className="invalid-feedback d-block">
+                    {errors.pupitre}
+                  </div>
                 )}
-              </Modal.Body>
+              </Form.Group>
 
-              <Modal.Footer>
-                <Button variant="secondary" onClick={() => setShowModal(false)}>
-                  Annuler
-                </Button>
-                <Button
-                  variant="primary"
-                  type="submit"
-                  disabled={isSubmitting || !isValid || (editingUser && !dirty)}
-                >
-                  {editingUser ? "Mettre à jour" : "Créer"}
-                </Button>
-              </Modal.Footer>
-            </Form>
+              <Row className="mb-2">
+                <Col>
+                  <Form.Group>
+                    <Form.Check
+                      type="checkbox"
+                      label="Connaissance musicale"
+                      name="hasMusicalKnowledge"
+                      checked={values.hasMusicalKnowledge}
+                      onChange={handleChange}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col>
+                  <Form.Group>
+                    <Form.Check
+                      type="checkbox"
+                      label="Pratique instrumentale"
+                      name="hasInstrumentalKnowledge"
+                      checked={values.hasInstrumentalKnowledge}
+                      onChange={handleChange}
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+            </>
           )}
-        </Formik>
-      </Modal>
+        </Modal.Body>
+
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowModal(false)}>
+            Annuler
+          </Button>
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={isSubmitting || !isValid || (editingUser && !dirty)}
+          >
+            {editingUser ? "Mettre à jour" : "Créer"}
+          </Button>
+        </Modal.Footer>
+      </Form>
+    )}
+  </Formik>
+</Modal>
+
     </div>
   );
 };

@@ -64,17 +64,23 @@ export const getMembershipSubmissions = async () => {
   return res.data;
 };
 
-// 📬 Accept membership
-export const acceptMembership = async (id) => {
-  const res = await api.put(`/users/accept/${id}`);
+// // 📬 Accept membership
+// export const acceptMembership = async (id) => {
+//   const res = await api.put(`/users/accept/${id}`);
+//   return res.data;
+// };
+
+export const sendTestDates = async (startDate, endDate) => {
+  const res = await api.post("/users/send-test-dates", { startDate, endDate });
   return res.data;
 };
 
+
 // 🚫 Refuse membership (with reason)
-export const refuseMembership = async (id, reason) => {
-  const res = await api.put(`/users/refuse/${id}`, { reason });
-  return res.data;
-};
+// export const refuseMembership = async (id, reason) => {
+//   const res = await api.put(`/users/refuse/${id}`, { reason });
+//   return res.data;
+// };
 
 // ✅ Get accepted choristers
 export const getAcceptedMemberships = async () => {

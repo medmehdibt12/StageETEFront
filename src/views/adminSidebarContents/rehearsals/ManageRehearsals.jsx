@@ -14,13 +14,18 @@ import { Formik } from "formik";
 import * as Yup from "yup";
 import Select from "react-select";
 import Swal from "sweetalert2";
-import CreatableSelect from "react-select/creatable";
 
 const ITEMS_PER_PAGE = 5;
 const pupitreOptions = ["soprano", "alto", "ténor", "basse"].map((p) => ({
   value: p,
   label: p.charAt(0).toUpperCase() + p.slice(1),
 }));
+
+// Fixed “Lieu” choices:
+const lieuOptions = [
+  { value: "Boulevard des arts", label: "Boulevard des arts" },
+  { value: "AMI Assurances",      label: "AMI Assurances"    },
+];
 
 const ManageRehearsals = () => {
   const [repetitions, setRepetitions] = useState([]);
@@ -30,13 +35,14 @@ const ManageRehearsals = () => {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [locations, setLocations] = useState([]);
 
   const now = new Date();
   const pad = (n) => String(n).padStart(2, "0");
 
   // local YYYY-MM-DD
-  const todayString = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const todayString = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
+    now.getDate()
+  )}`;
 
   // local HH:MM
   const nowHM = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
@@ -58,11 +64,6 @@ const ManageRehearsals = () => {
       ]);
       setRepetitions(activeList);
       setConcerts(concertsList);
-
-      const uniqueLocations = [
-        ...new Set(activeList.map((r) => r.location)),
-      ].map((l) => ({ label: l, value: l }));
-      setLocations(uniqueLocations);
     } catch (err) {
       console.error("Erreur de chargement", err);
     } finally {
@@ -82,25 +83,6 @@ const ManageRehearsals = () => {
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
-
-  // const handlePermanentDelete = async (id) => {
-  //   const confirm = await Swal.fire({
-  //     title: "Supprimer définitivement ?",
-  //     text: "Cette action est irréversible.",
-  //     icon: "warning",
-  //     showCancelButton: true,
-  //     confirmButtonText: "Oui, supprimer",
-  //   });
-  //   if (confirm.isConfirmed) {
-  //     await deleteRepetitionPermanent(id);
-  //     fetchAll();
-  //     Swal.fire(
-  //       "Supprimée",
-  //       "La répétition a été supprimée définitivement.",
-  //       "success"
-  //     );
-  //   }
-  // };
 
   return (
     <div className="p-4">
@@ -136,7 +118,7 @@ const ManageRehearsals = () => {
                 <th>Heure</th>
                 <th>Lieu</th>
                 <th>Pupitres</th>
-                <th>Concert</th>
+                <th>Concert lié</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -149,11 +131,6 @@ const ManageRehearsals = () => {
                     {rep.startTime} → {rep.endTime}
                   </td>
                   <td>{rep.location}</td>
-                  {/* <td>
-                    {rep.pupitres
-                      .map((p) => `${p.name} (${p.participationRate}%)`)
-                      .join(", ")}
-                  </td> */}
                   <td>
                     {Array.isArray(rep.pupitres) &&
                     rep.pupitres.length === 4 &&
@@ -163,8 +140,8 @@ const ManageRehearsals = () => {
                       ? "Tout le chœur"
                       : rep.pupitres.join(", ")}
                   </td>
+                  <td>{rep.concert?.title || "-"}</td>
 
-                  <td>{rep.concert?.location || "-"}</td>
                   <td>
                     <Button
                       size="sm"
@@ -217,6 +194,7 @@ const ManageRehearsals = () => {
         </Modal.Header>
 
         <Formik
+          enableReinitialize
           initialValues={{
             date: editing?.date?.substring(0, 10) || todayString,
             startTime: editing?.startTime || nowHM,
@@ -227,9 +205,9 @@ const ManageRehearsals = () => {
                 d.setHours(d.getHours() + 2);
                 return d.toTimeString().slice(0, 5);
               })(),
-            location: editing?.location
-              ? { label: editing.location, value: editing.location }
-              : null,
+            // store “location” as a simple string
+            location: editing?.location || "",
+            // store “concert” as the concert._id string, or "" if none
             concert: editing?.concert?._id || "",
             pupitres: editing?.pupitres || [],
           }}
@@ -243,7 +221,6 @@ const ManageRehearsals = () => {
                 "L'heure de fin doit être après l'heure de début.",
                 function (endTime) {
                   const { startTime, date } = this.parent;
-
                   if (!startTime || !endTime || !date) return true;
 
                   const [startH, startM] = startTime.split(":").map(Number);
@@ -255,22 +232,27 @@ const ManageRehearsals = () => {
                   const end = new Date(date);
                   end.setHours(endH, endM, 0, 0);
 
-                  // If end is before or equal to start, consider it the next day
+                  // Si “end” est avant (ou égal) “start”, on le considère comme le jour suivant
                   if (end <= start) {
                     end.setDate(end.getDate() + 1);
                   }
-
                   return end > start;
                 }
               ),
-            location: Yup.object().nullable().required("Le lieu est requis"),
+            // location doit valider l'une des deux chaînes
+            location: Yup.string()
+              .oneOf(
+                ["Boulevard des arts", "AMI Assurances"],
+                "Lieu invalide"
+              )
+              .required("Le lieu est requis"),
           })}
           onSubmit={async (values, { setSubmitting, resetForm }) => {
             try {
               const data = {
                 ...values,
                 concert: values.concert || null,
-                location: values.location?.value || "",
+                location: values.location,
               };
 
               if (editing) {
@@ -284,6 +266,7 @@ const ManageRehearsals = () => {
                 await createRepetition(data);
                 Swal.fire("Succès", "Répétition créée avec succès.", "success");
               }
+
               fetchAll();
               resetForm();
               setEditing(null);
@@ -334,7 +317,6 @@ const ManageRehearsals = () => {
                         isInvalid={touched.date && !!errors.date}
                         min={todayString}
                       />
-
                       <Form.Control.Feedback type="invalid">
                         {errors.date}
                       </Form.Control.Feedback>
@@ -349,28 +331,24 @@ const ManageRehearsals = () => {
                         value={values.startTime}
                         onChange={(e) => {
                           const newStart = e.target.value;
-                          // on today, do not allow a time before nowHM
+                          // si on est aujourd'hui, on n’accepte pas une heure antérieure à nowHM
                           if (values.date === todayString && newStart < nowHM)
                             return;
                           handleChange(e);
 
-                          // auto-advance endTime by 2h
+                          // on avance “endTime” de 2h automatiquement
                           const [h, m] = newStart.split(":").map(Number);
                           const dt = new Date();
                           dt.setHours(h, m);
                           dt.setHours(dt.getHours() + 2);
-                          setFieldValue(
-                            "endTime",
-                            dt.toTimeString().slice(0, 5)
-                          );
+                          setFieldValue("endTime", dt.toTimeString().slice(0, 5));
                         }}
                         onBlur={handleBlur}
                         isInvalid={touched.startTime && !!errors.startTime}
                         {...(values.date === todayString
-                          ? { min: nowHM } // only enforce a min on today
+                          ? { min: nowHM }
                           : {})}
                       />
-
                       <Form.Control.Feedback type="invalid">
                         {errors.startTime}
                       </Form.Control.Feedback>
@@ -389,17 +367,22 @@ const ManageRehearsals = () => {
                   </Col>
                 </Row>
 
+                {/* === Lieu (sélection fixe) === */}
                 <Form.Group className="mb-2">
                   <Form.Label>Lieu</Form.Label>
-                  <CreatableSelect
-                    isClearable
-                    options={locations}
-                    value={values.location}
-                    onChange={(val) => setFieldValue("location", val)}
-                    onBlur={() => handleBlur({ target: { name: "location" } })}
-                    className={
-                      touched.location && errors.location ? "is-invalid" : ""
+                  <Select
+                    name="location"
+                    options={lieuOptions}
+                    value={
+                      values.location
+                        ? lieuOptions.find((opt) => opt.value === values.location)
+                        : null
                     }
+                    onChange={(opt) =>
+                      setFieldValue("location", opt ? opt.value : "")
+                    }
+                    onBlur={() => handleBlur({ target: { name: "location" } })}
+                    className={touched.location && errors.location ? "is-invalid" : ""}
                   />
                   {touched.location && errors.location && (
                     <div className="invalid-feedback d-block">
@@ -408,6 +391,7 @@ const ManageRehearsals = () => {
                   )}
                 </Form.Group>
 
+                {/* === Concert lié (sélecteur dynamique) === */}
                 <Form.Group className="mb-2">
                   <Form.Label>Concert lié (optionnel)</Form.Label>
                   <Select
@@ -415,25 +399,36 @@ const ManageRehearsals = () => {
                     isClearable
                     options={concerts.map((c) => ({
                       value: c._id,
-                      label: `${c.location} – ${new Date(c.dateHeure).toLocaleDateString("fr-FR")}`,
+                      label: `${c.title} – ${new Date(
+                        c.dateHeure
+                      ).toLocaleDateString("fr-FR")}`,
                     }))}
-                    value={(() => {
-                      const sel = concerts.find(
-                        (c) => c._id === values.concert
-                      );
-                      return sel
-                        ? {
-                            value: sel._id,
-                            label: `${sel.location} – ${new Date(sel.dateHeure).toLocaleDateString("fr-FR")}`,
-                          }
-                        : null;
-                    })()}
+                    /* ---------- CLÉ DU CORRECTIF ---------- */
+                    /* On fournit directement un objet { value, label } ou null, et non une fonction */
+                    value={
+                      values.concert
+                        ? (() => {
+                            const sel = concerts.find(
+                              (c) => c._id.toString() === values.concert
+                            );
+                            return sel
+                              ? {
+                                  value: sel._id,
+                                  label: `${sel.title} – ${new Date(
+                                    sel.dateHeure
+                                  ).toLocaleDateString("fr-FR")}`,
+                                }
+                              : null;
+                          })()
+                        : null
+                    }
                     onChange={(opt) =>
                       setFieldValue("concert", opt ? opt.value : "")
                     }
                     onBlur={() => handleBlur({ target: { name: "concert" } })}
                   />
                 </Form.Group>
+
                 <Form.Group className="mb-2">
                   <Form.Label>Pupitres concernés</Form.Label>
                   {pupitreOptions.map((p) => (
@@ -446,38 +441,8 @@ const ManageRehearsals = () => {
                     />
                   ))}
                 </Form.Group>
-
-                {/* <Form.Group className="mb-2">
-                  <Form.Label>Pupitres concernés (%)</Form.Label>
-                  {pupitreOptions.map((p) => (
-                    <Row key={p.value} className="align-items-center mb-2">
-                      <Col>{p.label}</Col>
-                      <Col>
-                        <Form.Control
-                          type="number"
-                          placeholder="100"
-                          min={0}
-                          max={100}
-                          value={
-                            values.pupitres.find((x) => x.name === p.value)
-                              ?.participationRate || ""
-                          }
-                          onChange={(e) => {
-                            const rate = parseInt(e.target.value) || 0;
-                            const updated = [
-                              ...values.pupitres.filter(
-                                (x) => x.name !== p.value
-                              ),
-                              { name: p.value, participationRate: rate },
-                            ];
-                            setFieldValue("pupitres", updated);
-                          }}
-                        />
-                      </Col>
-                    </Row>
-                  ))}
-                </Form.Group> */}
               </Modal.Body>
+
               <Modal.Footer>
                 <Button variant="secondary" onClick={() => setShowModal(false)}>
                   Annuler

@@ -1,18 +1,29 @@
 /* eslint-disable react/no-unescaped-entities */
-/* eslint-disable prettier/prettier */
-/* eslint-disable no-unused-vars */
-import React, { useEffect } from 'react';
-import { Card, Button, Alert } from 'react-bootstrap';
-import { NavLink, Link } from 'react-router-dom';
-
+import React, { useEffect, useState } from 'react';
+import { Card, Button } from 'react-bootstrap';
 import Breadcrumb from '../../../layouts/AdminLayout/Breadcrumb';
 import logo from '../../../assets/images/music.png';
-
 import AuthLogin from './JWTLogin';
+import { getConfig } from '../../../services/config.service';
 
 const Signin1 = () => {
+  const [signupActive, setSignupActive] = useState(false);
+
   useEffect(() => {
     document.title = 'Bienvenue | CSO Plateforme';
+
+    const fetchConfig = async () => {
+      try {
+        const config = await getConfig();
+        if (config && typeof config.signupActive === 'boolean') {
+          setSignupActive(config.signupActive);
+        }
+      } catch (error) {
+        console.error('Failed to fetch config:', error);
+      }
+    };
+
+    fetchConfig();
   }, []);
 
   return (
@@ -36,22 +47,19 @@ const Signin1 = () => {
               </div>
               <h3 className="mb-4">Se connecter</h3>
               <AuthLogin />
-              {/* <p className="mb-2 text-muted">
-                Forgot password?{' '}
-                <NavLink to={'#'} className="f-w-400">
-                  Reset
-                </NavLink>
-              </p> */}
-              <p className="mb-0 text-muted">
-                Vous n'êtes pas membre ?{' '}
-                <Button
-                  variant="link"
-                  className="f-w-400 p-0"
-                  onClick={() => window.location.href = '/choriste/formulaire'}
-                >
-                  Devenez membre
-                </Button>
-              </p>
+
+              {signupActive && (
+                <p className="mb-0 text-muted">
+                  Vous n'êtes pas membre ?{' '}
+                  <Button
+                    variant="link"
+                    className="f-w-400 p-0"
+                    onClick={() => (window.location.href = '/choriste/formulaire')}
+                  >
+                    Devenez membre
+                  </Button>
+                </p>
+              )}
             </Card.Body>
           </Card>
         </div>

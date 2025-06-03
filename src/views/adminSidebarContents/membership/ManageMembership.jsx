@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Button, Container, Row, Col, Badge } from 'react-bootstrap';
 import Swal from 'sweetalert2';
-import { getMembershipSubmissions, acceptMembership, refuseMembership } from '../../../services/accounts.service';
+import { getMembershipSubmissions, sendTestDates } from '../../../services/accounts.service';
 
 function ManageMembership() {
   const [memberships, setMemberships] = useState([]);
@@ -10,7 +10,7 @@ function ManageMembership() {
     try {
       const data = await getMembershipSubmissions();
       setMemberships(data);
-    } catch (error) {
+    } catch {
       Swal.fire({
         icon: 'error',
         title: 'Erreur',
@@ -23,91 +23,100 @@ function ManageMembership() {
     fetchMemberships();
   }, []);
 
-  const handleAccept = async (id) => {
-    Swal.fire({
-      title: "Traitement de l'acceptation...",
-      text: 'Veuillez patienter.',
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      didOpen: () => {
-        Swal.showLoading();
+  const handleAcceptAll = async () => {
+    const { value: dates } = await Swal.fire({
+      title: 'Choisissez les dates de test',
+      html: `<input type="date" id="swal-input1" class="swal2-input">` + `<input type="date" id="swal-input2" class="swal2-input">`,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'Envoyer dates',
+      cancelButtonText: 'Annuler',
+      preConfirm: () => {
+        const startDate = document.getElementById('swal-input1').value;
+        const endDate = document.getElementById('swal-input2').value;
+        if (!startDate || !endDate) {
+          Swal.showValidationMessage('Les deux dates sont requises.');
+          return null;
+        }
+        if (endDate < startDate) {
+          Swal.showValidationMessage('La date de fin doit être postérieure à la date de début.');
+          return null;
+        }
+        return { startDate, endDate };
       }
     });
-
+    if (!dates) return;
+    Swal.fire({
+      title: 'Envoi des dates de test...',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
     try {
-      await acceptMembership(id);
+      await sendTestDates(dates.startDate, dates.endDate);
       Swal.fire({
         icon: 'success',
-        title: 'Accepté avec succès',
-        text: 'Les coordonnées ont été envoyées.',
+        title: 'Dates envoyées',
+        text: 'Les dates de test ont été envoyées.',
         confirmButtonText: 'OK'
       });
       fetchMemberships();
-    } catch (error) {
+    } catch {
       Swal.fire({
         icon: 'error',
         title: 'Erreur',
-        text: 'Échec de l’acceptation.'
+        text: 'Impossible d’envoyer les dates de test.'
       });
     }
   };
 
-  const handleRefuse = async (id) => {
-    const { value: reason } = await Swal.fire({
-      title: 'Motif du refus',
-      input: 'textarea',
-      inputLabel: 'Veuillez entrer la raison du refus',
-      inputPlaceholder: 'Tapez votre raison ici...',
-      inputAttributes: {
-        'aria-label': 'Raison du refus',
-        maxlength: 500
-      },
-      showCancelButton: true,
-      confirmButtonText: 'Envoyer',
-      confirmButtonColor: '#a52a2a',
-      cancelButtonText: 'Annuler',
-      inputValidator: (value) => {
-        if (!value.trim()) {
-          return 'Le motif ne peut pas être vide.';
-        }
-      }
-    });
-
-    if (reason) {
-      Swal.fire({
-        title: 'Traitement du refus...',
-        text: 'Veuillez patienter.',
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
-
-      try {
-        await refuseMembership(id, reason);
-        Swal.fire({
-          icon: 'success',
-          title: 'Rejeté avec succès',
-          text: 'Un email avec le motif de refus a été envoyé.',
-          confirmButtonText: 'OK'
-        });
-        fetchMemberships();
-      } catch (error) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Erreur',
-          text: 'Échec du refus.'
-        });
-      }
-    }
-  };
+  // const handleRefuse = async (id) => {
+  //   const { value: reason } = await Swal.fire({
+  //     title: 'Motif du refus',
+  //     input: 'textarea',
+  //     inputLabel: 'Entrez le motif',
+  //     showCancelButton: true,
+  //     confirmButtonText: 'Envoyer',
+  //     inputValidator: (value) => {
+  //       if (!value.trim()) return 'Le motif ne peut pas être vide.';
+  //     }
+  //   });
+  //   if (!reason) return;
+  //   Swal.fire({
+  //     title: 'Traitement du refus...',
+  //     allowOutsideClick: false,
+  //     didOpen: () => Swal.showLoading()
+  //   });
+  //   try {
+  //     await refuseMembership(id, reason);
+  //     Swal.fire({
+  //       icon: 'success',
+  //       title: 'Rejeté',
+  //       text: 'Email de refus envoyé.',
+  //       confirmButtonText: 'OK'
+  //     });
+  //     fetchMemberships();
+  //   } catch {
+  //     Swal.fire({
+  //       icon: 'error',
+  //       title: 'Erreur',
+  //       text: 'Échec du refus.'
+  //     });
+  //   }
+  // };
 
   return (
     <Container style={{ marginTop: '40px' }}>
-      <h2 className="text-center mb-4" style={{ color: '#4b2e2e' }}>
-        {/* Gestion des candidatures des choristes */}
-      </h2>
+      {/* <h2 className="text-center mb-4" style={{ color: '#4b2e2e' }}>
+        Gestion des candidatures des choristes
+      </h2> */}
+
+      {memberships.length > 0 && (
+        <div className="text-center mb-4">
+          <Button variant="primary" onClick={handleAcceptAll}>
+            Accepter tout pour test
+          </Button>
+        </div>
+      )}
 
       {memberships.length === 0 ? (
         <p className="text-center">Aucune candidature en attente.</p>
@@ -121,34 +130,23 @@ function ManageMembership() {
                     {m.firstName} {m.lastName}
                   </Card.Title>
                   <Card.Subtitle className="mb-2 text-muted">{m.email}</Card.Subtitle>
-
                   <div className="mb-2">
                     <Badge bg="secondary" className="me-2">
                       {m.gender}
                     </Badge>
                     <Badge bg="info">{new Date(m.birthDate).toLocaleDateString('fr-TN')}</Badge>
                   </div>
-
                   <Card.Text>
-                    <strong>Nationalité:</strong> {m.nationality}
+                    <strong>Nationalité :</strong> {m.nationality}
                     <br />
-                    <strong>CIN:</strong> {m.cin}
+                    <strong>CIN :</strong> {m.cin}
                     <br />
-                    <strong>Taille:</strong> {m.height} cm
+                    <strong>Taille :</strong> {m.height} cm
                     <br />
-                    <strong>Situation pro:</strong> {m.professionalSituation}
+                    <strong>Situation pro :</strong> {m.professionalSituation}
                     <br />
-                    <strong>Téléphone:</strong> {m.phone}
+                    <strong>Téléphone :</strong> {m.phone}
                   </Card.Text>
-
-                  <div className="d-flex justify-content-end gap-2">
-                    <Button variant="dark" size="sm" onClick={() => handleAccept(m._id)}>
-                      Accepter
-                    </Button>
-                    <Button variant="danger" size="sm" onClick={() => handleRefuse(m._id)}>
-                      Refuser
-                    </Button>
-                  </div>
                 </Card.Body>
               </Card>
             </Col>

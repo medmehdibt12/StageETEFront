@@ -130,7 +130,7 @@ const Formulaire = () => {
               letterSpacing: '0.03em'
             }}
           >
-            Formulaire d'adhésion au CSO
+            Formulaire de candidature au CSO
           </h2>
         </div>
 

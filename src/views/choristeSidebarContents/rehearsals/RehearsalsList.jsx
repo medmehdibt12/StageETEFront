@@ -5,13 +5,32 @@ import {
   markRepetitionPresence,
   markRepetitionAbsence,
 } from "../../../services/repetition.service";
-import { Card, Row, Col, Button, Spinner } from "react-bootstrap";
+import {
+  Card,
+  Row,
+  Col,
+  Button,
+  Spinner,
+  Form,
+  InputGroup,
+} from "react-bootstrap";
 import { CheckCircle, XCircle } from "lucide-react";
 import Swal from "sweetalert2";
+import Select from "react-select";
 import { useAuth } from "../../../contexts/AuthContext";
+
+const TIME_FILTER_OPTIONS = [
+  { value: "upcoming", label: "À venir" },
+  { value: "past", label: "Passées" },
+  { value: "all", label: "Tous" },
+];
 
 const RehearsalsList = () => {
   const { user } = useAuth();
+
+  // État pour le filtre “À venir / Passées / Tous” et pour la recherche par lieu
+  const [timeFilter, setTimeFilter] = useState(TIME_FILTER_OPTIONS[0]);
+  const [locationTerm, setLocationTerm] = useState("");
   const [repetitions, setRepetitions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [markingIds, setMarkingIds] = useState([]);
@@ -35,7 +54,6 @@ const RehearsalsList = () => {
 
   const handleMarkPresence = async (id) => {
     setMarkingIds((prev) => [...prev, id]);
-
     try {
       await markRepetitionPresence(id);
       Swal.fire({
@@ -64,7 +82,7 @@ const RehearsalsList = () => {
       title: "Motif d’absence",
       input: "textarea",
       inputLabel: "Pourquoi êtes-vous absent(e) ?",
-      inputPlaceholder: "Saisissez le motif ici...",
+      inputPlaceholder: "Saisissez le motif ici…",
       showCancelButton: true,
       confirmButtonText: "Valider",
       cancelButtonText: "Annuler",
@@ -79,7 +97,6 @@ const RehearsalsList = () => {
     if (!reason) return;
 
     setMarkingIds((prev) => [...prev, id]);
-
     try {
       await markRepetitionAbsence(id, reason);
       Swal.fire({
@@ -98,44 +115,113 @@ const RehearsalsList = () => {
     }
   };
 
-  const isPast = (dateStr, timeStr) => {
-    const [hours, minutes] = timeStr.split(":").map(Number);
-    const date = new Date(dateStr);
-    date.setHours(hours, minutes, 0, 0);
-    return date <= new Date();
+  const isPastEnd = (dateStr, endTimeStr) => {
+    const [endH, endM] = endTimeStr.split(":").map(Number);
+    const endDate = new Date(dateStr);
+    endDate.setHours(endH, endM, 0, 0);
+    return endDate.getTime() <= Date.now();
   };
 
-  // Pagination logic
+  const hasPassed75Percent = (dateStr, startTimeStr, endTimeStr) => {
+    const [startH, startM] = startTimeStr.split(":").map(Number);
+    const [endH, endM] = endTimeStr.split(":").map(Number);
+
+    const startDate = new Date(dateStr);
+    startDate.setHours(startH, startM, 0, 0);
+
+    const endDate = new Date(dateStr);
+    endDate.setHours(endH, endM, 0, 0);
+
+    const durationMs = endDate.getTime() - startDate.getTime();
+    const thresholdMs = startDate.getTime() + durationMs * 0.75;
+
+    return Date.now() >= thresholdMs;
+  };
+
+  // 1) Filtrer par “À venir / Passées / Tous” en utilisant isPastEnd
+  const filteredByTime = repetitions.filter((rep) => {
+    const isPast = isPastEnd(rep.date, rep.endTime);
+    if (timeFilter.value === "upcoming") return !isPast;
+    if (timeFilter.value === "past") return isPast;
+    return true; // “Tous”
+  });
+
+  // 2) Filtrer par lieu (case-insensitive)
+  const filteredRepetitions = filteredByTime.filter((rep) =>
+    rep.location.toLowerCase().includes(locationTerm.toLowerCase())
+  );
+
+  // 3) Pagination sur filteredRepetitions
   const indexOfLast = currentPage * repetitionsPerPage;
   const indexOfFirst = indexOfLast - repetitionsPerPage;
-  const currentRepetitions = repetitions.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(repetitions.length / repetitionsPerPage);
+  const currentRepetitions = filteredRepetitions.slice(indexOfFirst, indexOfLast);
+  const totalPages = Math.ceil(filteredRepetitions.length / repetitionsPerPage);
 
   return (
     <div className="p-4">
-      <div className="text-center mb-5">
-        <h2 style={{ fontWeight: 600 }}>
-          <span role="img" aria-label="calendar">
-          </span>{" "}
-          Liste des Répétitions
-        </h2>
-        <p className="text-muted">
-          Consultez les répétitions planifiées et indiquez votre présence ou
-          absence.
-        </p>
+      {/* Filtre "À venir / Passées / Tous" avec React-Select */}
+      <div style={{ maxWidth: 240, marginBottom: "1rem" }}>
+        <Select
+          options={TIME_FILTER_OPTIONS}
+          value={timeFilter}
+          onChange={(opt) => {
+            setTimeFilter(opt);
+            setCurrentPage(1);
+          }}
+          isSearchable={false}
+          placeholder="Afficher : "
+          styles={{
+            control: (provided) => ({
+              ...provided,
+              minHeight: "32px",
+              fontSize: "0.9rem",
+            }),
+            singleValue: (provided) => ({
+              ...provided,
+              marginLeft: 8,
+            }),
+            menu: (provided) => ({
+              ...provided,
+              fontSize: "0.9rem",
+            }),
+          }}
+        />
       </div>
+
+      {/* Champ de recherche par lieu */}
+      <Form.Group className="mb-4" style={{ maxWidth: 400 }}>
+        <InputGroup>
+          <Form.Control
+            type="text"
+            placeholder="Rechercher par lieu…"
+            value={locationTerm}
+            onChange={(e) => {
+              setLocationTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+          />
+        </InputGroup>
+      </Form.Group>
 
       {loading ? (
         <div className="text-center py-5">
           <Spinner animation="border" />
         </div>
-      ) : repetitions.length === 0 ? (
-        <p className="text-muted text-center">Aucune répétition planifiée.</p>
+      ) : filteredRepetitions.length === 0 ? (
+        <p className="text-muted text-center">
+          Aucune répétition correspondant aux critères.
+        </p>
       ) : (
         <>
           <Row xs={1} md={2} lg={3} className="g-4">
             {currentRepetitions.map((rep) => {
-              const isAfter = isPast(rep.date, rep.endTime);
+              const repDateStr = rep.date;
+              const repStartTime = rep.startTime;
+              const repEndTime = rep.endTime;
+
+              const beyond75 = hasPassed75Percent(repDateStr, repStartTime, repEndTime);
+              // const pastEnd = isPastEnd(repDateStr, repEndTime);
+
               const markedPresent = rep.presentChoristes?.includes(user?._id);
               const markedAbsent = rep.absentChoristes?.some(
                 (a) => a.choriste === user?._id
@@ -144,8 +230,24 @@ const RehearsalsList = () => {
 
               let actionButtons = null;
 
-              if (isMarking) {
+              // 1) Si l’utilisateur est en congé, on bloque tout
+              if (user?.status === "En congé") {
+                actionButtons = (
+                  <Button
+                    variant="secondary"
+                    disabled
+                    size="sm"
+                    style={{ borderRadius: 20, opacity: 0.6 }}
+                  >
+                    En congé
+                  </Button>
+                );
+
+              // 2) Si l’action est en cours, on ne montre rien
+              } else if (isMarking) {
                 actionButtons = null;
+
+              // 3) Déjà marqué “Absent”
               } else if (markedAbsent) {
                 actionButtons = (
                   <Button
@@ -154,9 +256,11 @@ const RehearsalsList = () => {
                     size="sm"
                     style={{ borderRadius: 20 }}
                   >
-                        <XCircle size={16} /> Absent
+                    <XCircle size={16} /> Absent
                   </Button>
                 );
+
+              // 4) Déjà marqué “Présent”
               } else if (markedPresent) {
                 actionButtons = (
                   <Button
@@ -175,7 +279,9 @@ const RehearsalsList = () => {
                     <CheckCircle size={16} /> Présent
                   </Button>
                 );
-              } else if (isAfter) {
+
+              // 5) Avant 75 % de la durée : “Je suis présent” reste actif
+              } else if (!beyond75) {
                 actionButtons = (
                   <div className="d-flex gap-2">
                     <Button
@@ -186,6 +292,7 @@ const RehearsalsList = () => {
                     >
                       Je suis présent
                     </Button>
+                    {/* “Je suis absent” toujours actif */}
                     <Button
                       variant="outline-danger"
                       size="sm"
@@ -196,9 +303,12 @@ const RehearsalsList = () => {
                     </Button>
                   </div>
                 );
+
+              // 6) À partir de 75 % de la durée (ou après la fin), on désactive “Je suis présent”
               } else {
                 actionButtons = (
                   <div className="d-flex gap-2">
+                    {/* “Je suis présent” désactivé */}
                     <Button
                       variant="outline-secondary"
                       disabled
@@ -207,6 +317,7 @@ const RehearsalsList = () => {
                     >
                       Je suis présent
                     </Button>
+                    {/* “Je suis absent” reste actif, même après 75 % */}
                     <Button
                       variant="outline-danger"
                       size="sm"
@@ -221,21 +332,17 @@ const RehearsalsList = () => {
 
               return (
                 <Col key={rep._id}>
-                  <Card
-                    className="shadow-sm border-0"
-                    style={{ borderRadius: 16 }}
-                  >
+                  <Card className="shadow-sm border-0" style={{ borderRadius: 16 }}>
                     <Card.Body>
                       <Card.Title style={{ fontWeight: 600 }}>
                         📍 {rep.location}
                       </Card.Title>
                       <Card.Text>
                         <strong>Date :</strong>{" "}
-                        {new Date(rep.date).toLocaleDateString("fr-FR")}
+                        {new Date(repDateStr).toLocaleDateString("fr-FR")}
                         <br />
-                        <strong>Heure :</strong> {rep.startTime} → {rep.endTime}
+                        <strong>Heure :</strong> {repStartTime} → {repEndTime}
                       </Card.Text>
-
                       <div className="d-flex justify-content-end mt-3">
                         {actionButtons}
                       </div>
@@ -250,22 +357,15 @@ const RehearsalsList = () => {
           {totalPages > 1 && (
             <div className="d-flex justify-content-center mt-4">
               <ul className="pagination">
-                <li
-                  className={`page-item ${currentPage === 1 ? "disabled" : ""}`}
-                >
-                  <button
-                    className="page-link"
-                    onClick={() => setCurrentPage(1)}
-                  >
+                <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
+                  <button className="page-link" onClick={() => setCurrentPage(1)}>
                     ⏮
                   </button>
                 </li>
-                <li
-                  className={`page-item ${currentPage === 1 ? "disabled" : ""}`}
-                >
+                <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
                   <button
                     className="page-link"
-                    onClick={() => setCurrentPage(currentPage - 1)}
+                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                   >
                     ◀
                   </button>
@@ -284,16 +384,11 @@ const RehearsalsList = () => {
                       <React.Fragment key={n}>
                         {prev && n - prev > 1 && (
                           <li className="page-item disabled">
-                            <span className="page-link">...</span>
+                            <span className="page-link">…</span>
                           </li>
                         )}
-                        <li
-                          className={`page-item ${currentPage === n ? "active" : ""}`}
-                        >
-                          <button
-                            className="page-link"
-                            onClick={() => setCurrentPage(n)}
-                          >
+                        <li className={`page-item ${currentPage === n ? "active" : ""}`}>
+                          <button className="page-link" onClick={() => setCurrentPage(n)}>
                             {n}
                           </button>
                         </li>
@@ -301,23 +396,16 @@ const RehearsalsList = () => {
                     );
                   })}
 
-                <li
-                  className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}
-                >
+                <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
                   <button
                     className="page-link"
-                    onClick={() => setCurrentPage(currentPage + 1)}
+                    onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                   >
                     ▶
                   </button>
                 </li>
-                <li
-                  className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}
-                >
-                  <button
-                    className="page-link"
-                    onClick={() => setCurrentPage(totalPages)}
-                  >
+                <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
+                  <button className="page-link" onClick={() => setCurrentPage(totalPages)}>
                     ⏭
                   </button>
                 </li>
