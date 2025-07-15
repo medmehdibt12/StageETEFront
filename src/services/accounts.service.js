@@ -59,16 +59,16 @@ export const eliminateChoriste = async (id) => {
 };
 
 // 📥 get membershipsub
-export const getMembershipSubmissions = async () => {
-  const res = await api.get('/users/membership-submissions');
+export const getMembershipSubmissions = async (status = "Pending") => {
+  const res = await api.get(`/users/membership-submissions?status=${status}`);
   return res.data;
 };
 
 // // 📬 Accept membership
-// export const acceptMembership = async (id) => {
-//   const res = await api.put(`/users/accept/${id}`);
-//   return res.data;
-// };
+export const acceptMembership = async (id) => {
+  const res = await api.put(`/users/accept/${id}`);
+  return res.data;
+};
 
 export const sendTestDates = async (startDate, endDate) => {
   const res = await api.post("/users/send-test-dates", { startDate, endDate });
@@ -77,10 +77,10 @@ export const sendTestDates = async (startDate, endDate) => {
 
 
 // 🚫 Refuse membership (with reason)
-// export const refuseMembership = async (id, reason) => {
-//   const res = await api.put(`/users/refuse/${id}`, { reason });
-//   return res.data;
-// };
+export const refuseMembership = async (id, reason) => {
+  const res = await api.put(`/users/refuse/${id}`, { reason });
+  return res.data;
+};
 
 // ✅ Get accepted choristers
 export const getAcceptedMemberships = async () => {

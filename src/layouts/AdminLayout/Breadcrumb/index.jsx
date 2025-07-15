@@ -14,6 +14,7 @@ const titleMap = {
   "/admin/final-participants": "Participants Finaux aux Concerts",
   "/admin/manage-membership": "Listes des candidats",
   "/admin/manage-choriste": "Liste des Choristes",
+  "/admin/manage-auditions": "Gérer les Auditions",
   "/user/profile": "Mon Profil",
   "/choriste/season-programme": "Programme de la Saison",
   "/choriste/repetitions": "Liste des Répétitions",
@@ -22,6 +23,7 @@ const titleMap = {
   "/manager/manage-duty": "Liste Declaration des Congés",
   "/manager/modify-tessiture": "Modification des tessitures",
   "/chef/list-choriste": "Liste des Choristes",
+  
   // "/program/season-programme": "Liste des Concerts",
   // 
 

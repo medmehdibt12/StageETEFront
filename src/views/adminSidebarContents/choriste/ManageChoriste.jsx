@@ -1,27 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import {
   Container,
-  Card,
-  Row,
-  Col,
+  Table,
   Spinner,
   Alert,
   Button,
   Form,
+  Row,
+  Col,
   Pagination
 } from 'react-bootstrap';
 import { getAcceptedMemberships } from '../../../services/accounts.service';
-import {
-  FaEnvelope,
-  FaVenusMars,
-  FaBirthdayCake,
-  FaGlobe,
-  FaIdCard,
-  FaPhone,
-  FaBriefcase,
-  FaRulerVertical,
-  FaMusic
-} from 'react-icons/fa';
 
 function ManageChoriste() {
   const [choristers, setChoristers] = useState([]);
@@ -56,7 +45,7 @@ function ManageChoriste() {
       `${ch.firstName} ${ch.lastName}`.toLowerCase().includes(term)
     );
     setFilteredChoristers(filtered);
-    setCurrentPage(1); // Reset to first page on new search
+    setCurrentPage(1);
   }, [searchTerm, choristers]);
 
   const formatDate = (dateStr) => {
@@ -99,7 +88,7 @@ function ManageChoriste() {
   };
 
   return (
-    <Container style={{ marginTop: 40, maxWidth: 1200 }}>
+    <Container style={{ marginTop: 40 }}>
       <Row className="mb-4 align-items-center">
         <Col md={6}>
           <Form.Control
@@ -107,10 +96,6 @@ function ManageChoriste() {
             placeholder="Rechercher par nom..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              borderRadius: '8px',
-              fontSize: '0.9rem'
-            }}
           />
         </Col>
       </Row>
@@ -138,65 +123,40 @@ function ManageChoriste() {
         </p>
       )}
 
-      <Row xs={1} sm={2} md={2} lg={3} className="g-4">
-        {currentChoristers.map((choriste) => (
-          <Col key={choriste._id}>
-            <Card
-              className="h-100 shadow-sm"
-              style={{
-                borderRadius: 12,
-                borderColor: '#c3a17d',
-                transition: 'box-shadow 0.3s ease',
-                cursor: 'default'
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.boxShadow = '0 8px 20px rgba(195, 161, 125, 0.4)')}
-              onMouseLeave={(e) => (e.currentTarget.style.boxShadow = '0 4px 10px rgba(0,0,0,0.1)')}
-            >
-              <Card.Body>
-                <Card.Title style={{ color: '#4b2e2e', fontWeight: 600, fontSize: '1.3rem', marginBottom: 15 }}>
-                  {choriste.firstName} {choriste.lastName}
-                </Card.Title>
-                <Card.Text style={{ fontSize: '0.95rem', color: '#4b2e2e', lineHeight: 1.5 }}>
-                  <FaEnvelope style={{ marginRight: 6, color: '#a67c00' }} />
-                  {choriste.email}
-                </Card.Text>
-                <Card.Text style={{ fontSize: '0.9rem', color: '#6b4a22' }}>
-                  <FaVenusMars style={{ marginRight: 6 }} />
-                  <strong>Genre:</strong> {choriste.gender || 'N/A'}
-                </Card.Text>
-                <Card.Text style={{ fontSize: '0.9rem', color: '#6b4a22' }}>
-                  <FaBirthdayCake style={{ marginRight: 6 }} />
-                  <strong>Date de naissance:</strong> {formatDate(choriste.birthDate)}
-                </Card.Text>
-                <Card.Text style={{ fontSize: '0.9rem', color: '#6b4a22' }}>
-                  <FaGlobe style={{ marginRight: 6 }} />
-                  <strong>Nationalité:</strong> {choriste.nationality || 'N/A'}
-                </Card.Text>
-                <Card.Text style={{ fontSize: '0.9rem', color: '#6b4a22' }}>
-                  <FaIdCard style={{ marginRight: 6 }} />
-                  <strong>CIN:</strong> {choriste.cin || 'N/A'}
-                </Card.Text>
-                <Card.Text style={{ fontSize: '0.9rem', color: '#6b4a22' }}>
-                  <FaPhone style={{ marginRight: 6 }} />
-                  <strong>Téléphone:</strong> {choriste.phone || 'N/A'}
-                </Card.Text>
-                <Card.Text style={{ fontSize: '0.9rem', color: '#6b4a22' }}>
-                  <FaBriefcase style={{ marginRight: 6 }} />
-                  <strong>Situation pro.:</strong> {choriste.professionalSituation || 'N/A'}
-                </Card.Text>
-                <Card.Text style={{ fontSize: '0.9rem', color: '#6b4a22' }}>
-                  <FaRulerVertical style={{ marginRight: 6 }} />
-                  <strong>Taille:</strong> {choriste.height ? `${choriste.height} cm` : 'N/A'}
-                </Card.Text>
-                <Card.Text style={{ fontSize: '0.9rem', color: '#6b4a22' }}>
-                  <FaMusic style={{ marginRight: 6 }} />
-                  <strong>Pupitre:</strong> {choriste.pupitre || 'N/A'}
-                </Card.Text>
-              </Card.Body>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+      {!loading && !error && currentChoristers.length > 0 && (
+        <Table striped bordered hover responsive>
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Email</th>
+              <th>Genre</th>
+              <th>Date de naissance</th>
+              <th>Nationalité</th>
+              <th>CIN</th>
+              <th>Téléphone</th>
+              <th>Situation pro</th>
+              <th>Taille (cm)</th>
+              <th>Pupitre</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentChoristers.map((ch) => (
+              <tr key={ch._id}>
+                <td>{ch.firstName} {ch.lastName}</td>
+                <td>{ch.email}</td>
+                <td>{ch.gender || 'N/A'}</td>
+                <td>{formatDate(ch.birthDate)}</td>
+                <td>{ch.nationality || 'N/A'}</td>
+                <td>{ch.cin || 'N/A'}</td>
+                <td>{ch.phone || 'N/A'}</td>
+                <td>{ch.professionalSituation || 'N/A'}</td>
+                <td>{ch.height || 'N/A'}</td>
+                <td>{ch.pupitre || 'N/A'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      )}
 
       {renderPagination()}
     </Container>

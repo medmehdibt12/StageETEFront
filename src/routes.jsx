@@ -46,8 +46,12 @@ const routes = [
     element: lazy(() => import('./views/auth/signin/SignIn1'))
   },
   {
-    path: '/choriste/formulaire', // New route for Formulaire
+    path: '/candidature/formulaire', // New route for Formulaire
     element: lazy(() => import('./views/choristeSidebarContents/formulaire/Formulaire'))
+  },
+  {
+    path: '/confirm-email',
+    element: lazy(() => import('./views/public/ConfirmEmailSuccess'))
   },
   {
     path: '*',
@@ -87,6 +91,10 @@ const routes = [
       {
         path: '/admin/manage-rehearsals',
         element: lazy(() => import('./views/adminSidebarContents/rehearsals/ManageRehearsals'))
+      },
+      {
+        path: '/admin/manage-auditions',
+        element: lazy(() => import('./views/adminSidebarContents/auditions/ManageAuditions'))
       },
       {
         path: '/admin/final-participants',

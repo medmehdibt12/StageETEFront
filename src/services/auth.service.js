@@ -45,9 +45,25 @@ export const applyForMembership = async (applicationData) => {
     const response = await api.post('/auth/apply', applicationData);
     return response.data;
   } catch (error) {
-    console.error('Error applying for membership:', error);
     throw error.response?.data || { message: 'Membership application failed' };
   }
+};
+
+
+// Send confirmation email to candidate
+export const sendConfirmationEmail = async (email) => {
+  const res = await api.post('/auth/send-email-confirmation', { email });
+  return res.data;
+};
+
+export const checkEmailConfirmed = async (email) => {
+  const res = await api.get(`/auth/check-email-confirmed?email=${email}`);
+  return res.data;
+};
+
+export const confirmEmailToken = async (token) => {
+  const res = await api.get(`/auth/confirm-email?token=${token}`);
+  return res.data; // Return the confirmation message
 };
 
 export const logout = () => {

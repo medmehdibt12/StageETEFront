@@ -12,13 +12,6 @@ const useMenuItems = () => {
       icon: 'feather icon-users' // manage multiple user accounts
     },
     {
-      id: 'manage-membership',
-      title: 'Listes des candidats',
-      type: 'item',
-      url: '/admin/manage-membership',
-      icon: 'feather icon-user-check' // membership approvals
-    },
-    {
       id: 'manage-choriste',
       title: 'Liste des Choristes ',
       type: 'item',
@@ -45,6 +38,20 @@ const useMenuItems = () => {
       type: 'item',
       url: '/admin/manage-rehearsals',
       icon: 'feather icon-clock' // rehearsal times
+    },
+    {
+      id: 'manage-auditions',
+      title: 'Gérer les Auditions',
+      type: 'item',
+      url: '/admin/manage-auditions',
+      icon: 'feather icon-mic'
+    },
+    {
+      id: 'manage-membership',
+      title: 'Listes des candidats',
+      type: 'item',
+      url: '/admin/manage-membership',
+      icon: 'feather icon-user-check' // membership approvals
     },
     // {
     //   id: 'manage-eliminations',

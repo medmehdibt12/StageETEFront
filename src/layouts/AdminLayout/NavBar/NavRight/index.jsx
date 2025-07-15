@@ -10,12 +10,15 @@ import { logout } from '../../../../services/auth.service';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { BACKEND_URL } from '../../../../utils/axiosInstance';
 import { getConfig, updateSignupActive } from '../../../../services/config.service';
+import { FiCopy } from 'react-icons/fi'; // ✅ Copy icon
 
 const NavRight = () => {
   const [listOpen, setListOpen] = useState(false);
   const { user, setUser, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [isSignupActive, setIsSignupActive] = useState(false);
+
+  const FORM_LINK = `${window.location.origin}/candidature/formulaire`; // ✅ Copyable link
 
   useEffect(() => {
     refreshUser();
@@ -38,6 +41,14 @@ const NavRight = () => {
     setUser(null);
     document.title = 'Bienvenue | CSO Plateforme';
     navigate('/auth/signin');
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(FORM_LINK);
+    } catch (err) {
+      console.error('Échec de la copie:', err);
+    }
   };
 
   const styles = {
@@ -141,7 +152,7 @@ const NavRight = () => {
                 Mon Profil
               </Link>
 
-              {/* Admin Toggle */}
+              {/* Admin-only: Recrutement toggle + copy link */}
               {user?.role === 'admin' && (
                 <div style={styles.toggleContainer}>
                   <div style={styles.toggleRow}>
@@ -157,9 +168,19 @@ const NavRight = () => {
                       }}
                     />
                   </div>
-                  <Badge bg={isSignupActive ? 'success' : 'secondary'} style={styles.badge}>
-                    {isSignupActive ? 'Actif' : 'Inactif'}
-                  </Badge>
+
+                  {/* Badge + Copy icon inline */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 4 }}>
+                    <Badge bg={isSignupActive ? 'success' : 'secondary'} style={styles.badge}>
+                      {isSignupActive ? 'Actif' : 'Inactif'}
+                    </Badge>
+                    <FiCopy
+                      size={16}
+                      style={{ cursor: 'pointer', color: '#495057' }}
+                      onClick={handleCopyLink}
+                      title="Copier le lien du formulaire"
+                    />
+                  </div>
                 </div>
               )}
             </Dropdown.Menu>
