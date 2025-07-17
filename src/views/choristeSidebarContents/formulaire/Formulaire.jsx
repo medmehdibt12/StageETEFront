@@ -710,59 +710,61 @@ const Formulaire = () => {
             </EmailVerificationSubtitle>
 
             <Form.Group controlId="email" style={{ maxWidth: '500px', margin: '0 auto' }}>
-              <Form.Label>Adresse email</Form.Label>
-              <InputGroup>
-                <Form.Control
-                  type="email"
-                  placeholder="votre@email.com"
-                  {...register('email', {
-                    required: 'Email requis',
-                    pattern: {
-                      value: /^\S+@\S+\.\S+$/,
-                      message: 'Email invalide'
-                    }
-                  })}
-                  isInvalid={!!errors.email}
-                  size="lg"
-                />
-                <EmailConfirmButton
-                  size="lg"
-                  variant="primary"
-                  onClick={handleEmailConfirmation}
-                  disabled={emailConfirmLoading}
-                >
-                  {emailConfirmLoading ? <Spinner size="sm" animation="border" /> : 'Confirmer'}
-                </EmailConfirmButton>
-              </InputGroup>
-              {errors.email && (
-                <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
-                  {errors.email.message}
-                </Form.Control.Feedback>
-              )}
+  {/* <Form.Label>Adresse email</Form.Label> */}
+  <InputGroup>
+    <Form.Control
+      type="email"
+      placeholder="votre@email.com"
+      {...register('email', {
+        required: 'Email requis',
+        pattern: {
+          value: /^\S+@\S+\.\S+$/,
+          message: 'Email invalide'
+        }
+      })}
+      isInvalid={!!errors.email}
+      size="lg"
+    />
+    <EmailConfirmButton
+      size="lg"
+      variant="primary"
+      onClick={handleEmailConfirmation}
+      disabled={emailConfirmLoading}
+    >
+      {emailConfirmLoading ? <Spinner size="sm" animation="border" /> : 'Confirmer'}
+    </EmailConfirmButton>
+  </InputGroup>
+  
+  {/* Move error message right below the input */}
+  {errors.email && (
+    <div className="text-danger mt-1" style={{ fontSize: '0.875rem', textAlign: 'left' }}>
+      {errors.email.message}
+    </div>
+  )}
 
-              <HelperText style={{ textAlign: 'center', marginTop: '1rem' }}>
-                <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-                  Un lien de confirmation sera envoyé à votre adresse email
-                </motion.span>
-              </HelperText>
+  <HelperText style={{ textAlign: 'center', marginTop: '1rem' }}>
+    <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+      Un lien de confirmation sera envoyé à votre adresse email
+    </motion.span>
+  </HelperText>
 
-              <motion.div
-                className="mt-3 text-center"
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <ActionButton 
-                  size="sm" 
-                  variant="outline-success" 
-                  onClick={checkEmail} 
-                  disabled={emailConfirmLoading}
-                  style={{ marginTop: '1rem' }}
-                >
-                  J'ai confirmé mon email
-                </ActionButton>
-              </motion.div>
-            </Form.Group>
+  <motion.div
+    className="mt-3 text-center"
+    initial={{ opacity: 0, y: 5 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: 0.3 }}
+  >
+    <ActionButton 
+      size="sm" 
+      variant="success" 
+      onClick={checkEmail} 
+      disabled={emailConfirmLoading}
+      style={{ marginTop: '1rem' }}
+    >
+      J'ai confirmé mon email
+    </ActionButton>
+  </motion.div>
+</Form.Group>
           </EmailVerificationContainer>
         </FormContainer>
       </PageContainer>
