@@ -11,13 +11,13 @@ const useMenuItems = () => {
       url: '/admin/manage-accounts',
       icon: 'feather icon-users' // manage multiple user accounts
     },
-    {
-      id: 'manage-choriste',
-      title: 'Liste des Choristes ',
-      type: 'item',
-      url: '/admin/manage-choriste',
-      icon: 'feather icon-users' // list of users/groups
-    },
+    // {
+    //   id: 'manage-choriste',
+    //   title: 'Liste des Choristes ',
+    //   type: 'item',
+    //   url: '/admin/manage-choriste',
+    //   icon: 'feather icon-users' // list of users/groups
+    // },
     {
       id: 'manage-oeuvres',
       title: 'Gérer les Œuvres',

@@ -1,9 +1,12 @@
+/* eslint-disable prettier/prettier */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/no-unescaped-entities */
 import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Form, Button, Col, Row, Spinner } from 'react-bootstrap';
 import Select from 'react-select';
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import styled from 'styled-components';
@@ -48,8 +51,7 @@ const Title = styled.h2`
   font-weight: 600;
   font-size: 2rem;
   margin: 0;
-  color: white; // Add this line to make the title white
-
+  color: white;
   letter-spacing: 0.03em;
 `;
 
@@ -194,6 +196,64 @@ const CheckboxLabel = styled(Form.Check.Label)`
   color: #2d3748;
 `;
 
+const HeightSliderContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+`;
+
+const HeightSlider = styled.input`
+  flex: 1;
+  height: 8px;
+  border-radius: 5px;
+  background: #e2e8f0;
+  outline: none;
+  transition: all 0.2s;
+
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #3498db;
+    cursor: pointer;
+  }
+
+  &::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #3498db;
+    cursor: pointer;
+    border: none;
+  }
+`;
+
+const HeightDisplay = styled.div`
+  min-width: 60px;
+  text-align: center;
+  font-weight: 500;
+  color: #3498db;
+`;
+
+const EmailVerificationContainer = styled.div`
+  padding: 3rem 2rem;
+  text-align: center;
+`;
+
+const EmailVerificationTitle = styled.h3`
+  color: #2d3748;
+  margin-bottom: 1rem;
+  font-weight: 600;
+`;
+
+const EmailVerificationSubtitle = styled.p`
+  color: #718096;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+`;
+
 const customSelectStyles = {
   control: (base, state) => ({
     ...base,
@@ -228,19 +288,144 @@ const genreOptions = [
   { value: 'Femme', label: 'Femme' }
 ];
 
-const professionalSituationOptions = [
-  { value: 'Étudiant(e)', label: 'Étudiant(e)' },
-  { value: 'Employé(e)', label: 'Employé(e)' },
-  { value: 'Sans emploi', label: 'Sans emploi' },
-  { value: 'Retraité(e)', label: 'Retraité(e)' },
-  { value: 'Autre', label: 'Autre' }
+const countryOptions = [
+  { value: 'Afghanistan', label: '🇦🇫 Afghanistan' },
+  { value: 'Afrique du Sud', label: '🇿🇦 Afrique du Sud' },
+  { value: 'Albanie', label: '🇦🇱 Albanie' },
+  { value: 'Algérie', label: '🇩🇿 Algérie' },
+  { value: 'Allemagne', label: '🇩🇪 Allemagne' },
+  { value: 'Andorre', label: '🇦🇩 Andorre' },
+  { value: 'Angola', label: '🇦🇴 Angola' },
+  { value: 'Arabie Saoudite', label: '🇸🇦 Arabie Saoudite' },
+  { value: 'Argentine', label: '🇦🇷 Argentine' },
+  { value: 'Arménie', label: '🇦🇲 Arménie' },
+  { value: 'Australie', label: '🇦🇺 Australie' },
+  { value: 'Autriche', label: '🇦🇹 Autriche' },
+  { value: 'Azerbaïdjan', label: '🇦🇿 Azerbaïdjan' },
+  { value: 'Bahreïn', label: '🇧🇭 Bahreïn' },
+  { value: 'Bangladesh', label: '🇧🇩 Bangladesh' },
+  { value: 'Belgique', label: '🇧🇪 Belgique' },
+  { value: 'Belize', label: '🇧🇿 Belize' },
+  { value: 'Bénin', label: '🇧🇯 Bénin' },
+  { value: 'Bolivie', label: '🇧🇴 Bolivie' },
+  { value: 'Brésil', label: '🇧🇷 Brésil' },
+  { value: 'Bulgarie', label: '🇧🇬 Bulgarie' },
+  { value: 'Burkina Faso', label: '🇧🇫 Burkina Faso' },
+  { value: 'Cameroun', label: '🇨🇲 Cameroun' },
+  { value: 'Canada', label: '🇨🇦 Canada' },
+  { value: 'Chili', label: '🇨🇱 Chili' },
+  { value: 'Chine', label: '🇨🇳 Chine' },
+  { value: 'Chypre', label: '🇨🇾 Chypre' },
+  { value: 'Colombie', label: '🇨🇴 Colombie' },
+  { value: 'Corée du Sud', label: '🇰🇷 Corée du Sud' },
+  { value: 'Costa Rica', label: '🇨🇷 Costa Rica' },
+  { value: 'Croatie', label: '🇭🇷 Croatie' },
+  { value: 'Danemark', label: '🇩🇰 Danemark' },
+  { value: 'Égypte', label: '🇪🇬 Égypte' },
+  { value: 'Émirats Arabes Unis', label: '🇦🇪 Émirats Arabes Unis' },
+  { value: 'Équateur', label: '🇪🇨 Équateur' },
+  { value: 'Espagne', label: '🇪🇸 Espagne' },
+  { value: 'Estonie', label: '🇪🇪 Estonie' },
+  { value: 'États-Unis', label: '🇺🇸 États-Unis' },
+  { value: 'Éthiopie', label: '🇪🇹 Éthiopie' },
+  { value: 'Finlande', label: '🇫🇮 Finlande' },
+  { value: 'France', label: '🇫🇷 France' },
+  { value: 'Gabon', label: '🇬🇦 Gabon' },
+  { value: 'Géorgie', label: '🇬🇪 Géorgie' },
+  { value: 'Ghana', label: '🇬🇭 Ghana' },
+  { value: 'Grèce', label: '🇬🇷 Grèce' },
+  { value: 'Guatemala', label: '🇬🇹 Guatemala' },
+  { value: 'Guinée', label: '🇬🇳 Guinée' },
+  { value: 'Hongrie', label: '🇭🇺 Hongrie' },
+  { value: 'Inde', label: '🇮🇳 Inde' },
+  { value: 'Indonésie', label: '🇮🇩 Indonésie' },
+  { value: 'Iran', label: '🇮🇷 Iran' },
+  { value: 'Iraq', label: '🇮🇶 Iraq' },
+  { value: 'Irlande', label: '🇮🇪 Irlande' },
+  { value: 'Islande', label: '🇮🇸 Islande' },
+  { value: 'Israël', label: '🇮🇱 Israël' },
+  { value: 'Italie', label: '🇮🇹 Italie' },
+  { value: 'Japon', label: '🇯🇵 Japon' },
+  { value: 'Jordanie', label: '🇯🇴 Jordanie' },
+  { value: 'Kazakhstan', label: '🇰🇿 Kazakhstan' },
+  { value: 'Kenya', label: '🇰🇪 Kenya' },
+  { value: 'Koweït', label: '🇰🇼 Koweït' },
+  { value: 'Lettonie', label: '🇱🇻 Lettonie' },
+  { value: 'Liban', label: '🇱🇧 Liban' },
+  { value: 'Libéria', label: '🇱🇷 Libéria' },
+  { value: 'Libye', label: '🇱🇾 Libye' },
+  { value: 'Lituanie', label: '🇱🇹 Lituanie' },
+  { value: 'Luxembourg', label: '🇱🇺 Luxembourg' },
+  { value: 'Madagascar', label: '🇲🇬 Madagascar' },
+  { value: 'Malaisie', label: '🇲🇾 Malaisie' },
+  { value: 'Mali', label: '🇲🇱 Mali' },
+  { value: 'Malte', label: '🇲🇹 Malte' },
+  { value: 'Maroc', label: '🇲🇦 Maroc' },
+  { value: 'Maurice', label: '🇲🇺 Maurice' },
+  { value: 'Mauritanie', label: '🇲🇷 Mauritanie' },
+  { value: 'Mexique', label: '🇲🇽 Mexique' },
+  { value: 'Moldavie', label: '🇲🇩 Moldavie' },
+  { value: 'Monaco', label: '🇲🇨 Monaco' },
+  { value: 'Mongolie', label: '🇲🇳 Mongolie' },
+  { value: 'Monténégro', label: '🇲🇪 Monténégro' },
+  { value: 'Mozambique', label: '🇲🇿 Mozambique' },
+  { value: 'Namibie', label: '🇳🇦 Namibie' },
+  { value: 'Népal', label: '🇳🇵 Népal' },
+  { value: 'Nicaragua', label: '🇳🇮 Nicaragua' },
+  { value: 'Niger', label: '🇳🇪 Niger' },
+  { value: 'Nigéria', label: '🇳🇬 Nigéria' },
+  { value: 'Norvège', label: '🇳🇴 Norvège' },
+  { value: 'Nouvelle-Zélande', label: '🇳🇿 Nouvelle-Zélande' },
+  { value: 'Oman', label: '🇴🇲 Oman' },
+  { value: 'Ouganda', label: '🇺🇬 Ouganda' },
+  { value: 'Pakistan', label: '🇵🇰 Pakistan' },
+  { value: 'Palestine', label: '🇵🇸 Palestine' },
+  { value: 'Panama', label: '🇵🇦 Panama' },
+  { value: 'Paraguay', label: '🇵🇾 Paraguay' },
+  { value: 'Pays-Bas', label: '🇳🇱 Pays-Bas' },
+  { value: 'Pérou', label: '🇵🇪 Pérou' },
+  { value: 'Philippines', label: '🇵🇭 Philippines' },
+  { value: 'Pologne', label: '🇵🇱 Pologne' },
+  { value: 'Portugal', label: '🇵🇹 Portugal' },
+  { value: 'Qatar', label: '🇶🇦 Qatar' },
+  { value: 'République Tchèque', label: '🇨🇿 République Tchèque' },
+  { value: 'Roumanie', label: '🇷🇴 Roumanie' },
+  { value: 'Royaume-Uni', label: '🇬🇧 Royaume-Uni' },
+  { value: 'Russie', label: '🇷🇺 Russie' },
+  { value: 'Rwanda', label: '🇷🇼 Rwanda' },
+  { value: 'Sénégal', label: '🇸🇳 Sénégal' },
+  { value: 'Serbie', label: '🇷🇸 Serbie' },
+  { value: 'Singapour', label: '🇸🇬 Singapour' },
+  { value: 'Slovaquie', label: '🇸🇰 Slovaquie' },
+  { value: 'Slovénie', label: '🇸🇮 Slovénie' },
+  { value: 'Somalie', label: '🇸🇴 Somalie' },
+  { value: 'Soudan', label: '🇸🇩 Soudan' },
+  { value: 'Sri Lanka', label: '🇱🇰 Sri Lanka' },
+  { value: 'Suède', label: '🇸🇪 Suède' },
+  { value: 'Suisse', label: '🇨🇭 Suisse' },
+  { value: 'Syrie', label: '🇸🇾 Syrie' },
+  { value: 'Tadjikistan', label: '🇹🇯 Tadjikistan' },
+  { value: 'Tanzanie', label: '🇹🇿 Tanzanie' },
+  { value: 'Tchad', label: '🇹🇩 Tchad' },
+  { value: 'Thaïlande', label: '🇹🇭 Thaïlande' },
+  { value: 'Togo', label: '🇹🇬 Togo' },
+  { value: 'Tunisie', label: '🇹🇳 Tunisie' },
+  { value: 'Turkménistan', label: '🇹🇲 Turkménistan' },
+  { value: 'Turquie', label: '🇹🇷 Turquie' },
+  { value: 'Ukraine', label: '🇺🇦 Ukraine' },
+  { value: 'Uruguay', label: '🇺🇾 Uruguay' },
+  { value: 'Venezuela', label: '🇻🇪 Venezuela' },
+  { value: 'Vietnam', label: '🇻🇳 Vietnam' },
+  { value: 'Yémen', label: '🇾🇪 Yémen' },
+  { value: 'Zambie', label: '🇿🇲 Zambie' },
+  { value: 'Zimbabwe', label: '🇿🇼 Zimbabwe' }
 ];
-
 const Formulaire = () => {
   const [step, setStep] = useState(0);
   const [signupActive, setSignupActive] = useState(null);
   const [emailConfirmed, setEmailConfirmed] = useState(false);
   const [emailConfirmLoading, setEmailConfirmLoading] = useState(false);
+  const [heightValue, setHeightValue] = useState(1.7);
 
   const {
     register,
@@ -249,6 +434,7 @@ const Formulaire = () => {
     trigger,
     reset,
     watch,
+    setValue,
     formState: { errors }
   } = useForm({
     mode: 'onChange',
@@ -258,22 +444,29 @@ const Formulaire = () => {
       email: '',
       gender: null,
       birthDate: '',
-      nationality: '',
-      cin: '',
-      height: '',
+      nationality: null,
+      identityType: '',
+      identityNumber: '',
+      height: 1.7,
       phone: '',
-      motivation: '',
+      phoneCountryCode: '',
+      isSponsored: '',
+      sponsorName: '',
+      professionalSituation: '',
       hasMusicalKnowledge: false,
       musicalExperience: '',
       isActiveInOtherChoir: false,
       otherChoir: '',
-      professionalSituation: '',
+      motivation: '',
       emailConfirmed: false
     }
   });
 
+  // Update these lines at the top where you have the watch variables
   const hasMusicalKnowledge = watch('hasMusicalKnowledge');
   const isActiveInOtherChoir = watch('isActiveInOtherChoir');
+  const identityType = watch('identityType');
+  const isSponsored = watch('isSponsored');
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -282,11 +475,14 @@ const Formulaire = () => {
         setSignupActive(config.signupActive);
       } catch (err) {
         setSignupActive(false);
-        // console.error('Error fetching config:', err);
       }
     };
     fetchConfig();
   }, []);
+
+  useEffect(() => {
+    setValue('height', heightValue);
+  }, [heightValue, setValue]);
 
   const handleEmailConfirmation = async () => {
     const email = watch('email');
@@ -313,8 +509,8 @@ const Formulaire = () => {
       const message = err.response?.data?.message || err.message || 'Échec de l’envoi de l’email.';
 
       MySwal.fire({
-        icon: 'error',
-        title: 'Erreur',
+        icon: 'warning',
+        title: 'Envoi impossible',
         text: message,
         confirmButtonColor: '#3498db'
       });
@@ -343,23 +539,38 @@ const Formulaire = () => {
     }
   };
 
+  // Validation function for at least one sentence
+  const validatePhrase = (value) => {
+    if (!value || value.trim().length === 0) {
+      return 'La motivation est requise';
+    }
+
+    // Check for minimum characters that would constitute a complete phrase based on textarea width
+    // Approximately 80-100 characters would span the width of our textarea
+    if (value.trim().length < 122) {
+      return 'Veuillez écrire une phrase complète qui remplit la largeur de la zone de texte';
+    }
+
+    return true;
+  };
+
   const onSubmit = async (data) => {
     try {
       const formattedData = {
-        ...data,
-        gender: data.gender?.value || '',
-        professionalSituation: data.professionalSituation?.value || '',
-        height: Math.round(parseFloat(data.height) * 100),
-        submitted_at: new Date().toISOString(),
-        submitted_by: 'AzizHasnaoui'
+       ...data,
+      gender: data.gender?.value || '',
+      nationality: data.nationality?.value || '',
+      identityNumber: data.identityNumber,
+      height: Math.round(parseFloat(data.height) * 100),
+      submitted_at: new Date().toISOString(),
       };
 
       const response = await applyForMembership(formattedData);
 
       MySwal.fire({
         icon: 'success',
-        title: response.message || 'Demande envoyée avec succès !',
-        text: 'Veuillez patienter quelques heures pour recevoir une réponse.',
+        title: response.message || 'Votre candidature a bien été enregistrée.',
+        text: 'Nous vous contacterons bientôt pour une audition.!',
         confirmButtonColor: '#2ecc71',
         timer: 5000,
         timerProgressBar: true
@@ -368,10 +579,11 @@ const Formulaire = () => {
       reset();
       setStep(0);
       setEmailConfirmed(false);
+      setHeightValue(1.7);
     } catch (error) {
       MySwal.fire({
-        icon: 'error',
-        title: 'Erreur',
+        icon: 'warning',
+        title: 'Envoi impossible',
         text: error.message || 'La demande a échoué.',
         confirmButtonColor: '#e74c3c'
       });
@@ -388,31 +600,26 @@ const Formulaire = () => {
 
       if (!valid) return;
 
-      if (!emailConfirmed) {
-        MySwal.fire({
-          icon: 'warning',
-          title: 'Email non confirmé',
-          text: 'Veuillez confirmer votre adresse email avant de continuer.',
-          confirmButtonColor: '#f39c12'
-        });
-        return;
-      }
-
       setStep((s) => s + 1);
     } else if (step === 1) {
       fieldsToValidate = [
-        'cin',
+        'identityType',
+        'identityNumber',
         'height',
-        'hasMusicalKnowledge',
-        ...(hasMusicalKnowledge ? ['musicalExperience'] : []),
-        'isActiveInOtherChoir',
-        ...(isActiveInOtherChoir ? ['otherChoir'] : []),
-        'professionalSituation'
+        'professionalSituation',
+        'isSponsored',
+        ...(isSponsored === 'oui' ? ['sponsorName'] : [])
       ];
       const valid = await trigger(fieldsToValidate);
       if (valid) setStep((s) => s + 1);
     } else if (step === 2) {
-      fieldsToValidate = ['motivation'];
+      fieldsToValidate = [
+        'motivation',
+        'hasMusicalKnowledge',
+        ...(hasMusicalKnowledge ? ['musicalExperience'] : []),
+        'isActiveInOtherChoir',
+        ...(isActiveInOtherChoir ? ['otherChoir'] : [])
+      ];
       const valid = await trigger(fieldsToValidate);
       if (valid) setStep((s) => s + 1);
     }
@@ -478,6 +685,91 @@ const Formulaire = () => {
     );
   }
 
+  // Show email verification screen if email not confirmed
+  if (!emailConfirmed) {
+    return (
+      <PageContainer>
+        <FormContainer initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <FormHeader>
+            <Logo src={logoCSO} alt="CSO Logo" />
+            <Title>Vérification de l'email</Title>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.9 }}
+              transition={{ delay: 0.3 }}
+              style={{ marginTop: '1rem', fontSize: '1.1rem' }}
+            >
+              Veuillez d'abord confirmer votre adresse email pour accéder au formulaire de candidature
+            </motion.p>
+          </FormHeader>
+
+          <EmailVerificationContainer>
+            <EmailVerificationTitle>Confirmez votre adresse email</EmailVerificationTitle>
+            <EmailVerificationSubtitle>
+              Cette étape est nécessaire pour sécuriser votre candidature et vous permettre de recevoir nos communications.
+            </EmailVerificationSubtitle>
+
+            <Form.Group controlId="email" style={{ maxWidth: '500px', margin: '0 auto' }}>
+              <Form.Label>Adresse email</Form.Label>
+              <InputGroup>
+                <Form.Control
+                  type="email"
+                  placeholder="votre@email.com"
+                  {...register('email', {
+                    required: 'Email requis',
+                    pattern: {
+                      value: /^\S+@\S+\.\S+$/,
+                      message: 'Email invalide'
+                    }
+                  })}
+                  isInvalid={!!errors.email}
+                  size="lg"
+                />
+                <EmailConfirmButton
+                  size="lg"
+                  variant="primary"
+                  onClick={handleEmailConfirmation}
+                  disabled={emailConfirmLoading}
+                >
+                  {emailConfirmLoading ? <Spinner size="sm" animation="border" /> : 'Confirmer'}
+                </EmailConfirmButton>
+              </InputGroup>
+              {errors.email && (
+                <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
+                  {errors.email.message}
+                </Form.Control.Feedback>
+              )}
+
+              <HelperText style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+                  Un lien de confirmation sera envoyé à votre adresse email
+                </motion.span>
+              </HelperText>
+
+              <motion.div
+                className="mt-3 text-center"
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <ActionButton 
+                  size="sm" 
+                  variant="outline-success" 
+                  onClick={checkEmail} 
+                  disabled={emailConfirmLoading}
+                  style={{ marginTop: '1rem' }}
+                >
+                  J'ai confirmé mon email
+                </ActionButton>
+              </motion.div>
+            </Form.Group>
+          </EmailVerificationContainer>
+        </FormContainer>
+      </PageContainer>
+    );
+  }
+
+  // Show main form if email is confirmed
   return (
     <PageContainer>
       <FormContainer initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
@@ -490,11 +782,7 @@ const Formulaire = () => {
             transition={{ delay: 0.3 }}
             style={{ marginTop: '1rem', fontSize: '1.1rem' }}
           >
-            {/* {new Date().toLocaleDateString('fr-FR', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            })} */}
+            Email confirmé ✓ - Vous pouvez maintenant compléter votre candidature
           </motion.p>
         </FormHeader>
 
@@ -533,7 +821,6 @@ const Formulaire = () => {
                             placeholder="Votre prénom"
                             {...register('firstName', {
                               required: 'Prénom requis',
-                              minLength: { value: 3, message: 'Minimum 3 caractères' },
                               pattern: {
                                 value: /^[A-Za-zÀ-ÿ\s'-]+$/,
                                 message: 'Le prénom ne doit contenir que des lettres'
@@ -553,7 +840,6 @@ const Formulaire = () => {
                             placeholder="Votre nom"
                             {...register('lastName', {
                               required: 'Nom requis',
-                              minLength: { value: 3, message: 'Minimum 3 caractères' },
                               pattern: {
                                 value: /^[A-Za-zÀ-ÿ\s'-]+$/,
                                 message: 'Le nom ne doit contenir que des lettres'
@@ -569,96 +855,79 @@ const Formulaire = () => {
 
                     <Row>
                       <Col md={6} className="mb-3">
-                        <Form.Group controlId="email">
+                        <Form.Group controlId="emailDisplay">
                           <Form.Label>Email</Form.Label>
-                          <InputGroup>
-                            <Form.Control
-                              type="email"
-                              placeholder="votre@email.com"
-                              {...register('email', {
-                                required: 'Email requis',
-                                pattern: {
-                                  value: /^\S+@\S+\.\S+$/,
-                                  message: 'Email invalide'
-                                }
-                              })}
-                              isInvalid={!!errors.email}
-                              disabled={emailConfirmed}
-                              size="sm"
-                            />
-                            <EmailConfirmButton
-                              size="sm"
-                              variant={emailConfirmed ? 'success' : 'outline-primary'}
-                              onClick={handleEmailConfirmation}
-                              disabled={emailConfirmLoading || emailConfirmed}
-                            >
-                              {emailConfirmed ? 'Confirmé ✓' : emailConfirmLoading ? <Spinner size="sm" animation="border" /> : 'Confirmer'}
-                            </EmailConfirmButton>
-                          </InputGroup>
-                          {errors.email && (
-                            <Form.Control.Feedback type="invalid" style={{ display: 'block' }}>
-                              {errors.email.message}
-                            </Form.Control.Feedback>
-                          )}
-
-                          {!emailConfirmed && (
-                            <HelperText>
-                              <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-                                Un lien de confirmation sera envoyé à votre adresse.
-                              </motion.span>
-                            </HelperText>
-                          )}
-
-                          {!emailConfirmed && !emailConfirmLoading && (
-                            <motion.div
-                              className="mt-2"
-                              initial={{ opacity: 0, y: 5 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: 0.3 }}
-                            >
-                              <ActionButton size="sm" variant="outline-success" onClick={checkEmail} disabled={emailConfirmLoading}>
-                                J'ai confirmé mon email
-                              </ActionButton>
-                            </motion.div>
-                          )}
-
-                          {emailConfirmed && (
-                            <HelperText type="success">
-                              <motion.span
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{ type: 'spring', stiffness: 200, damping: 10 }}
-                              >
-                                ✓
-                              </motion.span>
-                              Email confirmé avec succès
-                            </HelperText>
-                          )}
+                          <Form.Control
+                            type="email"
+                            value={watch('email')}
+                            disabled
+                            size="sm"
+                            style={{ backgroundColor: '#e8f5e8', color: '#2d5a2d' }}
+                          />
+                          <HelperText type="success" style={{ marginTop: '0.25rem' }}>
+                            <span>✓</span>
+                            Email confirmé
+                          </HelperText>
                         </Form.Group>
                       </Col>
 
                       <Col md={6} className="mb-3">
                         <Form.Group controlId="phone">
                           <Form.Label>Téléphone</Form.Label>
-                          <Form.Control
-                            type="text"
-                            placeholder="23 200 300"
-                            {...register('phone', {
+                          <Controller
+                            name="phone"
+                            control={control}
+                            rules={{
                               required: 'Téléphone requis',
-                              pattern: {
-                                value: /^(5|9|2)[0-9]{7}$/,
-                                message: 'Le numéro doit commencer par 5, 9 ou 2 et contenir 8 chiffres'
+                              validate: (value) => {
+                                if (!value || value.length < 8) {
+                                  return 'Numéro de téléphone invalide';
+                                }
+                                return true;
                               }
-                            })}
-                            isInvalid={!!errors.phone}
-                            size="sm"
+                            }}
+                            render={({ field: { onChange, value } }) => (
+                              <PhoneInput
+                                country={'tn'}
+                                value={value}
+                                onChange={(phone, country) => {
+                                  onChange(phone);
+                                  setValue('phoneCountryCode', `+${country.dialCode}`);
+                                }}
+                                enableSearch={true}
+                                searchPlaceholder="Rechercher un pays"
+                                inputStyle={{
+                                  width: '100%',
+                                  height: '42px',
+                                  borderRadius: '10px',
+                                  border: errors.phone ? '1px solid #dc3545' : '1px solid #e2e8f0',
+                                  fontSize: '0.875rem',
+                                  paddingLeft: '60px'
+                                }}
+                                containerStyle={{
+                                  width: '100%'
+                                }}
+                                buttonStyle={{
+                                  borderRadius: '10px 0 0 10px',
+                                  border: errors.phone ? '1px solid #dc3545' : '1px solid #e2e8f0',
+                                  backgroundColor: '#f8f9fa'
+                                }}
+                                dropdownStyle={{
+                                  borderRadius: '10px',
+                                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
+                                }}
+                              />
+                            )}
                           />
-                          <Form.Control.Feedback type="invalid">{errors.phone?.message}</Form.Control.Feedback>
+                          {errors.phone && (
+                            <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
+                              {errors.phone.message}
+                            </div>
+                          )}
                         </Form.Group>
                       </Col>
                     </Row>
 
-                    {/* Continue with the remaining fields for step 0 */}
                     <Form.Group controlId="gender" className="mb-3">
                       <Form.Label>Genre</Form.Label>
                       <Controller
@@ -693,18 +962,18 @@ const Formulaire = () => {
                               required: 'Date de naissance requise',
                               validate: (value) => {
                                 const birth = new Date(value);
-                                const today = new Date('2025-07-09'); // Using provided current date
+                                const today = new Date('2025-07-17');
                                 const age = today.getFullYear() - birth.getFullYear();
                                 const monthDiff = today.getMonth() - birth.getMonth();
                                 const dayDiff = today.getDate() - birth.getDate();
-                                const isOldEnough = age > 5 || (age === 5 && (monthDiff > 0 || (monthDiff === 0 && dayDiff >= 0)));
+                                const isOldEnough = age > 14 || (age === 14 && (monthDiff > 0 || (monthDiff === 0 && dayDiff >= 0)));
 
-                                return isOldEnough || 'L’âge minimum requis est de 5 ans';
+                                return isOldEnough || 'L’âge minimum requis est de 14 ans';
                               }
                             })}
                             isInvalid={!!errors.birthDate}
                             size="sm"
-                            max="2025-07-09" // Using provided current date
+                            max="2025-07-17"
                           />
                           <Form.Control.Feedback type="invalid">{errors.birthDate?.message}</Form.Control.Feedback>
                         </Form.Group>
@@ -712,26 +981,32 @@ const Formulaire = () => {
                       <Col md={6} className="mb-3">
                         <Form.Group controlId="nationality">
                           <Form.Label>Nationalité</Form.Label>
-                          <Form.Control
-                            type="text"
-                            placeholder="Ex: Tunisienne"
-                            {...register('nationality', {
-                              required: 'Nationalité requise',
-                              pattern: {
-                                value: /^[A-Za-zÀ-ÿ\s'-]+$/,
-                                message: 'La nationalité doit contenir uniquement des lettres'
-                              }
-                            })}
-                            isInvalid={!!errors.nationality}
-                            size="sm"
+                          <Controller
+                            name="nationality"
+                            control={control}
+                            rules={{ required: 'Nationalité requise' }}
+                            render={({ field }) => (
+                              <Select
+                                {...field}
+                                options={countryOptions}
+                                placeholder="Sélectionnez votre nationalité"
+                                isSearchable={true}
+                                styles={customSelectStyles}
+                                classNamePrefix="select"
+                              />
+                            )}
                           />
-                          <Form.Control.Feedback type="invalid">{errors.nationality?.message}</Form.Control.Feedback>
+                          {errors.nationality && (
+                            <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
+                              {errors.nationality.message}
+                            </div>
+                          )}
                         </Form.Group>
                       </Col>
                     </Row>
 
                     <div className="d-flex justify-content-between mt-4">
-                      <div /> {/* Empty div for spacing */}
+                      <div />
                       <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                         <ActionButton size="sm" variant="primary" onClick={handleNext} className="px-4">
                           Suivant
@@ -744,126 +1019,166 @@ const Formulaire = () => {
 
                 {step === 1 && (
                   <div>
-                    <Row>
-                      <Col md={6} className="mb-3">
-                        <Form.Group controlId="cin">
-                          <Form.Label>CIN</Form.Label>
-                          <Form.Control
-                            type="text"
-                            placeholder="Numéro CIN"
-                            {...register('cin', {
-                              required: 'CIN requis',
-                              pattern: {
-                                value: /^[01][0-9]{7}$/,
-                                message: 'Le CIN doit commencer par 0 ou 1 et contenir exactement 8 chiffres'
-                              }
-                            })}
-                            isInvalid={!!errors.cin}
-                            size="sm"
-                          />
-                          <Form.Control.Feedback type="invalid">{errors.cin?.message}</Form.Control.Feedback>
-                        </Form.Group>
-                      </Col>
-                      <Col md={6} className="mb-3">
-                        <Form.Group controlId="height">
-                          <Form.Label>Taille (en mètre)</Form.Label>
-                          <Form.Control
-                            type="number"
-                            step="0.01"
-                            placeholder="ex: 1.70"
-                            {...register('height', {
-                              required: 'Taille requise',
-                              min: { value: 0.5, message: 'Taille trop petite' },
-                              max: { value: 2.5, message: 'Taille trop grande' },
-                              pattern: {
-                                value: /^[0-9]+(\.[0-9]{1,2})?$/,
-                                message: 'Format de taille invalide (ex: 1.70)'
-                              }
-                            })}
-                            isInvalid={!!errors.height}
-                            size="sm"
-                          />
-                          <Form.Control.Feedback type="invalid">{errors.height?.message}</Form.Control.Feedback>
-                        </Form.Group>
-                      </Col>
-                    </Row>
-
-                    <Form.Group controlId="professionalSituation" className="mb-3">
-                      <Form.Label>Situation professionnelle</Form.Label>
-                      <Controller
-                        name="professionalSituation"
-                        control={control}
-                        rules={{ required: 'Situation professionnelle requise' }}
-                        render={({ field }) => (
-                          <Select
-                            {...field}
-                            options={professionalSituationOptions}
-                            placeholder="Sélectionnez votre situation"
-                            styles={customSelectStyles}
-                            classNamePrefix="select"
-                          />
-                        )}
-                      />
-                      {errors.professionalSituation && (
+                    <Form.Group controlId="identityType" className="mb-3">
+                      <Form.Label>Pièces d'identité</Form.Label>
+                      <div>
+                        <Form.Check
+                          inline
+                          type="radio"
+                          label="CIN"
+                          name="identityType"
+                          value="CIN"
+                          {...register('identityType', { required: "Type de pièce d'identité requis" })}
+                        />
+                        <Form.Check
+                          inline
+                          type="radio"
+                          label="Passeport"
+                          name="identityType"
+                          value="Passeport"
+                          {...register('identityType', { required: "Type de pièce d'identité requis" })}
+                        />
+                      </div>
+                      {errors.identityType && (
                         <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
-                          {errors.professionalSituation.message}
+                          {errors.identityType.message}
                         </div>
                       )}
                     </Form.Group>
 
-                    <Form.Group controlId="hasMusicalKnowledge" className="mb-3">
-                      <Form.Check type="checkbox" label="Avez-vous des connaissances musicales ?" {...register('hasMusicalKnowledge')} />
-                    </Form.Group>
-
-                    {hasMusicalKnowledge && (
+                    {identityType && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.2 }}
                       >
-                        <Form.Group controlId="musicalExperience" className="mb-3">
-                          <Form.Label>Expérience musicale</Form.Label>
+                        <Form.Group controlId="identityNumber" className="mb-3">
+                          <Form.Label>Numéro de {identityType}</Form.Label>
                           <Form.Control
-                            as="textarea"
-                            rows={3}
-                            placeholder="Décrivez votre expérience musicale..."
-                            {...register('musicalExperience', {
-                              required: 'Veuillez décrire votre expérience musicale'
+                            type="text"
+                            placeholder={`Numéro ${identityType}`}
+                            {...register('identityNumber', {
+                              required: `Numéro de ${identityType} requis`,
+                              pattern:
+                                identityType === 'CIN'
+                                  ? {
+                                      value: /^[01][0-9]{7}$/,
+                                      message: 'Le CIN doit commencer par 0 ou 1 et contenir exactement 8 chiffres'
+                                    }
+                                  : {
+                                      value: /^[A-Za-z0-9]+$/,
+                                      message: 'Le passeport ne doit contenir que des lettres et des chiffres'
+                                    }
                             })}
-                            isInvalid={!!errors.musicalExperience}
+                            isInvalid={!!errors.identityNumber}
+                            size="sm"
                           />
-                          <Form.Control.Feedback type="invalid">{errors.musicalExperience?.message}</Form.Control.Feedback>
+                          <Form.Control.Feedback type="invalid">{errors.identityNumber?.message}</Form.Control.Feedback>
                         </Form.Group>
                       </motion.div>
                     )}
 
-                    <Form.Group controlId="isActiveInOtherChoir" className="mb-3">
-                      <Form.Check
-                        type="checkbox"
-                        label="Êtes-vous actif(ve) dans une autre chorale ?"
-                        {...register('isActiveInOtherChoir')}
+                    <Form.Group controlId="height" className="mb-3">
+                      <Form.Label>Taille (en mètre)</Form.Label>
+                      <Form.Control
+                        type="number"
+                        step="0.01"
+                        placeholder="ex: 1.70"
+                        value={heightValue}
+                        onChange={(e) => setHeightValue(parseFloat(e.target.value) || 1.7)}
+                        {...register('height', {
+                          required: 'Taille requise',
+                          min: { value: 0.5, message: 'Taille trop petite' },
+                          max: { value: 2.5, message: 'Taille trop grande' }
+                        })}
+                        isInvalid={!!errors.height}
+                        size="sm"
                       />
+                      <HeightSliderContainer>
+                        <span style={{ fontSize: '0.85rem', color: '#718096' }}>0.5m</span>
+                        <HeightSlider
+                          type="range"
+                          min="0.5"
+                          max="2.5"
+                          step="0.01"
+                          value={heightValue}
+                          onChange={(e) => setHeightValue(parseFloat(e.target.value))}
+                        />
+                        <span style={{ fontSize: '0.85rem', color: '#718096' }}>2.5m</span>
+                        <HeightDisplay>{heightValue.toFixed(2)}m</HeightDisplay>
+                      </HeightSliderContainer>
+                      <Form.Control.Feedback type="invalid">{errors.height?.message}</Form.Control.Feedback>
                     </Form.Group>
 
-                    {isActiveInOtherChoir && (
+                    <Form.Group controlId="professionalSituation" className="mb-3">
+                      <Form.Label>Situation professionnelle</Form.Label>
+                      <Form.Control
+                        type="text"
+                        placeholder="Décrivez votre situation professionnelle"
+                        {...register('professionalSituation', {
+                          required: 'Situation professionnelle requise',
+                          pattern: {
+                            value: /^[A-Za-zÀ-ÿ\s'-]+$/,
+                            message: 'La situation professionnelle ne doit contenir que des lettres'
+                          }
+                        })}
+                        isInvalid={!!errors.professionalSituation}
+                        size="sm"
+                      />
+                      <Form.Control.Feedback type="invalid">{errors.professionalSituation?.message}</Form.Control.Feedback>
+                    </Form.Group>
+
+                    <Form.Group controlId="isSponsored" className="mb-3">
+                      <Form.Label>Avez-vous été parrainé pour rejoindre le chœur du CSO ?</Form.Label>
+                      <div>
+                        <Form.Check
+                          inline
+                          type="radio"
+                          label="Oui"
+                          name="isSponsored"
+                          value="oui"
+                          {...register('isSponsored', { required: 'Veuillez indiquer si vous avez été parrainé' })}
+                        />
+                        <Form.Check
+                          inline
+                          type="radio"
+                          label="Non"
+                          name="isSponsored"
+                          value="non"
+                          {...register('isSponsored', { required: 'Veuillez indiquer si vous avez été parrainé' })}
+                        />
+                      </div>
+                      {errors.isSponsored && (
+                        <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
+                          {errors.isSponsored.message}
+                        </div>
+                      )}
+                    </Form.Group>
+
+                    {isSponsored === 'oui' && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.2 }}
                       >
-                        <Form.Group controlId="otherChoir" className="mb-3">
-                          <Form.Label>Nom de l'autre chorale</Form.Label>
+                        <Form.Group controlId="sponsorName" className="mb-3">
+                          <Form.Label>Si oui par qui ? (Nom et prénom)</Form.Label>
                           <Form.Control
                             type="text"
-                            placeholder="Nom de la chorale"
-                            {...register('otherChoir', {
-                              required: "Le nom de l'autre chorale est requis"
+                            placeholder="Nom et prénom du parrain"
+                            {...register('sponsorName', {
+                              required: 'Le nom du parrain est requis',
+                              pattern: {
+                                value: /^[A-Za-zÀ-ÿ\s'-]+$/,
+                                message: 'Le nom ne doit contenir que des lettres'
+                              }
                             })}
-                            isInvalid={!!errors.otherChoir}
+                            isInvalid={!!errors.sponsorName}
+                            size="sm"
                           />
-                          <Form.Control.Feedback type="invalid">{errors.otherChoir?.message}</Form.Control.Feedback>
+                          <Form.Control.Feedback type="invalid">{errors.sponsorName?.message}</Form.Control.Feedback>
                         </Form.Group>
                       </motion.div>
                     )}
@@ -884,33 +1199,124 @@ const Formulaire = () => {
                     </div>
                   </div>
                 )}
+
                 {step === 2 && (
                   <div>
                     <Form.Group controlId="motivation" className="mb-4">
-                      <Form.Label>
-                        Lettre de motivation
-                        <span className="text-muted ms-2" style={{ fontSize: '0.875rem' }}>
-                          (Pourquoi souhaitez-vous rejoindre le CSO ?)
-                        </span>
-                      </Form.Label>
+                      <Form.Label>Pourquoi souhaitez-vous rejoindre le CSO ?</Form.Label>
                       <Form.Control
                         as="textarea"
                         rows={6}
-                        placeholder="Décrivez vos motivations pour rejoindre notre chorale..."
+                        placeholder="Décrire vos motivations pour rejoindre notre choeur..."
                         {...register('motivation', {
-                          required: 'La lettre de motivation est requise',
-                          minLength: {
-                            value: 50,
-                            message: 'Veuillez écrire au moins 50 caractères'
-                          }
+                          validate: validatePhrase
                         })}
                         isInvalid={!!errors.motivation}
                       />
                       <Form.Control.Feedback type="invalid">{errors.motivation?.message}</Form.Control.Feedback>
-                      <Form.Text className="text-muted">
-                        Parlez-nous de votre passion pour la musique et de ce qui vous motive à rejoindre le CSO.
-                      </Form.Text>
                     </Form.Group>
+
+                    <Form.Group controlId="hasMusicalKnowledge" className="mb-3">
+                      <Form.Label>Avez-vous des connaissances musicales ?</Form.Label>
+                      <div>
+                        <Form.Check
+                          inline
+                          type="radio"
+                          label="Oui"
+                          name="hasMusicalKnowledge"
+                          value="oui"
+                          {...register('hasMusicalKnowledge', { required: 'Veuillez indiquer si vous avez des connaissances musicales' })}
+                        />
+                        <Form.Check
+                          inline
+                          type="radio"
+                          label="Non"
+                          name="hasMusicalKnowledge"
+                          value="non"
+                          {...register('hasMusicalKnowledge', { required: 'Veuillez indiquer si vous avez des connaissances musicales' })}
+                        />
+                      </div>
+                      {errors.hasMusicalKnowledge && (
+                        <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
+                          {errors.hasMusicalKnowledge.message}
+                        </div>
+                      )}
+                    </Form.Group>
+
+                    {hasMusicalKnowledge === 'oui' && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Form.Group controlId="musicalExperience" className="mb-3">
+                          <Form.Label>Expérience musicale</Form.Label>
+                          <Form.Control
+                            as="textarea"
+                            rows={3}
+                            placeholder="Décrire votre expérience musicale..."
+                            {...register('musicalExperience', {
+                              required: 'Veuillez décrire votre expérience musicale'
+                            })}
+                            isInvalid={!!errors.musicalExperience}
+                          />
+                          <Form.Control.Feedback type="invalid">{errors.musicalExperience?.message}</Form.Control.Feedback>
+                        </Form.Group>
+                      </motion.div>
+                    )}
+                    <Form.Group controlId="isActiveInOtherChoir" className="mb-3">
+                      <Form.Label>Êtes-vous/avez-vous été actif dans un autre chœur ?</Form.Label>
+                      <div>
+                        <Form.Check
+                          inline
+                          type="radio"
+                          label="Oui"
+                          name="isActiveInOtherChoir"
+                          value="oui"
+                          {...register('isActiveInOtherChoir', {
+                            required: 'Veuillez indiquer si vous avez été actif dans un autre chœur'
+                          })}
+                        />
+                        <Form.Check
+                          inline
+                          type="radio"
+                          label="Non"
+                          name="isActiveInOtherChoir"
+                          value="non"
+                          {...register('isActiveInOtherChoir', {
+                            required: 'Veuillez indiquer si vous avez été actif dans un autre chœur'
+                          })}
+                        />
+                      </div>
+                      {errors.isActiveInOtherChoir && (
+                        <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
+                          {errors.isActiveInOtherChoir.message}
+                        </div>
+                      )}
+                    </Form.Group>
+
+                    {isActiveInOtherChoir === 'oui' && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Form.Group controlId="otherChoir" className="mb-3">
+                          <Form.Label>Nom du ou des chœur(s)</Form.Label>
+                          <Form.Control
+                            type="text"
+                            placeholder="Nom du chœur"
+                            {...register('otherChoir', {
+                              required: "Le nom de l'autre chœur est requis"
+                            })}
+                            isInvalid={!!errors.otherChoir}
+                          />
+                          <Form.Control.Feedback type="invalid">{errors.otherChoir?.message}</Form.Control.Feedback>
+                        </Form.Group>
+                      </motion.div>
+                    )}
 
                     <div className="border-top pt-4 mt-4">
                       <div className="text-muted mb-4" style={{ fontSize: '0.875rem' }}>
@@ -924,7 +1330,6 @@ const Formulaire = () => {
                             minute: '2-digit'
                           })}
                         </div>
-                        <div>{/* <strong>Candidat :</strong> {watch('firstName')} {watch('lastName')} */}</div>
                       </div>
 
                       <div className="d-flex justify-content-between">
@@ -948,7 +1353,6 @@ const Formulaire = () => {
             </AnimatePresence>
           </StyledForm>
 
-          {/* Progress indicator */}
           <motion.div
             className="text-center mt-4 text-muted"
             initial={{ opacity: 0 }}
@@ -959,7 +1363,6 @@ const Formulaire = () => {
             Étape {step + 1} sur 3
           </motion.div>
 
-          {/* Submission metadata */}
           <div
             className="text-center mt-3"
             style={{
@@ -967,31 +1370,10 @@ const Formulaire = () => {
               color: '#a0aec0'
             }}
           >
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
-              {/* Formulaire mis à jour le{' '}
-              {new Date('2025-07-09').toLocaleDateString('fr-FR', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })} */}
-              {/* <br />
-              <span className="opacity-50">
-                ID: {`CSO-${new Date('2025-07-09').getFullYear()}-${Math.random().toString(36).substr(2, 6)}`}
-              </span> */}
-            </motion.div>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}></motion.div>
           </div>
         </FormContent>
       </FormContainer>
-
-      {/* Help text */}
-      {/* <motion.div className="text-center mt-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
-        <p className="text-muted" style={{ fontSize: '0.875rem' }}>
-          Vous avez des questions ? Contactez-nous à{' '}
-          <a href="mailto:contact@cso.tn" className="text-primary text-decoration-none">
-            contact@cso.tn
-          </a>
-        </p>
-      </motion.div> */}
     </PageContainer>
   );
 };

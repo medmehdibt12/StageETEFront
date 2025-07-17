@@ -15,7 +15,7 @@ import {
   FaTimes
 } from 'react-icons/fa';
 import Swal from 'sweetalert2';
-import { getMembershipSubmissions, sendTestDates, acceptMembership, refuseMembership } from '../../../services/accounts.service';
+import { getMembershipSubmissions, acceptMembership, refuseMembership } from '../../../services/accounts.service';
 import { listAuditionParameters, generateAuditions } from '../../../services/auditions.service';
 import './ManageMembership.css';
 

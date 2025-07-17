@@ -70,10 +70,6 @@ export const acceptMembership = async (id) => {
   return res.data;
 };
 
-export const sendTestDates = async (startDate, endDate) => {
-  const res = await api.post("/users/send-test-dates", { startDate, endDate });
-  return res.data;
-};
 
 
 // 🚫 Refuse membership (with reason)
