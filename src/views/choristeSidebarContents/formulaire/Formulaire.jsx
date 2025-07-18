@@ -856,78 +856,95 @@ const Formulaire = () => {
                     </Row>
 
                     <Row>
-                      <Col md={6} className="mb-3">
-                        <Form.Group controlId="emailDisplay">
-                          <Form.Label>Email</Form.Label>
-                          <Form.Control
-                            type="email"
-                            value={watch('email')}
-                            disabled
-                            size="sm"
-                            style={{ backgroundColor: '#e8f5e8', color: '#2d5a2d' }}
-                          />
-                          <HelperText type="success" style={{ marginTop: '0.25rem' }}>
-                            <span>✓</span>
-                            Email confirmé
-                          </HelperText>
-                        </Form.Group>
-                      </Col>
+                    <Row>
+  <Col md={6} className="mb-3">
+    <Form.Group controlId="emailDisplay">
+      <Form.Label>Email</Form.Label>
+      <Form.Control
+        type="email"
+        value={watch('email')}
+        disabled
+        size="sm"
+        style={{ backgroundColor: '#e8f5e8', color: '#2d5a2d' }}
+      />
+      <HelperText type="success" style={{ marginTop: '0.25rem' }}>
+        <span>✓</span>
+        Email confirmé
+      </HelperText>
+    </Form.Group>
+  </Col>
 
-                      <Col md={6} className="mb-3">
-                        <Form.Group controlId="phone">
-                          <Form.Label>Téléphone</Form.Label>
-                          <Controller
-                            name="phone"
-                            control={control}
-                            rules={{
-                              required: 'Téléphone requis',
-                              validate: (value) => {
-                                if (!value || value.length < 8) {
-                                  return 'Numéro de téléphone invalide';
-                                }
-                                return true;
-                              }
-                            }}
-                            render={({ field: { onChange, value } }) => (
-                              <PhoneInput
-                                country={'tn'}
-                                value={value}
-                                onChange={(phone, country) => {
-                                  onChange(phone);
-                                  setValue('phoneCountryCode', `+${country.dialCode}`);
-                                }}
-                                enableSearch={true}
-                                searchPlaceholder="Rechercher un pays"
-                                inputStyle={{
-                                  width: '100%',
-                                  height: '42px',
-                                  borderRadius: '10px',
-                                  border: errors.phone ? '1px solid #dc3545' : '1px solid #e2e8f0',
-                                  fontSize: '0.875rem',
-                                  paddingLeft: '60px'
-                                }}
-                                containerStyle={{
-                                  width: '100%'
-                                }}
-                                buttonStyle={{
-                                  borderRadius: '10px 0 0 10px',
-                                  border: errors.phone ? '1px solid #dc3545' : '1px solid #e2e8f0',
-                                  backgroundColor: '#f8f9fa'
-                                }}
-                                dropdownStyle={{
-                                  borderRadius: '10px',
-                                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
-                                }}
-                              />
-                            )}
-                          />
-                          {errors.phone && (
-                            <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
-                              {errors.phone.message}
-                            </div>
-                          )}
-                        </Form.Group>
-                      </Col>
+  <Col md={6} className="mb-3">
+    <Form.Group controlId="phone">
+      <Form.Label>Téléphone</Form.Label>
+      <Controller
+        name="phone"
+        control={control}
+        rules={{
+          required: 'Téléphone requis',
+          validate: (value) => {
+            if (!value || value.length < 8) {
+              return 'Numéro de téléphone invalide';
+            }
+            return true;
+          }
+        }}
+        render={({ field: { onChange, value } }) => {
+          // Create display value for PhoneInput (country code + phone number)
+          const phoneCountryCode = watch('phoneCountryCode') || '+216';
+          const displayValue = value ? `${phoneCountryCode.replace('+', '')}${value}` : '';
+          
+          return (
+            <PhoneInput
+              country={'tn'}
+              value={displayValue}
+              onChange={(fullPhone, country) => {
+                // Extract the dial code
+                const dialCode = country.dialCode;
+                
+                // Save country code
+                setValue('phoneCountryCode', `+${dialCode}`);
+                
+                // Extract clean phone number (remove country code)
+                const cleanPhone = fullPhone.replace(dialCode, '');
+                
+                // Save only the phone number part
+                onChange(cleanPhone);
+              }}
+              enableSearch={true}
+              searchPlaceholder="Rechercher un pays"
+              inputStyle={{
+                width: '100%',
+                height: '42px',
+                borderRadius: '10px',
+                border: errors.phone ? '1px solid #dc3545' : '1px solid #e2e8f0',
+                fontSize: '0.875rem',
+                paddingLeft: '60px'
+              }}
+              containerStyle={{
+                width: '100%'
+              }}
+              buttonStyle={{
+                borderRadius: '10px 0 0 10px',
+                border: errors.phone ? '1px solid #dc3545' : '1px solid #e2e8f0',
+                backgroundColor: '#f8f9fa'
+              }}
+              dropdownStyle={{
+                borderRadius: '10px',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
+              }}
+            />
+          );
+        }}
+      />
+      {errors.phone && (
+        <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
+          {errors.phone.message}
+        </div>
+      )}
+    </Form.Group>
+  </Col>
+</Row>
                     </Row>
 
                     <Form.Group controlId="gender" className="mb-3">

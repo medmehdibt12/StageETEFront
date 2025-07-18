@@ -35,6 +35,8 @@
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 0;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .membership-table thead th {
@@ -42,11 +44,36 @@
   border-bottom: 2px solid #dee2e6;
   color: #495057;
   font-weight: 600;
+  text-align: center;
+  vertical-align: middle;
+  padding: 0.75rem;
+}
+
+.membership-table tbody td {
+  vertical-align: middle;
+  padding: 0.75rem;
+  border-bottom: 1px solid #dee2e6;
 } */
+
+/* Table row hover effects */
+.membership-table tbody tr:hover:not(.details-visible):not(.details-hidden) {
+  background-color: rgba(0, 123, 255, 0.05);
+  transition: background-color 0.2s ease;
+}
 
 .active-row {
   background-color: rgba(13, 110, 253, 0.05) !important;
   border-bottom: none !important;
+}
+
+/* Details row styling */
+.details-visible {
+  display: table-row;
+  background-color: transparent !important;
+}
+
+.details-hidden {
+  display: none;
 }
 
 .details-toggle-btn {
@@ -58,10 +85,6 @@
 
 .details-toggle-btn:hover {
   transform: translateY(-1px);
-}
-
-.details-hidden {
-  display: none;
 }
 
 /* Action buttons */
@@ -82,6 +105,23 @@
 
 .action-buttons .btn:hover {
   transform: translateY(-2px);
+}
+
+/* Better badge styling */
+.badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.4em 0.8em;
+}
+
+.badge.pill {
+  border-radius: 50rem;
+}
+
+.status-badge {
+  font-size: 0.85rem;
+  padding: 0.35em 0.65em;
+  font-weight: 500;
 }
 
 /* Card Header */
@@ -185,12 +225,6 @@
   color: #212529;
 }
 
-.status-badge {
-  font-size: 0.85rem;
-  padding: 0.35em 0.65em;
-  font-weight: 500;
-}
-
 .experience-text {
   font-style: italic;
   line-height: 1.4;
@@ -232,6 +266,26 @@
   color: #495057;
 }
 
+/* Sponsorship section styling */
+.sponsorship-section {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #e9ecef;
+}
+
+.sponsorship-section h6 {
+  color: #495057;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.sponsorship-section .badge {
+  font-size: 0.85rem;
+}
+
 /* Modal styling */
 .modal-header.bg-primary,
 .modal-header.bg-danger {
@@ -263,5 +317,16 @@
   .nav-tabs-custom .nav-link {
     padding: 0.5rem 0.75rem;
     font-size: 0.9rem;
+  }
+  
+  .membership-table thead th,
+  .membership-table tbody td {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.875rem;
+  }
+  
+  .action-buttons .btn {
+    width: 2rem;
+    height: 2rem;
   }
 }

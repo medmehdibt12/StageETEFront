@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable no-unused-vars */
 import React, { useEffect, useState } from 'react';
@@ -14,6 +15,7 @@ import {
   FaCheck,
   FaTimes
 } from 'react-icons/fa';
+import Select from 'react-select';
 import Swal from 'sweetalert2';
 import { getMembershipSubmissions, acceptMembership, refuseMembership } from '../../../services/accounts.service';
 import { listAuditionParameters, generateAuditions } from '../../../services/auditions.service';
@@ -24,6 +26,9 @@ const ManageMembership = () => {
   const [scheduledTestMemberships, setScheduledTestMemberships] = useState([]);
   const [filterTextPending, setFilterTextPending] = useState('');
   const [filterTextScheduled, setFilterTextScheduled] = useState('');
+  const [alphabeticFilter, setAlphabeticFilter] = useState(null);
+  const [sortField, setSortField] = useState('');
+  const [sortDirection, setSortDirection] = useState('asc');
   const [isLoadingPending, setIsLoadingPending] = useState(true);
   const [isLoadingScheduled, setIsLoadingScheduled] = useState(true);
   const [showTestDatesModal, setShowTestDatesModal] = useState(false);
@@ -36,6 +41,145 @@ const ManageMembership = () => {
   const [availableAuditions, setAvailableAuditions] = useState([]);
   const [selectedAuditionId, setSelectedAuditionId] = useState('');
   const [isLoadingAuditions, setIsLoadingAuditions] = useState(false);
+
+  // Create the alphabetic filter options
+  const alphabeticOptions = [
+    { value: '', label: 'Tous les candidats' },
+    ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((letter) => ({
+      value: letter,
+      label: `Prénoms commençant par "${letter}"`
+    }))
+  ];
+
+  // Custom styles for the Select component
+  const alphabeticSelectStyles = {
+    control: (provided, state) => ({
+      ...provided,
+      minHeight: '42px',
+      borderRadius: '8px',
+      border: state.isFocused ? '2px solid #007bff' : '1px solid #e2e8f0',
+      boxShadow: state.isFocused ? '0 0 0 0.2rem rgba(0,123,255,.25)' : 'none',
+      '&:hover': {
+        borderColor: '#007bff'
+      }
+    }),
+    option: (provided, state) => ({
+      ...provided,
+      backgroundColor: state.isSelected ? '#007bff' : state.isFocused ? '#f8f9fa' : 'white',
+      color: state.isSelected ? 'white' : '#212529',
+      padding: '10px 15px',
+      cursor: 'pointer',
+      '&:hover': {
+        backgroundColor: state.isSelected ? '#007bff' : '#e9ecef'
+      }
+    }),
+    placeholder: (provided) => ({
+      ...provided,
+      color: '#6c757d',
+      fontSize: '0.9rem'
+    }),
+    singleValue: (provided) => ({
+      ...provided,
+      color: '#212529',
+      fontSize: '0.9rem'
+    }),
+    menu: (provided) => ({
+      ...provided,
+      borderRadius: '8px',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+      border: '1px solid #e2e8f0'
+    })
+  };
+
+  // Smart sortable header component
+  const SortableHeader = ({ field, children, currentSort, direction, onSort }) => (
+    <th
+      onClick={() => onSort(field)}
+      style={{
+        cursor: 'pointer',
+        userSelect: 'none',
+        transition: 'all 0.2s ease',
+        padding: '12px 8px'
+      }}
+      className="sortable-header"
+      onMouseEnter={(e) => (e.target.style.backgroundColor = '#f8f9fa')}
+      onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
+    >
+      <div className="d-flex align-items-center justify-content-between">
+        <span style={{ fontWeight: '600' }}>{children}</span>
+        <span className="sort-indicator" style={{ fontSize: '12px', marginLeft: '8px' }}>
+          {currentSort === field ? (
+            <span style={{ color: '#007bff' }}>{direction === 'asc' ? '▲' : '▼'}</span>
+          ) : (
+            <span style={{ opacity: 0.4, color: '#6c757d' }}>⇅</span>
+          )}
+        </span>
+      </div>
+    </th>
+  );
+
+  // Sort handler
+  const handleSort = (field) => {
+    const direction = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
+    setSortField(field);
+    setSortDirection(direction);
+  };
+
+  // Simplified filtering with sorting (only name and height)
+  const getFilteredMemberships = (memberships, filterText, sortField, sortDirection, alphabeticFilter) => {
+    let filtered = [...memberships];
+
+    // Apply text filter
+    if (filterText) {
+      filtered = filtered.filter((m) => {
+        const fullName = `${m.firstName} ${m.lastName}`.toLowerCase();
+        const email = m.email.toLowerCase();
+        const nationality = m.nationality?.toLowerCase() || '';
+        const searchText = filterText.toLowerCase();
+
+        return fullName.includes(searchText) || email.includes(searchText) || nationality.includes(searchText);
+      });
+    }
+
+    // Apply alphabetic filter
+    if (alphabeticFilter) {
+      filtered = filtered.filter((member) => {
+        const fullName = `${member.firstName} ${member.lastName}`.toLowerCase();
+        return fullName.startsWith(alphabeticFilter.toLowerCase());
+      });
+    }
+
+    // Apply sorting - SIMPLIFIED VERSION (only name and height)
+    if (sortField) {
+      filtered.sort((a, b) => {
+        let aVal, bVal;
+
+        switch (sortField) {
+          case 'name':
+            aVal = `${a.firstName} ${a.lastName}`.toLowerCase();
+            bVal = `${b.firstName} ${b.lastName}`.toLowerCase();
+            break;
+          case 'height':
+            aVal = parseInt(a.height) || 0;
+            bVal = parseInt(b.height) || 0;
+            break;
+          default:
+            return 0;
+        }
+
+        // Handle different data types
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
+          return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+        }
+
+        // String comparison
+        const result = String(aVal).localeCompare(String(bVal));
+        return sortDirection === 'asc' ? result : -result;
+      });
+    }
+
+    return filtered;
+  };
 
   const fetchMemberships = async () => {
     setIsLoadingPending(true);
@@ -65,7 +209,7 @@ const ManageMembership = () => {
     setIsLoadingAuditions(true);
     try {
       const auditions = await listAuditionParameters();
-      const now = new Date(); // Using the provided current date
+      const now = new Date();
 
       // Filter auditions based on criteria
       const filteredAuditions = auditions.filter((audition) => {
@@ -127,7 +271,6 @@ const ManageMembership = () => {
         didOpen: () => Swal.showLoading()
       });
 
-      // Just pass the selectedAuditionId - this matches your service implementation
       await generateAuditions(selectedAuditionId);
 
       setShowTestDatesModal(false);
@@ -214,35 +357,56 @@ const ManageMembership = () => {
     }
   };
 
-  // Filter memberships by full name
-  const filteredPendingMemberships = pendingMemberships.filter((m) => {
-    const fullName = `${m.firstName} ${m.lastName}`.toLowerCase();
-    return fullName.includes(filterTextPending.toLowerCase());
-  });
-
-  const filteredScheduledMemberships = scheduledTestMemberships.filter((m) => {
-    const fullName = `${m.firstName} ${m.lastName}`.toLowerCase();
-    return fullName.includes(filterTextScheduled.toLowerCase());
-  });
-
   const renderMembershipTable = (memberships, isLoading, filterText, setFilterText, tabType) => {
+    // Get filtered and sorted memberships
+    const filteredMemberships = getFilteredMemberships(memberships, filterText, sortField, sortDirection, alphabeticFilter?.value || '');
+
     return (
       <>
         <Row className="mb-3 align-items-center">
-          <Col md={6}>
+          <Col md={4}>
             <InputGroup>
               <InputGroup.Text>
                 <FaSearch />
               </InputGroup.Text>
               <Form.Control
                 type="text"
-                placeholder="Rechercher par nom"
+                placeholder="Rechercher par prénom, taille..."
                 value={filterText}
                 onChange={(e) => setFilterText(e.target.value)}
               />
             </InputGroup>
           </Col>
-          <Col md={6} className="text-md-end mt-3 mt-md-0">
+
+          <Col md={4}>
+            <Select
+              value={alphabeticFilter}
+              onChange={setAlphabeticFilter}
+              options={alphabeticOptions}
+              placeholder="Filtrer par première lettre"
+              isClearable={true}
+              isSearchable={false}
+              styles={alphabeticSelectStyles}
+              className="alphabetic-select"
+              classNamePrefix="alphabetic-select"
+            />
+          </Col>
+
+          <Col md={4} className="text-md-end mt-3 mt-md-0 d-flex justify-content-end gap-2">
+            {(sortField || alphabeticFilter) && (
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                onClick={() => {
+                  setSortField('');
+                  setSortDirection('asc');
+                  setAlphabeticFilter(null);
+                }}
+                title="Réinitialiser tous les filtres"
+              >
+                ↻ Reset
+              </Button>
+            )}
             {tabType === 'pending' && (
               <Button variant="primary" onClick={handleAcceptAll} disabled={memberships.length === 0}>
                 <FaUserCheck className="me-2" />
@@ -252,49 +416,91 @@ const ManageMembership = () => {
           </Col>
         </Row>
 
+        {/* Active filters info - SIMPLIFIED */}
+        {(sortField || alphabeticFilter) && (
+          <Alert variant="info" className="py-2 mb-3">
+            <small>
+              {alphabeticFilter && (
+                <span>
+                  Filtre: <strong>{alphabeticFilter.label}</strong>
+                </span>
+              )}
+              {alphabeticFilter && sortField && ' • '}
+              {sortField && (
+                <span>
+                  Trié par:{' '}
+                  <strong>
+                    {sortField === 'name' && 'Prénom'}
+                    {sortField === 'height' && 'Taille'}
+                  </strong>{' '}
+                  ({sortDirection === 'asc' ? 'Croissant' : 'Décroissant'})
+                </span>
+              )}
+            </small>
+          </Alert>
+        )}
+
         {isLoading ? (
           <div className="text-center my-5">
             <Spinner animation="border" variant="primary" />
             <p className="mt-2">Chargement des candidatures...</p>
           </div>
-        ) : memberships.length === 0 ? (
+        ) : filteredMemberships.length === 0 ? (
           <div className="empty-state p-5 text-center">
             <div className="empty-icon mb-3">📋</div>
             <h5>Aucune candidature {tabType === 'pending' ? 'en attente' : 'avec test programmé'}</h5>
             <p className="text-muted">
-              {tabType === 'pending' ? 'Toutes les candidatures ont été traitées' : "Aucun test n'est programmé actuellement"}
+              {filterText || alphabeticFilter
+                ? 'Aucun résultat pour ces filtres'
+                : tabType === 'pending'
+                  ? 'Toutes les candidatures ont été traitées'
+                  : "Aucun test n'est programmé actuellement"}
             </p>
           </div>
         ) : (
           <div className="table-responsive">
-            <Table hover responsive className="membership-table">
-              <thead>
+            <Table bordered responsive className="membership-table" style={{ backgroundColor: 'white' }}>
+              <thead style={{ backgroundColor: '#f8f9fa' }}>
                 <tr>
-                  <th>Nom</th>
-                  <th>Email</th>
-                  <th>Genre</th>
-                  <th>Date de naissance</th>
-                  <th>Nationalité</th>
-                  <th>Détails</th>
-                  {tabType === 'scheduled' && <th>Actions</th>}
+                  <SortableHeader field="name" currentSort={sortField} direction={sortDirection} onSort={handleSort}>
+                    Prénom et Nom
+                  </SortableHeader>
+                  <SortableHeader field="height" currentSort={sortField} direction={sortDirection} onSort={handleSort}>
+                    Taille
+                  </SortableHeader>
+                  <th style={{ fontWeight: '600', padding: '12px 8px' }}>Genre</th>
+                  <th style={{ fontWeight: '600', padding: '12px 8px' }}>Date de naissance</th>
+                  <th style={{ fontWeight: '600', padding: '12px 8px' }}>Connaissances musicales</th>
+                  <th style={{ fontWeight: '600', padding: '12px 8px' }}>Active dans autre chœur</th>
+                  <th style={{ fontWeight: '600', padding: '12px 8px' }}>Détails</th>
+                  {tabType === 'scheduled' && <th style={{ fontWeight: '600', padding: '12px 8px' }}>Actions</th>}
                 </tr>
               </thead>
               <tbody>
-                {memberships.map((member) => (
+                {filteredMemberships.map((member) => (
                   <React.Fragment key={member._id}>
-                    <tr className={openDetails[member._id] ? 'active-row' : ''}>
-                      <td className="fw-bold">
+                    <tr className={openDetails[member._id] ? 'active-row' : ''} style={{ transition: 'all 0.2s ease' }}>
+                      <td className="fw-bold" style={{ padding: '12px 8px' }}>
                         {member.firstName} {member.lastName}
                       </td>
-                      <td>{member.email}</td>
-                      <td>
+                      <td style={{ padding: '12px 8px' }}>{member.height} cm</td>
+                      <td style={{ padding: '12px 8px' }}>
                         <Badge bg={member.gender === 'Homme' ? 'info' : 'danger'} pill>
                           {member.gender}
                         </Badge>
                       </td>
-                      <td>{new Date(member.birthDate).toLocaleDateString('fr-TN')}</td>
-                      <td>{member.nationality}</td>
-                      <td>
+                      <td style={{ padding: '12px 8px' }}>{new Date(member.birthDate).toLocaleDateString('fr-TN')}</td>
+                      <td style={{ padding: '12px 8px' }}>
+                        <Badge bg={member.hasMusicalKnowledge ? 'warning' : 'secondary'} className="status-badge">
+                          {member.hasMusicalKnowledge ? 'Oui' : 'Non'}
+                        </Badge>
+                      </td>
+                      <td style={{ padding: '12px 8px' }}>
+                        <Badge bg={member.isActiveInOtherChoir ? 'warning' : 'secondary'} className="status-badge">
+                          {member.isActiveInOtherChoir ? 'Oui' : 'Non'}
+                        </Badge>
+                      </td>
+                      <td style={{ padding: '12px 8px' }}>
                         <Button
                           variant={openDetails[member._id] ? 'outline-danger' : 'outline-primary'}
                           size="sm"
@@ -313,7 +519,7 @@ const ManageMembership = () => {
                         </Button>
                       </td>
                       {tabType === 'scheduled' && (
-                        <td>
+                        <td style={{ padding: '12px 8px' }}>
                           <div className="action-buttons">
                             <Button
                               variant="success"
@@ -332,7 +538,7 @@ const ManageMembership = () => {
                       )}
                     </tr>
                     <tr className={openDetails[member._id] ? 'details-visible' : 'details-hidden'}>
-                      <td colSpan={tabType === 'scheduled' ? 7 : 6} className="p-0">
+                      <td colSpan={tabType === 'scheduled' ? 8 : 7} className="p-0">
                         {openDetails[member._id] && (
                           <div className="details-container">
                             <div className="details-header">
@@ -341,36 +547,36 @@ const ManageMembership = () => {
 
                             <div className="details-content">
                               <Row>
-                                <Col lg={6}>
+                                <Col lg={4}>
                                   <div className="details-section">
                                     <div className="details-section-header">
                                       <FaUser className="icon" />
                                       <h6>Informations personnelles</h6>
                                     </div>
                                     <div className="details-section-content">
-                                      <Row>
-                                        <Col sm={6}>
-                                          <div className="info-item">
-                                            <span className="info-label">Taille</span>
-                                            <span className="info-value">{member.height} cm</span>
-                                          </div>
-                                        </Col>
-                                        <Col sm={6}>
-                                          <div className="info-item">
-                                            <span className="info-label">Téléphone</span>
-                                            <span className="info-value">{member.phone}</span>
-                                          </div>
-                                        </Col>
-                                      </Row>
+                                      <div className="info-item">
+                                        <span className="info-label">Email</span>
+                                        <span className="info-value">{member.email}</span>
+                                      </div>
                                       <div className="info-item">
                                         <span className="info-label">Situation professionnelle</span>
                                         <span className="info-value">{member.professionalSituation}</span>
+                                      </div>
+                                      <div className="info-item">
+                                        <span className="info-label">Téléphone</span>
+                                        <span className="info-value">
+                                          {member.phoneCountryCode} {member.phone}
+                                        </span>
+                                      </div>
+                                      <div className="info-item">
+                                        <span className="info-label">Nationalité</span>
+                                        <span className="info-value">{member.nationality}</span>
                                       </div>
                                     </div>
                                   </div>
                                 </Col>
 
-                                <Col lg={6}>
+                                <Col lg={4}>
                                   <div className="details-section">
                                     <div className="details-section-header">
                                       <FaMusic className="icon" />
@@ -379,20 +585,20 @@ const ManageMembership = () => {
                                     <div className="details-section-content">
                                       <div className="info-item">
                                         <span className="info-label">Connaissances musicales</span>
-                                        <Badge bg={member.hasMusicalKnowledge ? 'success' : 'secondary'} className="status-badge">
+                                        <Badge bg={member.hasMusicalKnowledge ? 'warning' : 'secondary'} className="status-badge">
                                           {member.hasMusicalKnowledge ? 'Oui' : 'Non'}
                                         </Badge>
                                       </div>
 
                                       {member.hasMusicalKnowledge && (
                                         <div className="info-item">
-                                          <span className="info-label">Expérience</span>
+                                          <span className="info-label">Expérience musicale</span>
                                           <span className="info-value experience-text">{member.musicalExperience || '—'}</span>
                                         </div>
                                       )}
 
                                       <div className="info-item">
-                                        <span className="info-label">Active dans autre chorale</span>
+                                        <span className="info-label">Active dans autre chœur</span>
                                         <Badge bg={member.isActiveInOtherChoir ? 'warning' : 'secondary'} className="status-badge">
                                           {member.isActiveInOtherChoir ? 'Oui' : 'Non'}
                                         </Badge>
@@ -400,8 +606,31 @@ const ManageMembership = () => {
 
                                       {member.isActiveInOtherChoir && (
                                         <div className="info-item">
-                                          <span className="info-label">Chorale</span>
+                                          <span className="info-label">Nom du ou des chœur(s)</span>
                                           <span className="info-value">{member.otherChoir || '—'}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </Col>
+
+                                <Col lg={4}>
+                                  <div className="details-section">
+                                    <div className="details-section-header">
+                                      <FaUserCheck className="icon" />
+                                      <h6>Parrainage</h6>
+                                    </div>
+                                    <div className="details-section-content">
+                                      <div className="info-item">
+                                        <span className="info-label">Statut</span>
+                                        <Badge bg={member.isSponsored ? 'success' : 'secondary'} className="status-badge">
+                                          {member.isSponsored ? 'Parrainé' : 'Non parrainé'}
+                                        </Badge>
+                                      </div>
+                                      {member.isSponsored && member.sponsorName && (
+                                        <div className="info-item">
+                                          <span className="info-label">Nom du parrain</span>
+                                          <span className="info-value">{member.sponsorName}</span>
                                         </div>
                                       )}
                                     </div>
@@ -429,6 +658,14 @@ const ManageMembership = () => {
                 ))}
               </tbody>
             </Table>
+
+            {/* Results Summary */}
+            {/* <div className="d-flex justify-content-between align-items-center mt-3">
+              <small className="text-muted">
+                Affichage de {filteredMemberships.length} sur {memberships.length} candidat{memberships.length > 1 ? 's' : ''}
+              </small>
+              {filteredMemberships.length > 0 && <small className="text-muted">Cliquez sur "Nom" ou "Taille" pour trier</small>}
+            </div> */}
           </div>
         )}
       </>
@@ -455,18 +692,10 @@ const ManageMembership = () => {
               {pendingMemberships.length > 1 ? 's' : ''} ou les dates sont déjà passées.
             </p>
             <hr />
-            <p className="mb-0">Date actuelle: {new Date('2025-07-15 15:39:26').toLocaleString('fr-FR')}</p>
+            <p className="mb-0">Date actuelle: {new Date().toLocaleString('fr-FR')}</p>
           </Alert>
         ) : (
           <>
-            {/* <Alert variant="info" className="mb-3">
-              <div className="d-flex justify-content-between align-items-center">
-                <span>
-                  Nombre de candidats en attente: <strong>{pendingMemberships.length}</strong>
-                </span>
-                <small>Date actuelle: {new Date('2025-07-15 15:39:26').toLocaleString('fr-FR')}</small>
-              </div>
-            </Alert> */}
             <Table hover>
               <thead>
                 <tr>
@@ -560,7 +789,7 @@ const ManageMembership = () => {
                 </span>
               }
             >
-              {renderMembershipTable(filteredPendingMemberships, isLoadingPending, filterTextPending, setFilterTextPending, 'pending')}
+              {renderMembershipTable(pendingMemberships, isLoadingPending, filterTextPending, setFilterTextPending, 'pending')}
             </Tab>
 
             <Tab
@@ -575,7 +804,7 @@ const ManageMembership = () => {
               }
             >
               {renderMembershipTable(
-                filteredScheduledMemberships,
+                scheduledTestMemberships,
                 isLoadingScheduled,
                 filterTextScheduled,
                 setFilterTextScheduled,
