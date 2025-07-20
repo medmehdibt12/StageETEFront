@@ -519,25 +519,103 @@ const Formulaire = () => {
     }
   };
 
-  const checkEmail = async () => {
-    const email = watch('email');
-    if (!email) return;
+const checkEmail = async () => {
+  const email = watch('email');
+  if (!email) return;
 
-    try {
-      const res = await checkEmailConfirmed(email);
-      if (res.emailConfirmed) {
-        setEmailConfirmed(true);
+  try {
+    const res = await checkEmailConfirmed(email);
+    if (res.emailConfirmed) {
+      setEmailConfirmed(true);
+      MySwal.fire({
+        icon: 'success',
+        title: 'Email confirmé !',
+        text: 'Vous pouvez maintenant passer à l’étape suivante.',
+        confirmButtonColor: '#2ecc71'
+      });
+    }
+  } catch (err) {
+    // ✅ NEW: Handle different application statuses
+    if (err.response?.status === 409) {
+      const responseData = err.response.data;
+      
+      // Check if this is an application status response
+      if (responseData.applicationStatus) {
+        const { message, applicationStatus, canReapply } = responseData;
+        
+        let icon = 'info';
+        let confirmButtonColor = '#3498db';
+        let title = '';
+        
+        switch (applicationStatus) {
+          case 'Pending':
+            icon = 'info';
+            title = 'Candidature déjà soumise';
+            confirmButtonColor = '#3498db';
+            break;
+          case 'TestScheduled':
+            icon = 'info';
+            title = 'Test programmé';
+            confirmButtonColor = '#f39c12';
+            break;
+          case 'Accepted':
+            icon = 'success';
+            title = 'Candidature acceptée';
+            confirmButtonColor = '#2ecc71';
+            break;
+          case 'Refused':
+            icon = 'warning';
+            title = 'Candidature précédente';
+            confirmButtonColor = '#e74c3c';
+            break;
+          default:
+            icon = 'info';
+            title = 'Information';
+            confirmButtonColor = '#3498db';
+        }
+        
         MySwal.fire({
-          icon: 'success',
-          title: 'Email confirmé !',
-          text: 'Vous pouvez maintenant passer à l’étape suivante.',
-          confirmButtonColor: '#2ecc71'
+          icon: icon,
+          title: title,
+          text: message,
+          confirmButtonColor: confirmButtonColor,
+          showCancelButton: canReapply,
+          confirmButtonText: canReapply ? 'Nouvelle candidature' : 'Compris',
+          cancelButtonText: canReapply ? 'Annuler' : undefined
+        }).then((result) => {
+          if (result.isConfirmed && canReapply) {
+            // ✅ For refused applications, allow them to proceed
+            setEmailConfirmed(true);
+            MySwal.fire({
+              icon: 'success',
+              title: 'Nouvelle candidature',
+              text: 'Vous pouvez maintenant soumettre une nouvelle candidature.',
+              confirmButtonColor: '#2ecc71'
+            });
+          }
+        });
+      } else {
+        // Handle other 409 errors
+        MySwal.fire({
+          icon: 'warning',
+          title: 'Information',
+          text: responseData.message || 'Une situation particulière a été détectée.',
+          confirmButtonColor: '#3498db'
         });
       }
-    } catch (err) {
-      // console.error('Erreur vérification email:', err);
+    } else {
+      // Handle other types of errors (keep existing behavior)
+      console.error('Erreur vérification email:', err);
+      // Optionally show a generic error message
+      // MySwal.fire({
+      //   icon: 'error',
+      //   title: 'Erreur',
+      //   text: 'Erreur lors de la vérification de l\'email.',
+      //   confirmButtonColor: '#e74c3c'
+      // });
     }
-  };
+  }
+};
 
   // Validation function for at least one sentence
   const validatePhrase = (value) => {
@@ -554,41 +632,52 @@ const Formulaire = () => {
     return true;
   };
 
-  const onSubmit = async (data) => {
-    try {
-      const formattedData = {
-       ...data,
-      gender: data.gender?.value || '',
-      nationality: data.nationality?.value || '',
-      identityNumber: data.identityNumber,
-      height: Math.round(parseFloat(data.height) * 100),
-      submitted_at: new Date().toISOString(),
-      };
+const onSubmit = async (data) => {
+  try {
+    const formattedData = {
+     ...data,
+    gender: data.gender?.value || '',
+    nationality: data.nationality?.value || '',
+    identityNumber: data.identityNumber,
+    height: Math.round(parseFloat(data.height) * 100),
+    submitted_at: new Date().toISOString(),
+    };
 
-      const response = await applyForMembership(formattedData);
+    const response = await applyForMembership(formattedData);
 
-      MySwal.fire({
-        icon: 'success',
-        title: response.message || 'Votre candidature a bien été enregistrée.',
-        text: 'Nous vous contacterons bientôt pour une audition.!',
-        confirmButtonColor: '#2ecc71',
-        timer: 5000,
-        timerProgressBar: true
-      });
+    MySwal.fire({
+      icon: 'success',
+      title: response.message || 'Votre candidature a bien été enregistrée.',
+      text: 'Nous vous contacterons bientôt pour une audition !',
+      confirmButtonColor: '#2ecc71',
+      timer: 5000,
+      timerProgressBar: true
+    });
 
-      reset();
-      setStep(0);
-      setEmailConfirmed(false);
-      setHeightValue(1.7);
-    } catch (error) {
-      MySwal.fire({
-        icon: 'warning',
-        title: 'Envoi impossible',
-        text: error.message || 'La demande a échoué.',
-        confirmButtonColor: '#e74c3c'
-      });
+    reset();
+    setStep(0);
+    setEmailConfirmed(false);
+    setHeightValue(1.7);
+  } catch (error) {
+    // ✅ UPDATED: Better error handling
+    let errorMessage = 'La demande a échoué.';
+    
+    if (error.response?.status === 409) {
+      errorMessage = error.response.data.message || 'Vous avez déjà une candidature en cours.';
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.message) {
+      errorMessage = error.message;
     }
-  };
+    
+    MySwal.fire({
+      icon: 'warning',
+      title: 'Envoi impossible',
+      text: errorMessage,
+      confirmButtonColor: '#e74c3c'
+    });
+  }
+};
 
   const handleNext = async () => {
     let fieldsToValidate = [];

@@ -209,15 +209,7 @@ const ManageMembership = () => {
     setIsLoadingAuditions(true);
     try {
       const auditions = await listAuditionParameters();
-      const now = new Date();
-
-      // Filter auditions based on criteria
-      const filteredAuditions = auditions.filter((audition) => {
-        const startDate = new Date(audition.startDate);
-        return audition.candidateCount >= pendingMemberships.length && new Date(audition.startDate) >= now;
-      });
-
-      setAvailableAuditions(filteredAuditions);
+      setAvailableAuditions(auditions); // Show ALL auditions, no filtering
     } catch (error) {
       Swal.fire({
         icon: 'error',
@@ -234,7 +226,14 @@ const ManageMembership = () => {
   }, [refreshTrigger]);
 
   const toggleDetails = (id) => {
-    setOpenDetails((prev) => ({ ...prev, [id]: !prev[id] }));
+    setOpenDetails((prev) => {
+      // If clicking on already open details, close it
+      if (prev[id]) {
+        return {};
+      }
+      // Otherwise, close all and open only the clicked one
+      return { [id]: true };
+    });
   };
 
   const handleAcceptAll = async () => {
@@ -271,6 +270,7 @@ const ManageMembership = () => {
         didOpen: () => Swal.showLoading()
       });
 
+      // ✅ Pass just the selectedAuditionId
       await generateAuditions(selectedAuditionId);
 
       setShowTestDatesModal(false);
@@ -696,59 +696,60 @@ const ManageMembership = () => {
           </Alert>
         ) : (
           <>
-            <Table hover>
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>Période</th>
-                  <th>Horaires</th>
-                  <th>Capacité</th>
-                  <th>Durée/Pause</th>
-                </tr>
-              </thead>
-              <tbody>
-                {availableAuditions.map((audition) => (
-                  <tr
-                    key={audition._id}
-                    className={selectedAuditionId === audition._id ? 'table-primary' : ''}
-                    onClick={() => handleAuditionSelect(audition._id)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <td>
-                      <Form.Check
-                        type="radio"
-                        checked={selectedAuditionId === audition._id}
-                        onChange={() => handleAuditionSelect(audition._id)}
-                      />
-                    </td>
-                    <td>
-                      {new Date(audition.startDate).toLocaleDateString('fr-FR')} → {new Date(audition.endDate).toLocaleDateString('fr-FR')}
-                    </td>
-                    <td>
-                      {audition.sessionStartTime} - {audition.sessionEndTime}
-                    </td>
-                    <td>
-                      <div className="d-flex align-items-center">
-                        {audition.candidateCount} places
-                        {audition.candidateCount === pendingMemberships.length && (
-                          <Badge bg="warning" className="ms-2">
-                            Capacité exacte
-                          </Badge>
-                        )}
-                        {audition.candidateCount > pendingMemberships.length && (
-                          <Badge bg="success" className="ms-2">
-                            +{audition.candidateCount - pendingMemberships.length} places
-                          </Badge>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      {audition.slotDurationMinutes}min / {audition.breakDurationMinutes}min
-                    </td>
+            <div className="table-responsive">
+              <Table hover>
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>Période</th>
+                    <th>Horaires</th>
+                    <th>Capacité</th>
+                    <th>Pause</th>
                   </tr>
-                ))}
-              </tbody>
-            </Table>
+                </thead>
+                <tbody>
+                  {availableAuditions.map((audition) => (
+                    <tr
+                      key={audition._id}
+                      className={selectedAuditionId === audition._id ? 'table-primary' : ''}
+                      onClick={() => handleAuditionSelect(audition._id)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <td>
+                        <Form.Check
+                          type="radio"
+                          checked={selectedAuditionId === audition._id}
+                          onChange={() => handleAuditionSelect(audition._id)}
+                        />
+                      </td>
+                      <td>
+                        {new Date(audition.startDate).toLocaleDateString('fr-FR')} →{' '}
+                        {new Date(audition.endDate).toLocaleDateString('fr-FR')}
+                      </td>
+                      <td>
+                        {audition.sessionStartTime} - {audition.sessionEndTime}
+                      </td>
+                      <td>
+                        <div className="d-flex align-items-center">
+                          {audition.candidateCount} places
+                          {audition.candidateCount === pendingMemberships.length && (
+                            <Badge bg="warning" className="ms-2">
+                              Capacité exacte
+                            </Badge>
+                          )}
+                          {audition.candidateCount > pendingMemberships.length && (
+                            <Badge bg="success" className="ms-2">
+                              +{audition.candidateCount - pendingMemberships.length} places
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td>{audition.debutPause && audition.finPause ? `${audition.debutPause} - ${audition.finPause}` : 'Aucune pause'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
           </>
         )}
       </Modal.Body>

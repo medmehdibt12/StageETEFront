@@ -292,6 +292,34 @@
   color: white;
 }
 
+/* 🎯 RESPONSIVE MODAL FIXES */
+@media (max-width: 768px) {
+  .modal-lg {
+    max-width: 95% !important;
+    margin: 0.5rem auto;
+  }
+}
+
+@media (max-width: 576px) {
+  .modal-lg {
+    max-width: 98% !important;
+    margin: 0.25rem auto;
+  }
+  
+  .modal-body {
+    padding: 1rem !important;
+  }
+  
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+  
+  .table th,
+  .table td {
+    padding: 0.5rem !important;
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 992px) {
   .details-section {
