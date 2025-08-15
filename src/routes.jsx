@@ -32,7 +32,6 @@ export const renderRoutes = (routes = []) => (
 );
 
 // Main route definitions
-
 const routes = [
   {
     exact: 'true',
@@ -52,6 +51,11 @@ const routes = [
   {
     path: '/confirm-email',
     element: lazy(() => import('./views/public/ConfirmEmailSuccess'))
+  },
+  // 🎯 NEW: Public convocation response route (no auth required)
+  {
+    path: '/convocation/response/:candidateId',
+    element: lazy(() => import('./views/candidate/ConvocationResponse'))
   },
   {
     path: '*',
@@ -76,10 +80,7 @@ const routes = [
         path: '/admin/manage-oeuvres',
         element: lazy(() => import('./views/adminSidebarContents/oeuvres/ManageOeuvres'))
       },
-      {
-        path: '/admin/manage-membership',
-        element: lazy(() => import('./views/adminSidebarContents/membership/ManageMembership'))
-      },
+
       {
         path: '/admin/manage-choriste',
         element: lazy(() => import('./views/adminSidebarContents/choriste/ManageChoriste'))
@@ -92,10 +93,7 @@ const routes = [
         path: '/admin/manage-rehearsals',
         element: lazy(() => import('./views/adminSidebarContents/rehearsals/ManageRehearsals'))
       },
-      {
-        path: '/admin/manage-auditions',
-        element: lazy(() => import('./views/adminSidebarContents/auditions/ManageAuditions'))
-      },
+
       {
         path: '/admin/final-participants',
         element: lazy(() => import('./views/adminSidebarContents/participants/FinalParticipants'))
@@ -137,6 +135,18 @@ const routes = [
       {
         path: '/manager/modify-tessiture',
         element: lazy(() => import('./views/managerSidebarContents/tessiture/GestionTessiture'))
+      },
+      {
+        path: 'manager/reschedule-requests',
+        element: lazy(() => import('./views/managerSidebarContents/reschedule/RescheduleCandidate'))
+      },
+      {
+        path: '/manager/manage-auditions',
+        element: lazy(() => import('./views/adminSidebarContents/auditions/ManageAuditions'))
+      },
+      {
+        path: '/manager/manage-membership',
+        element: lazy(() => import('./views/adminSidebarContents/membership/ManageMembership'))
       },
 
       // 🔽 Chef Pages

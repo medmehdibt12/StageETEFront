@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import { confirmEmailToken } from '../../services/auth.service';
 
+// Styled Components
 const PageContainer = styled(Container)`
   min-height: 100vh;
   display: flex;
@@ -94,8 +95,10 @@ const ConfirmEmailSuccess = () => {
   const navigate = useNavigate();
   const [status, setStatus] = useState('loading');
   const [message, setMessage] = useState('');
+  const [confirmedEmail, setConfirmedEmail] = useState(null);
 
   useEffect(() => {
+    document.title = 'Confirmation Email | CSO';
     const token = searchParams.get('token');
 
     if (!token) {
@@ -108,26 +111,32 @@ const ConfirmEmailSuccess = () => {
       try {
         const response = await confirmEmailToken(token);
         setStatus('success');
-        setMessage(response || 'Email confirmé avec succès !');
+        setMessage(response.message || 'Email confirmé avec succès !');
+        setConfirmedEmail(response.email);
+
+        // Auto-redirect to formulaire step 1 after 3s
+        setTimeout(() => {
+          navigate(`/candidature/formulaire?email=${encodeURIComponent(response.email)}&confirmed=true`);
+        }, 3000);
       } catch (err) {
-        console.error('Erreur de confirmation:', err);
         setStatus('error');
-        setMessage('Erreur lors de la confirmation du mail. Le lien est peut-être expiré.');
+        if (err?.response?.status === 400) {
+          setMessage('Ce lien de confirmation a expiré. Veuillez recommencer votre inscription.');
+        } else {
+          setMessage('Erreur lors de la confirmation du mail. Veuillez réessayer plus tard.');
+        }
       }
     };
 
     confirmEmail();
-  }, [searchParams]);
+  }, [searchParams, navigate]);
 
   const renderIcon = () => {
-    if (status === 'success') {
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      );
-    }
-    return (
+    return status === 'success' ? (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+    ) : (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <line x1="18" y1="6" x2="6" y2="18" />
         <line x1="6" y1="6" x2="18" y2="18" />
@@ -162,11 +171,17 @@ const ConfirmEmailSuccess = () => {
               <Message>{message}</Message>
               <Button
                 variant={status}
-                onClick={() => navigate('/candidature/formulaire')}
+                onClick={() => {
+                  if (status === 'success' && confirmedEmail) {
+                    navigate(`/candidature/formulaire?email=${encodeURIComponent(confirmedEmail)}&confirmed=true`);
+                  } else {
+                    navigate('/candidature/formulaire');
+                  }
+                }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
-                {status === 'success' ? 'Continuer vers le formulaire' : 'Retour au formulaire'}
+                {status === 'success' ? 'Continuer vers le formulaire' : 'Recommencer l’inscription'}
               </Button>
             </motion.div>
           )}

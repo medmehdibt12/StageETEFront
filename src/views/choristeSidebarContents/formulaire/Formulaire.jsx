@@ -1,8 +1,8 @@
-/* eslint-disable prettier/prettier */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/no-unescaped-entities */
 import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { Form, Button, Col, Row, Spinner } from 'react-bootstrap';
 import Select from 'react-select';
 import PhoneInput from 'react-phone-input-2';
@@ -12,7 +12,7 @@ import withReactContent from 'sweetalert2-react-content';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import logoCSO from '../../../assets/images/music.png';
-
+import { useSearchParams } from 'react-router-dom';
 import { applyForMembership, sendConfirmationEmail, checkEmailConfirmed } from '../../../services/auth.service';
 import { getConfig } from '../../../services/config.service';
 
@@ -343,7 +343,6 @@ const countryOptions = [
   { value: 'Iraq', label: '🇮🇶 Iraq' },
   { value: 'Irlande', label: '🇮🇪 Irlande' },
   { value: 'Islande', label: '🇮🇸 Islande' },
-  { value: 'Israël', label: '🇮🇱 Israël' },
   { value: 'Italie', label: '🇮🇹 Italie' },
   { value: 'Japon', label: '🇯🇵 Japon' },
   { value: 'Jordanie', label: '🇯🇴 Jordanie' },
@@ -420,12 +419,14 @@ const countryOptions = [
   { value: 'Zambie', label: '🇿🇲 Zambie' },
   { value: 'Zimbabwe', label: '🇿🇼 Zimbabwe' }
 ];
+
 const Formulaire = () => {
   const [step, setStep] = useState(0);
   const [signupActive, setSignupActive] = useState(null);
   const [emailConfirmed, setEmailConfirmed] = useState(false);
   const [emailConfirmLoading, setEmailConfirmLoading] = useState(false);
   const [heightValue, setHeightValue] = useState(1.7);
+  const navigate = useNavigate();
 
   const {
     register,
@@ -467,7 +468,20 @@ const Formulaire = () => {
   const isActiveInOtherChoir = watch('isActiveInOtherChoir');
   const identityType = watch('identityType');
   const isSponsored = watch('isSponsored');
+  const [searchParams] = useSearchParams();
 
+  useEffect(() => {
+    document.title = 'Formulaire de Candidature | CSO';
+  }, []);
+  useEffect(() => {
+    const confirmed = searchParams.get('confirmed');
+    const emailFromUrl = searchParams.get('email');
+
+    if (confirmed === 'true' && emailFromUrl) {
+      setValue('email', emailFromUrl);
+      setEmailConfirmed(true); // ✅ Unlock the form immediately
+    }
+  }, [searchParams, setValue]);
   useEffect(() => {
     const fetchConfig = async () => {
       try {
@@ -519,103 +533,103 @@ const Formulaire = () => {
     }
   };
 
-const checkEmail = async () => {
-  const email = watch('email');
-  if (!email) return;
+  const checkEmail = async () => {
+    const email = watch('email');
+    if (!email) return;
 
-  try {
-    const res = await checkEmailConfirmed(email);
-    if (res.emailConfirmed) {
-      setEmailConfirmed(true);
-      MySwal.fire({
-        icon: 'success',
-        title: 'Email confirmé !',
-        text: 'Vous pouvez maintenant passer à l’étape suivante.',
-        confirmButtonColor: '#2ecc71'
-      });
-    }
-  } catch (err) {
-    // ✅ NEW: Handle different application statuses
-    if (err.response?.status === 409) {
-      const responseData = err.response.data;
-      
-      // Check if this is an application status response
-      if (responseData.applicationStatus) {
-        const { message, applicationStatus, canReapply } = responseData;
-        
-        let icon = 'info';
-        let confirmButtonColor = '#3498db';
-        let title = '';
-        
-        switch (applicationStatus) {
-          case 'Pending':
-            icon = 'info';
-            title = 'Candidature déjà soumise';
-            confirmButtonColor = '#3498db';
-            break;
-          case 'TestScheduled':
-            icon = 'info';
-            title = 'Test programmé';
-            confirmButtonColor = '#f39c12';
-            break;
-          case 'Accepted':
-            icon = 'success';
-            title = 'Candidature acceptée';
-            confirmButtonColor = '#2ecc71';
-            break;
-          case 'Refused':
-            icon = 'warning';
-            title = 'Candidature précédente';
-            confirmButtonColor = '#e74c3c';
-            break;
-          default:
-            icon = 'info';
-            title = 'Information';
-            confirmButtonColor = '#3498db';
-        }
-        
+    try {
+      const res = await checkEmailConfirmed(email);
+      if (res.emailConfirmed) {
+        setEmailConfirmed(true);
         MySwal.fire({
-          icon: icon,
-          title: title,
-          text: message,
-          confirmButtonColor: confirmButtonColor,
-          showCancelButton: canReapply,
-          confirmButtonText: canReapply ? 'Nouvelle candidature' : 'Compris',
-          cancelButtonText: canReapply ? 'Annuler' : undefined
-        }).then((result) => {
-          if (result.isConfirmed && canReapply) {
-            // ✅ For refused applications, allow them to proceed
-            setEmailConfirmed(true);
-            MySwal.fire({
-              icon: 'success',
-              title: 'Nouvelle candidature',
-              text: 'Vous pouvez maintenant soumettre une nouvelle candidature.',
-              confirmButtonColor: '#2ecc71'
-            });
-          }
-        });
-      } else {
-        // Handle other 409 errors
-        MySwal.fire({
-          icon: 'warning',
-          title: 'Information',
-          text: responseData.message || 'Une situation particulière a été détectée.',
-          confirmButtonColor: '#3498db'
+          icon: 'success',
+          title: 'Email confirmé !',
+          text: 'Vous pouvez maintenant passer à l’étape suivante.',
+          confirmButtonColor: '#2ecc71'
         });
       }
-    } else {
-      // Handle other types of errors (keep existing behavior)
-      console.error('Erreur vérification email:', err);
-      // Optionally show a generic error message
-      // MySwal.fire({
-      //   icon: 'error',
-      //   title: 'Erreur',
-      //   text: 'Erreur lors de la vérification de l\'email.',
-      //   confirmButtonColor: '#e74c3c'
-      // });
+    } catch (err) {
+      // ✅ NEW: Handle different application statuses
+      if (err.response?.status === 409) {
+        const responseData = err.response.data;
+
+        // Check if this is an application status response
+        if (responseData.applicationStatus) {
+          const { message, applicationStatus, canReapply } = responseData;
+
+          let icon = 'info';
+          let confirmButtonColor = '#3498db';
+          let title = '';
+
+          switch (applicationStatus) {
+            case 'Pending':
+              icon = 'info';
+              title = 'Candidature déjà soumise';
+              confirmButtonColor = '#3498db';
+              break;
+            case 'TestScheduled':
+              icon = 'info';
+              title = 'Test programmé';
+              confirmButtonColor = '#f39c12';
+              break;
+            case 'Accepted':
+              icon = 'success';
+              title = 'Candidature acceptée';
+              confirmButtonColor = '#2ecc71';
+              break;
+            case 'Refused':
+              icon = 'warning';
+              title = 'Candidature précédente';
+              confirmButtonColor = '#e74c3c';
+              break;
+            default:
+              icon = 'info';
+              title = 'Information';
+              confirmButtonColor = '#3498db';
+          }
+
+          MySwal.fire({
+            icon: icon,
+            title: title,
+            text: message,
+            confirmButtonColor: confirmButtonColor,
+            showCancelButton: canReapply,
+            confirmButtonText: canReapply ? 'Nouvelle candidature' : 'Compris',
+            cancelButtonText: canReapply ? 'Annuler' : undefined
+          }).then((result) => {
+            if (result.isConfirmed && canReapply) {
+              // ✅ For refused applications, allow them to proceed
+              setEmailConfirmed(true);
+              MySwal.fire({
+                icon: 'success',
+                title: 'Nouvelle candidature',
+                text: 'Vous pouvez maintenant soumettre une nouvelle candidature.',
+                confirmButtonColor: '#2ecc71'
+              });
+            }
+          });
+        } else {
+          // Handle other 409 errors
+          MySwal.fire({
+            icon: 'warning',
+            title: 'Information',
+            text: responseData.message || 'Une situation particulière a été détectée.',
+            confirmButtonColor: '#3498db'
+          });
+        }
+      } else {
+        // Handle other types of errors (keep existing behavior)
+        console.error('Erreur vérification email:', err);
+        // Optionally show a generic error message
+        // MySwal.fire({
+        //   icon: 'error',
+        //   title: 'Erreur',
+        //   text: 'Erreur lors de la vérification de l\'email.',
+        //   confirmButtonColor: '#e74c3c'
+        // });
+      }
     }
-  }
-};
+  };
 
   // Validation function for at least one sentence
   const validatePhrase = (value) => {
@@ -623,61 +637,78 @@ const checkEmail = async () => {
       return 'La motivation est requise';
     }
 
-    // Check for minimum characters that would constitute a complete phrase based on textarea width
-    // Approximately 80-100 characters would span the width of our textarea
-    if (value.trim().length < 122) {
-      return 'Veuillez écrire une phrase complète qui remplit la largeur de la zone de texte';
+    const cleaned = value.trim();
+
+    // 1. Minimum visual width (roughly 1 full-width sentence)
+    if (cleaned.length < 100) {
+      return 'Veuillez écrire une phrase complète (au moins 100 caractères).';
+    }
+
+    // 2. Check for immediate repeated words (e.g., "je je", "test test")
+    const immediateRepeatPattern = /\b(\w+)\b\s+\1\b/i;
+    if (immediateRepeatPattern.test(cleaned)) {
+      return 'Veuillez éviter de répéter les mêmes mots consécutivement.';
+    }
+
+    // 3. Require at least 6 unique words (to avoid poor variety)
+    const words = cleaned.toLowerCase().match(/\b\w+\b/g) || [];
+    const uniqueWords = new Set(words);
+    if (uniqueWords.size < 6) {
+      return 'Veuillez écrire une phrase plus riche avec des mots variés.';
     }
 
     return true;
   };
 
-const onSubmit = async (data) => {
-  try {
-    const formattedData = {
-     ...data,
-    gender: data.gender?.value || '',
-    nationality: data.nationality?.value || '',
-    identityNumber: data.identityNumber,
-    height: Math.round(parseFloat(data.height) * 100),
-    submitted_at: new Date().toISOString(),
-    };
+  const onSubmit = async (data) => {
+    try {
+      const formattedData = {
+        ...data,
+        gender: data.gender?.value || '',
+        nationality: data.nationality?.value || '',
+        identityNumber: data.identityNumber,
+        height: Math.round(parseFloat(data.height) * 100),
+        submitted_at: new Date().toISOString()
+      };
 
-    const response = await applyForMembership(formattedData);
+      const response = await applyForMembership(formattedData);
 
-    MySwal.fire({
-      icon: 'success',
-      title: response.message || 'Votre candidature a bien été enregistrée.',
-      text: 'Nous vous contacterons bientôt pour une audition !',
-      confirmButtonColor: '#2ecc71',
-      timer: 5000,
-      timerProgressBar: true
-    });
+      MySwal.fire({
+        icon: 'success',
+        title: response.message || 'Votre candidature a bien été enregistrée.',
+        text: 'Nous vous contacterons bientôt pour une audition !',
+        confirmButtonColor: '#2ecc71',
+        timer: 5000,
+        timerProgressBar: true
+      });
 
-    reset();
-    setStep(0);
-    setEmailConfirmed(false);
-    setHeightValue(1.7);
-  } catch (error) {
-    // ✅ UPDATED: Better error handling
-    let errorMessage = 'La demande a échoué.';
-    
-    if (error.response?.status === 409) {
-      errorMessage = error.response.data.message || 'Vous avez déjà une candidature en cours.';
-    } else if (error.response?.data?.message) {
-      errorMessage = error.response.data.message;
-    } else if (error.message) {
-      errorMessage = error.message;
+      // ✅ Clean up
+      reset();
+      setStep(0);
+      setEmailConfirmed(false);
+      setHeightValue(1.7);
+
+      // ✅ Clean the URL — remove query params
+      navigate('/candidature/formulaire', { replace: true });
+    } catch (error) {
+      let errorMessage = 'La demande a échoué.';
+
+      if (error.response?.status === 409) {
+        errorMessage = error.response.data.message || 'Vous avez déjà une candidature en cours.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      MySwal.fire({
+        icon: 'warning',
+        title: 'Envoi impossible',
+        text: errorMessage,
+        confirmButtonColor: '#e74c3c'
+      });
     }
-    
-    MySwal.fire({
-      icon: 'warning',
-      title: 'Envoi impossible',
-      text: errorMessage,
-      confirmButtonColor: '#e74c3c'
-    });
-  }
-};
+  };
 
   const handleNext = async () => {
     let fieldsToValidate = [];
@@ -799,61 +830,50 @@ const onSubmit = async (data) => {
             </EmailVerificationSubtitle>
 
             <Form.Group controlId="email" style={{ maxWidth: '500px', margin: '0 auto' }}>
-  {/* <Form.Label>Adresse email</Form.Label> */}
-  <InputGroup>
-    <Form.Control
-      type="email"
-      placeholder="votre@email.com"
-      {...register('email', {
-        required: 'Email requis',
-        pattern: {
-          value: /^\S+@\S+\.\S+$/,
-          message: 'Email invalide'
-        }
-      })}
-      isInvalid={!!errors.email}
-      size="lg"
-    />
-    <EmailConfirmButton
-      size="lg"
-      variant="primary"
-      onClick={handleEmailConfirmation}
-      disabled={emailConfirmLoading}
-    >
-      {emailConfirmLoading ? <Spinner size="sm" animation="border" /> : 'Confirmer'}
-    </EmailConfirmButton>
-  </InputGroup>
-  
-  {/* Move error message right below the input */}
-  {errors.email && (
-    <div className="text-danger mt-1" style={{ fontSize: '0.875rem', textAlign: 'left' }}>
-      {errors.email.message}
-    </div>
-  )}
+              {/* <Form.Label>Adresse email</Form.Label> */}
+              <InputGroup>
+                <Form.Control
+                  type="email"
+                  placeholder="votre@email.com"
+                  {...register('email', {
+                    required: 'Email requis',
+                    pattern: {
+                      value: /^\S+@\S+\.\S+$/,
+                      message: 'Email invalide'
+                    }
+                  })}
+                  isInvalid={!!errors.email}
+                  size="lg"
+                />
+                <EmailConfirmButton size="lg" variant="primary" onClick={handleEmailConfirmation} disabled={emailConfirmLoading}>
+                  {emailConfirmLoading ? <Spinner size="sm" animation="border" /> : 'Confirmer'}
+                </EmailConfirmButton>
+              </InputGroup>
 
-  <HelperText style={{ textAlign: 'center', marginTop: '1rem' }}>
-    <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-      Un lien de confirmation sera envoyé à votre adresse email
-    </motion.span>
-  </HelperText>
+              {/* Move error message right below the input */}
+              {errors.email && (
+                <div className="text-danger mt-1" style={{ fontSize: '0.875rem', textAlign: 'left' }}>
+                  {errors.email.message}
+                </div>
+              )}
 
-  <motion.div
-    className="mt-3 text-center"
-    initial={{ opacity: 0, y: 5 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: 0.3 }}
-  >
-    <ActionButton 
-      size="sm" 
-      variant="success" 
-      onClick={checkEmail} 
-      disabled={emailConfirmLoading}
-      style={{ marginTop: '1rem' }}
-    >
-      J'ai confirmé mon email
-    </ActionButton>
-  </motion.div>
-</Form.Group>
+              <HelperText style={{ textAlign: 'center', marginTop: '1rem' }}>
+                <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+                  Un lien de confirmation sera envoyé à votre adresse email
+                </motion.span>
+              </HelperText>
+
+              {/* <motion.div
+                className="mt-3 text-center"
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <ActionButton size="sm" variant="success" onClick={checkEmail} disabled={emailConfirmLoading} style={{ marginTop: '1rem' }}>
+                  J'ai confirmé mon email
+                </ActionButton>
+              </motion.div> */}
+            </Form.Group>
           </EmailVerificationContainer>
         </FormContainer>
       </PageContainer>
@@ -919,6 +939,7 @@ const onSubmit = async (data) => {
                             })}
                             isInvalid={!!errors.firstName}
                             size="sm"
+                            style={{ height: '40px' }}
                           />
                           <Form.Control.Feedback type="invalid">{errors.firstName?.message}</Form.Control.Feedback>
                         </Form.Group>
@@ -938,6 +959,7 @@ const onSubmit = async (data) => {
                             })}
                             isInvalid={!!errors.lastName}
                             size="sm"
+                            style={{ height: '40px' }}
                           />
                           <Form.Control.Feedback type="invalid">{errors.lastName?.message}</Form.Control.Feedback>
                         </Form.Group>
@@ -945,95 +967,94 @@ const onSubmit = async (data) => {
                     </Row>
 
                     <Row>
-                    <Row>
-  <Col md={6} className="mb-3">
-    <Form.Group controlId="emailDisplay">
-      <Form.Label>Email</Form.Label>
-      <Form.Control
-        type="email"
-        value={watch('email')}
-        disabled
-        size="sm"
-        style={{ backgroundColor: '#e8f5e8', color: '#2d5a2d' }}
-      />
-      <HelperText type="success" style={{ marginTop: '0.25rem' }}>
-        <span>✓</span>
-        Email confirmé
-      </HelperText>
-    </Form.Group>
-  </Col>
+                      <Col md={6} className="mb-3">
+                        <Form.Group controlId="emailDisplay">
+                          <Form.Label>Email</Form.Label>
+                          <Form.Control
+                            type="email"
+                            value={watch('email')}
+                            disabled
+                            size="sm"
+                            style={{ backgroundColor: '#e8f5e8', color: '#2d5a2d', height: '40px' }}
+                          />
+                          <HelperText type="success" style={{ marginTop: '0.25rem' }}>
+                            <span>✓</span>
+                            Email confirmé
+                          </HelperText>
+                        </Form.Group>
+                      </Col>
 
-  <Col md={6} className="mb-3">
-    <Form.Group controlId="phone">
-      <Form.Label>Téléphone</Form.Label>
-      <Controller
-        name="phone"
-        control={control}
-        rules={{
-          required: 'Téléphone requis',
-          validate: (value) => {
-            if (!value || value.length < 8) {
-              return 'Numéro de téléphone invalide';
-            }
-            return true;
-          }
-        }}
-        render={({ field: { onChange, value } }) => {
-          // Create display value for PhoneInput (country code + phone number)
-          const phoneCountryCode = watch('phoneCountryCode') || '+216';
-          const displayValue = value ? `${phoneCountryCode.replace('+', '')}${value}` : '';
-          
-          return (
-            <PhoneInput
-              country={'tn'}
-              value={displayValue}
-              onChange={(fullPhone, country) => {
-                // Extract the dial code
-                const dialCode = country.dialCode;
-                
-                // Save country code
-                setValue('phoneCountryCode', `+${dialCode}`);
-                
-                // Extract clean phone number (remove country code)
-                const cleanPhone = fullPhone.replace(dialCode, '');
-                
-                // Save only the phone number part
-                onChange(cleanPhone);
-              }}
-              enableSearch={true}
-              searchPlaceholder="Rechercher un pays"
-              inputStyle={{
-                width: '100%',
-                height: '42px',
-                borderRadius: '10px',
-                border: errors.phone ? '1px solid #dc3545' : '1px solid #e2e8f0',
-                fontSize: '0.875rem',
-                paddingLeft: '60px'
-              }}
-              containerStyle={{
-                width: '100%'
-              }}
-              buttonStyle={{
-                borderRadius: '10px 0 0 10px',
-                border: errors.phone ? '1px solid #dc3545' : '1px solid #e2e8f0',
-                backgroundColor: '#f8f9fa'
-              }}
-              dropdownStyle={{
-                borderRadius: '10px',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
-              }}
-            />
-          );
-        }}
-      />
-      {errors.phone && (
-        <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
-          {errors.phone.message}
-        </div>
-      )}
-    </Form.Group>
-  </Col>
-</Row>
+                      <Col md={6} className="mb-3">
+                        <Form.Group controlId="phone">
+                          <Form.Label>Téléphone</Form.Label>
+                          <Controller
+                            name="phone"
+                            control={control}
+                            rules={{
+                              required: 'Téléphone requis',
+                              validate: (value) => {
+                                if (!value || value.length < 8) {
+                                  return 'Numéro de téléphone invalide';
+                                }
+                                return true;
+                              }
+                            }}
+                            render={({ field: { onChange, value } }) => {
+                              // Create display value for PhoneInput (country code + phone number)
+                              const phoneCountryCode = watch('phoneCountryCode') || '+216';
+                              const displayValue = value ? `${phoneCountryCode.replace('+', '')}${value}` : '';
+
+                              return (
+                                <PhoneInput
+                                  country={'tn'}
+                                  value={displayValue}
+                                  onChange={(fullPhone, country) => {
+                                    // Extract the dial code
+                                    const dialCode = country.dialCode;
+
+                                    // Save country code
+                                    setValue('phoneCountryCode', `+${dialCode}`);
+
+                                    // Extract clean phone number (remove country code)
+                                    const cleanPhone = fullPhone.replace(dialCode, '');
+
+                                    // Save only the phone number part
+                                    onChange(cleanPhone);
+                                  }}
+                                  enableSearch={true}
+                                  excludeCountries={['il']}
+                                  searchPlaceholder="Rechercher un pays"
+                                  inputStyle={{
+                                    width: '100%',
+                                    height: '42px',
+                                    borderRadius: '10px',
+                                    border: errors.phone ? '1px solid #dc3545' : '1px solid #e2e8f0',
+                                    fontSize: '0.875rem',
+                                    paddingLeft: '60px'
+                                  }}
+                                  containerStyle={{
+                                    width: '100%'
+                                  }}
+                                  buttonStyle={{
+                                    borderRadius: '10px 0 0 10px',
+                                    border: errors.phone ? '1px solid #dc3545' : '1px solid #e2e8f0',
+                                    backgroundColor: '#f8f9fa'
+                                  }}
+                                  dropdownStyle={{
+                                    borderRadius: '10px',
+                                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
+                                  }}
+                                />
+                              );
+                            }}
+                          />
+                          {errors.phone && (
+                            <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
+                              {errors.phone.message}
+                            </div>
+                          )}
+                        </Form.Group>
+                      </Col>
                     </Row>
 
                     <Form.Group controlId="gender" className="mb-3">
@@ -1070,7 +1091,7 @@ const onSubmit = async (data) => {
                               required: 'Date de naissance requise',
                               validate: (value) => {
                                 const birth = new Date(value);
-                                const today = new Date('2025-07-17');
+                                const today = new Date();
                                 const age = today.getFullYear() - birth.getFullYear();
                                 const monthDiff = today.getMonth() - birth.getMonth();
                                 const dayDiff = today.getDate() - birth.getDate();
@@ -1081,11 +1102,13 @@ const onSubmit = async (data) => {
                             })}
                             isInvalid={!!errors.birthDate}
                             size="sm"
-                            max="2025-07-17"
+                            max={new Date().toISOString().split('T')[0]} // dynamic max date
+                            style={{ height: '40px' }}
                           />
                           <Form.Control.Feedback type="invalid">{errors.birthDate?.message}</Form.Control.Feedback>
                         </Form.Group>
                       </Col>
+
                       <Col md={6} className="mb-3">
                         <Form.Group controlId="nationality">
                           <Form.Label>Nationalité</Form.Label>
@@ -1181,6 +1204,7 @@ const onSubmit = async (data) => {
                             })}
                             isInvalid={!!errors.identityNumber}
                             size="sm"
+                            style={{ height: '40px' }}
                           />
                           <Form.Control.Feedback type="invalid">{errors.identityNumber?.message}</Form.Control.Feedback>
                         </Form.Group>
@@ -1189,34 +1213,62 @@ const onSubmit = async (data) => {
 
                     <Form.Group controlId="height" className="mb-3">
                       <Form.Label>Taille (en mètre)</Form.Label>
-                      <Form.Control
-                        type="number"
-                        step="0.01"
-                        placeholder="ex: 1.70"
-                        value={heightValue}
-                        onChange={(e) => setHeightValue(parseFloat(e.target.value) || 1.7)}
-                        {...register('height', {
+
+                      <Controller
+                        name="height"
+                        control={control}
+                        rules={{
                           required: 'Taille requise',
                           min: { value: 0.5, message: 'Taille trop petite' },
                           max: { value: 2.5, message: 'Taille trop grande' }
-                        })}
-                        isInvalid={!!errors.height}
-                        size="sm"
+                        }}
+                        defaultValue={1.7}
+                        render={({ field }) => (
+                          <>
+                            <Form.Control
+                              type="number"
+                              step="0.01"
+                              min="0.5"
+                              max="2.5"
+                              placeholder="ex: 1.70"
+                              value={field.value}
+                              onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              onKeyPress={(e) => {
+                                // Prevent typing but allow spinner arrows to work
+                                e.preventDefault();
+                              }}
+                              onKeyDown={(e) => {
+                                // Allow only Tab for navigation, block other keyboard input
+                                if (e.key !== 'Tab') {
+                                  e.preventDefault();
+                                }
+                              }}
+                              isInvalid={!!errors.height}
+                              size="sm"
+                              style={{
+                                height: '40px',
+                                cursor: 'default'
+                              }}
+                            />
+
+                            <HeightSliderContainer>
+                              <span style={{ fontSize: '0.85rem', color: '#718096' }}>0.5m</span>
+                              <HeightSlider
+                                type="range"
+                                min="0.5"
+                                max="2.5"
+                                step="0.01"
+                                value={field.value}
+                                onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              />
+                              <span style={{ fontSize: '0.85rem', color: '#718096' }}>2.5m</span>
+                              <HeightDisplay>{field.value?.toFixed(2)}m</HeightDisplay>
+                            </HeightSliderContainer>
+
+                            <Form.Control.Feedback type="invalid">{errors.height?.message}</Form.Control.Feedback>
+                          </>
+                        )}
                       />
-                      <HeightSliderContainer>
-                        <span style={{ fontSize: '0.85rem', color: '#718096' }}>0.5m</span>
-                        <HeightSlider
-                          type="range"
-                          min="0.5"
-                          max="2.5"
-                          step="0.01"
-                          value={heightValue}
-                          onChange={(e) => setHeightValue(parseFloat(e.target.value))}
-                        />
-                        <span style={{ fontSize: '0.85rem', color: '#718096' }}>2.5m</span>
-                        <HeightDisplay>{heightValue.toFixed(2)}m</HeightDisplay>
-                      </HeightSliderContainer>
-                      <Form.Control.Feedback type="invalid">{errors.height?.message}</Form.Control.Feedback>
                     </Form.Group>
 
                     <Form.Group controlId="professionalSituation" className="mb-3">
@@ -1233,6 +1285,7 @@ const onSubmit = async (data) => {
                         })}
                         isInvalid={!!errors.professionalSituation}
                         size="sm"
+                        style={{ height: '40px' }}
                       />
                       <Form.Control.Feedback type="invalid">{errors.professionalSituation?.message}</Form.Control.Feedback>
                     </Form.Group>
@@ -1272,7 +1325,7 @@ const onSubmit = async (data) => {
                         transition={{ duration: 0.2 }}
                       >
                         <Form.Group controlId="sponsorName" className="mb-3">
-                          <Form.Label>Si oui par qui ? (Nom et prénom)</Form.Label>
+                          <Form.Label>Nom et prénom de parrain</Form.Label>
                           <Form.Control
                             type="text"
                             placeholder="Nom et prénom du parrain"
@@ -1285,6 +1338,7 @@ const onSubmit = async (data) => {
                             })}
                             isInvalid={!!errors.sponsorName}
                             size="sm"
+                            style={{ height: '40px' }}
                           />
                           <Form.Control.Feedback type="invalid">{errors.sponsorName?.message}</Form.Control.Feedback>
                         </Form.Group>
@@ -1362,7 +1416,7 @@ const onSubmit = async (data) => {
                           <Form.Label>Expérience musicale</Form.Label>
                           <Form.Control
                             as="textarea"
-                            rows={3}
+                            rows={1}
                             placeholder="Décrire votre expérience musicale..."
                             {...register('musicalExperience', {
                               required: 'Veuillez décrire votre expérience musicale'

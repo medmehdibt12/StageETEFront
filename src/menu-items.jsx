@@ -39,20 +39,7 @@ const useMenuItems = () => {
       url: '/admin/manage-rehearsals',
       icon: 'feather icon-clock' // rehearsal times
     },
-    {
-      id: 'manage-auditions',
-      title: 'Gérer les Auditions',
-      type: 'item',
-      url: '/admin/manage-auditions',
-      icon: 'feather icon-mic'
-    },
-    {
-      id: 'manage-membership',
-      title: 'Listes des candidats',
-      type: 'item',
-      url: '/admin/manage-membership',
-      icon: 'feather icon-user-check' // membership approvals
-    },
+
     // {
     //   id: 'manage-eliminations',
     //   title: 'Gérer les Éliminations',
@@ -121,6 +108,27 @@ const useMenuItems = () => {
       type: 'item',
       icon: 'feather icon-sliders', // vocal range/settings
       url: '/manager/modify-tessiture'
+    },
+    {
+      id: 'manage-auditions',
+      title: 'Gérer les Auditions',
+      type: 'item',
+      url: '/manager/manage-auditions',
+      icon: 'feather icon-mic'
+    },
+    {
+      id: 'manage-membership',
+      title: 'Listes des candidats',
+      type: 'item',
+      url: '/manager/manage-membership',
+      icon: 'feather icon-user-check' // membership approvals
+    },
+    {
+      id: 'reschedule-requests',
+      title: 'Gérer les Demandes de Reprogrammation',
+      type: 'item',
+      url: '/manager/reschedule-requests',
+      icon: 'feather icon-refresh-cw'
     }
   ];
 

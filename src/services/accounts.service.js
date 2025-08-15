@@ -58,19 +58,45 @@ export const eliminateChoriste = async (id) => {
   return res.data;
 };
 
-// 📥 get membershipsub
+// 📥 Get memberships (enhanced)
 export const getMembershipSubmissions = async (status = "Pending") => {
   const res = await api.get(`/users/membership-submissions?status=${status}`);
   return res.data;
 };
 
-// // 📬 Accept membership
-export const acceptMembership = async (id) => {
-  const res = await api.put(`/users/accept/${id}`);
+// 📥 Get scheduled candidates with slot data
+export const getScheduledCandidatesWithSlots = async (filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.date) params.append('date', filters.date);
+  if (filters.timeRange) params.append('timeRange', filters.timeRange);
+  
+  const res = await api.get(`/users/scheduled-with-slots?${params.toString()}`);
   return res.data;
 };
 
+// 📥 Get available time slots for filters
+export const getAvailableTimeSlots = async () => {
+  const res = await api.get('/users/available-time-slots');
+  return res.data;
+};
 
+// 📥 Get available dates for filters  
+export const getAvailableDates = async () => {
+  const res = await api.get('/users/available-dates');
+  return res.data;
+};
+
+// // 📬 Accept membership
+// export const acceptMembership = async (id) => {
+//   const res = await api.put(`/users/accept/${id}`);
+//   return res.data;
+// };
+
+// ✅ Accept all retenu candidates
+export const acceptAllRetenuCandidates = async () => {
+  const res = await api.post('/users/accept-retenu-candidates');
+  return res.data;
+};
 
 // 🚫 Refuse membership (with reason)
 export const refuseMembership = async (id, reason) => {
@@ -83,6 +109,7 @@ export const getAcceptedMemberships = async () => {
   const res = await api.get('/users/accepted-memberships');
   return res.data;
 };
+
 
 export const updatePupitre = async (userId, pupitre) => {
   try {
