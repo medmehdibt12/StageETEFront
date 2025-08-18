@@ -1,24 +1,37 @@
-/* eslint-disable prettier/prettier */
-import React, { useEffect, useState } from "react";
-import { getConcerts } from "../../../services/concert.service";
-import { getOeuvreById } from "../../../services/oeuvre.service";
-import { getRepetitionsByConcert } from "../../../services/repetition.service";
-import { Spinner, Button } from "react-bootstrap";
-import Select from "react-select";
-import Swal from "sweetalert2";
+/* eslint-disable no-unused-vars */
+/* eslint-disable react/no-unescaped-entities */
+
+import React, { useEffect, useState } from 'react';
+import { getConcerts } from '../../../services/concert.service';
+import { getOeuvreById } from '../../../services/oeuvre.service';
+import { getRepetitionsByConcert } from '../../../services/repetition.service';
+import { Spinner, Button, Card, Row, Col, Badge, Container, InputGroup, Form } from 'react-bootstrap';
+import Select from 'react-select';
+import Swal from 'sweetalert2';
 import {
   FaCalendarAlt,
   FaMapMarkerAlt,
   FaMusic,
   FaClock,
   FaInfoCircle,
-} from "react-icons/fa";
+  FaImage,
+  FaChevronLeft,
+  FaChevronRight,
+  FaAngleDoubleLeft,
+  FaAngleDoubleRight
+} from 'react-icons/fa';
+import { Search } from 'lucide-react';
 
 const SeasonProgramme = () => {
   const [concerts, setConcerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState({ value: 'upcoming', label: 'À venir' });
+
+  // ✅ PROFESSIONAL PAGINATION STATE
+  const [currentPage, setCurrentPage] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(6);
+  const pageSizeOptions = [6, 12, 18, 30];
 
   const statusOptions = [
     { value: 'upcoming', label: 'À venir' },
@@ -29,12 +42,17 @@ const SeasonProgramme = () => {
     fetchConcerts();
   }, []);
 
+  // ✅ RESET PAGINATION WHEN FILTERS CHANGE
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [searchTerm, filterStatus]);
+
   const fetchConcerts = async () => {
     try {
       const data = await getConcerts();
       setConcerts(data);
     } catch (error) {
-      console.error("Erreur lors du chargement des concerts:", error);
+      console.error('Erreur lors du chargement des concerts:', error);
     } finally {
       setLoading(false);
     }
@@ -45,42 +63,104 @@ const SeasonProgramme = () => {
       const now = new Date();
       const concertDate = new Date(concert.dateHeure);
       const matchesStatus =
-        (filterStatus.value === 'upcoming' && concertDate >= now) ||
-        (filterStatus.value === 'past' && concertDate < now);
+        (filterStatus.value === 'upcoming' && concertDate >= now) || (filterStatus.value === 'past' && concertDate < now);
       const matchesSearch = concert.title.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesStatus && matchesSearch;
     })
-    .sort((a, b) => new Date(a.dateHeure) - new Date(b.dateHeure));
+    .sort((a, b) => {
+      // Sort upcoming concerts ascending, past concerts descending
+      if (filterStatus.value === 'upcoming') {
+        return new Date(a.dateHeure) - new Date(b.dateHeure);
+      } else {
+        return new Date(b.dateHeure) - new Date(a.dateHeure);
+      }
+    });
+
+  // ✅ PROFESSIONAL PAGINATION FUNCTIONS
+  const getTotalItems = () => filteredConcerts.length;
+  const getTotalPages = () => Math.ceil(getTotalItems() / itemsPerPage);
+  const getStartIndex = () => (getTotalItems() === 0 ? 0 : currentPage * itemsPerPage + 1);
+  const getEndIndex = () => Math.min((currentPage + 1) * itemsPerPage, getTotalItems());
+
+  const getPaginatedData = () => {
+    const start = currentPage * itemsPerPage;
+    return filteredConcerts.slice(start, start + itemsPerPage);
+  };
+
+  const handlePageSizeChange = (newSize) => {
+    setItemsPerPage(newSize);
+    setCurrentPage(0);
+  };
+
+  const goToFirstPage = () => setCurrentPage(0);
+  const goToPreviousPage = () => setCurrentPage(Math.max(0, currentPage - 1));
+  const goToNextPage = () => setCurrentPage(Math.min(getTotalPages() - 1, currentPage + 1));
+  const goToLastPage = () => setCurrentPage(getTotalPages() - 1);
+
+  const isFirstPage = () => currentPage === 0;
+  const isLastPage = () => currentPage >= getTotalPages() - 1;
 
   const formatFullDate = (iso) =>
-    new Date(iso).toLocaleDateString("fr-FR", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
+    new Date(iso).toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
     });
 
   const formatTime = (iso) =>
-    new Date(iso).toLocaleTimeString("fr-FR", {
-      hour: "2-digit",
-      minute: "2-digit",
+    new Date(iso).toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit'
     });
 
   const formatConcertDateFR = (isoString) => {
-    return new Date(isoString).toLocaleDateString("fr-FR", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
+    return new Date(isoString).toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
     });
+  };
+
+  // ✅ CHECK IF CONCERT IS TODAY, TOMORROW, OR THIS WEEK
+  const getConcertTimeBadge = (dateHeure) => {
+    const now = new Date();
+    const concertDate = new Date(dateHeure);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+
+    const concertDay = new Date(concertDate.getFullYear(), concertDate.getMonth(), concertDate.getDate());
+
+    if (concertDay.getTime() === today.getTime()) {
+      return (
+        <Badge bg="danger" className="ms-2">
+          Aujourd'hui
+        </Badge>
+      );
+    } else if (concertDay.getTime() === tomorrow.getTime()) {
+      return (
+        <Badge bg="warning" className="ms-2">
+          Demain
+        </Badge>
+      );
+    } else if (concertDay <= nextWeek && concertDay > today) {
+      return (
+        <Badge bg="info" className="ms-2">
+          Cette semaine
+        </Badge>
+      );
+    }
+    return null;
   };
 
   const handleShowDetails = async (concert) => {
     try {
       const programmeDetails = await Promise.all(
-        (concert.programme || []).map((item) =>
-          getOeuvreById(typeof item === "string" ? item : item._id)
-        )
+        (concert.programme || []).map((item) => getOeuvreById(typeof item === 'string' ? item : item._id))
       );
 
       const repetitions = await getRepetitionsByConcert(concert._id);
@@ -88,8 +168,8 @@ const SeasonProgramme = () => {
 
       const piecesHtml = programmeDetails
         .map((o) => {
-          const composers = o.composers?.join(", ") || "Aucun";
-          const arrangers = o.arrangers?.length ? o.arrangers.join(", ") : "—";
+          const composers = o.composers?.join(', ') || 'Aucun';
+          const arrangers = o.arrangers?.length ? o.arrangers.join(', ') : '—';
           return `
             <div class="prog-card">
               <div class="prog-card-header">
@@ -110,7 +190,8 @@ const SeasonProgramme = () => {
               </div>
             </div>
           `;
-        }).join("");
+        })
+        .join('');
 
       Swal.fire({
         html: `
@@ -141,26 +222,30 @@ const SeasonProgramme = () => {
             <h4 style="margin-bottom: 12px; font-size: 17px;">📅 Répétitions liées</h4>
             ${
               repetitions.length
-                ? repetitions.map((r) => {
-                    if (!r.date || !r.startTime || !r.endTime) return "";
-                    const dateObj = new Date(r.date);
-                    const [startH, startM] = r.startTime.split(":");
-                    const [endH, endM] = r.endTime.split(":");
-                    const start = new Date(dateObj); start.setHours(+startH, +startM);
-                    const end = new Date(dateObj); end.setHours(+endH, +endM);
-                    const date = start.toLocaleDateString("fr-FR");
-                    const startTime = start.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-                    const endTime = end.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-                    return `
+                ? repetitions
+                    .map((r) => {
+                      if (!r.date || !r.startTime || !r.endTime) return '';
+                      const dateObj = new Date(r.date);
+                      const [startH, startM] = r.startTime.split(':');
+                      const [endH, endM] = r.endTime.split(':');
+                      const start = new Date(dateObj);
+                      start.setHours(+startH, +startM);
+                      const end = new Date(dateObj);
+                      end.setHours(+endH, +endM);
+                      const date = start.toLocaleDateString('fr-FR');
+                      const startTime = start.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                      const endTime = end.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                      return `
                       <div class="prog-card" style="background:#fcfcfc;">
-                        <div class="prog-card-header">📍 ${r.location || "Lieu inconnu"}</div>
+                        <div class="prog-card-header">📍 ${r.location || 'Lieu inconnu'}</div>
                         <div class="prog-card-body">
                           <div><strong>Date :</strong> ${date}</div>
                           <div><strong>Heure :</strong> ${startTime} → ${endTime}</div>
                         </div>
                       </div>
                     `;
-                  }).join("")
+                    })
+                    .join('')
                 : "<em style='color: gray;'>Aucune répétition prévue</em>"
             }
           </div>
@@ -168,110 +253,289 @@ const SeasonProgramme = () => {
         </div>
       `,
         customClass: {
-          popup: "swal2-programme-popup",
-          confirmButton: "swal2-programme-btn",
+          popup: 'swal2-programme-popup',
+          confirmButton: 'swal2-programme-btn'
         },
         showConfirmButton: true,
-        confirmButtonText: "Fermer",
-        width: "660px",
+        confirmButtonText: 'Fermer',
+        width: '660px',
         padding: 0,
-        background: "transparent",
+        background: 'transparent'
       });
     } catch (err) {
-      console.error("Erreur lors de l’affichage des détails:", err);
-      Swal.fire("Erreur", "Impossible d’afficher les détails.", "error");
+      console.error("Erreur lors de l'affichage des détails:", err);
+      Swal.fire('Erreur', "Impossible d'afficher les détails.", 'error');
     }
   };
 
   return (
-    <div className="p-4">
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
-        <input
-          type="text"
-          className="form-control"
-          placeholder="Rechercher par nom"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ maxWidth: '280px' }}
-        />
-        <Select
-          options={statusOptions}
-          value={filterStatus}
-          onChange={setFilterStatus}
-          styles={{
-            control: (base) => ({
-              ...base,
-              minWidth: 200,
-              borderRadius: 12,
-              boxShadow: 'none',
-              borderColor: '#ced4da',
-            }),
-          }}
-        />
+    <Container fluid className="p-4" style={{ maxWidth: '1400px' }}>
+      {/* ✅ HEADER SECTION */}
+      <div className="mb-4">
+        <h2 className="fw-bold text-dark mb-1">
+          <FaMusic className="me-3 text-primary" />
+          Programme de la Saison
+        </h2>
+        <p className="text-muted mb-4">Découvrez tous les concerts de l'Orchestre Symphonique de Carthage</p>
+
+        {/* ✅ FILTERS SECTION */}
+        <Row className="align-items-center g-3">
+          <Col md={3}>
+            <Select
+              options={statusOptions}
+              value={filterStatus}
+              onChange={setFilterStatus}
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb',
+                  boxShadow: 'none',
+                  fontSize: '14px',
+                  '&:hover': { borderColor: '#d1d5db' }
+                }),
+                option: (provided, state) => ({
+                  ...provided,
+                  fontSize: '14px'
+                })
+              }}
+            />
+          </Col>
+          <Col md={4}>
+            <InputGroup>
+              <InputGroup.Text style={{ backgroundColor: '#f8f9fa', borderColor: '#e5e7eb' }}>
+                <Search size={16} className="text-muted" />
+              </InputGroup.Text>
+              <Form.Control
+                type="text"
+                placeholder="Rechercher par nom de concert..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  borderColor: '#e5e7eb',
+                  fontSize: '14px',
+                  padding: '10px 16px'
+                }}
+              />
+            </InputGroup>
+          </Col>
+          <Col md={5} className="text-end">
+            <small className="text-muted">
+              {getTotalItems()} concert(s) {filterStatus.label.toLowerCase()}
+              {searchTerm && ` pour "${searchTerm}"`}
+            </small>
+          </Col>
+        </Row>
       </div>
 
       {loading ? (
         <div className="text-center py-5">
-          <Spinner animation="border" />
+          <Spinner animation="border" variant="primary" size="lg" />
+          <p className="mt-3 text-muted">Chargement des concerts...</p>
         </div>
-      ) : filteredConcerts.length === 0 ? (
-        <p className="text-center text-muted">Aucun concert trouvé.</p>
+      ) : getTotalItems() === 0 ? (
+        <div className="text-center py-5">
+          <FaMusic size={48} className="text-muted mb-3" />
+          <h5 className="text-muted">Aucun concert trouvé</h5>
+          <p className="text-muted">
+            {searchTerm
+              ? `Aucun concert ne correspond à "${searchTerm}"`
+              : `Aucun concert ${filterStatus.label.toLowerCase()} pour le moment`}
+          </p>
+        </div>
       ) : (
-        <div className="agenda-list">
-          {filteredConcerts.map((concert) => (
-            <div
-              key={concert._id}
-              className="border rounded shadow-sm p-3 mb-4"
-              style={{ background: '#ffffff' }}
-            >
-              <div className="mb-2 d-flex align-items-center" style={{ color: '#1d4ed8', fontWeight: '600' }}>
-                <FaCalendarAlt className="me-2" size={18} />
-                {formatFullDate(concert.dateHeure)}
-              </div>
+        <>
+          {/* ✅ CONCERTS GRID */}
+          <Row className="g-4">
+            {getPaginatedData().map((concert) => {
+              const concertDate = new Date(concert.dateHeure);
+              const isPast = concertDate < new Date();
 
-              <div className="mb-1" style={{ fontSize: '15px' }}>
-                <FaMusic className="me-2" color="#6366f1" />
-                <strong style={{ color: '#111827' }}>Titre :</strong> {concert.title}
-              </div>
-
-              <div className="mb-1" style={{ fontSize: '15px' }}>
-                <FaMapMarkerAlt className="me-2" color="#10b981" />
-                <strong style={{ color: '#111827' }}>Lieu :</strong> {concert.location}
-              </div>
-
-              <div className="mb-1" style={{ fontSize: '15px' }}>
-                <FaClock className="me-2" color="#f59e0b" />
-                <strong style={{ color: '#111827' }}>Heure :</strong> {formatTime(concert.dateHeure)}
-              </div>
-
-              {concert.affiche && (
-                <div className="mt-1" style={{ fontSize: '15px' }}>
-                  <strong>Affiche :</strong>{" "}
-                  <a
-                    href={`${import.meta.env.VITE_BACKEND_URL}/uploads/posters/${concert.affiche}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ textDecoration: "underline", color: "#3b82f6" }}
+              return (
+                <Col key={concert._id} lg={6} xl={4}>
+                  <Card
+                    className="h-100 shadow-sm border-0"
+                    style={{
+                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-4px)';
+                      e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+                    }}
                   >
-                    Voir
-                  </a>
-                </div>
-              )}
+                    {/* ✅ CARD HEADER */}
+                    <Card.Header
+                      className="border-0 text-white d-flex align-items-center justify-content-between"
+                      style={{
+                        background: isPast
+                          ? 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)'
+                          : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                        borderRadius: '0.375rem 0.375rem 0 0'
+                      }}
+                    >
+                      <div className="d-flex align-items-center">
+                        <FaCalendarAlt className="me-2" size={16} />
+                        <span className="fw-semibold" style={{ fontSize: '15px' }}>
+                          {concertDate.toLocaleDateString('fr-FR', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                          })}
+                        </span>
+                      </div>
+                      {!isPast && getConcertTimeBadge(concert.dateHeure)}
+                      {isPast && (
+                        <Badge bg="light" text="dark">
+                          Terminé
+                        </Badge>
+                      )}
+                    </Card.Header>
 
-              <div className="text-end mt-3">
-              <Button
-                  variant="outline-primary"
-                  onClick={() => handleShowDetails(concert)}
-                  style={{ borderRadius: '24px', padding: '6px 18px', fontSize: '14px', fontWeight: 500 }}
+                    {/* ✅ CARD BODY */}
+                    <Card.Body className="p-4">
+                      <h5 className="card-title fw-bold text-dark mb-3" style={{ fontSize: '18px', lineHeight: '1.3' }}>
+                        {concert.title}
+                      </h5>
+
+                      <div className="concert-details">
+                        <div className="d-flex align-items-center mb-2">
+                          <FaClock className="text-warning me-2" size={14} />
+                          <span className="text-muted" style={{ fontSize: '14px' }}>
+                            {formatTime(concert.dateHeure)}
+                          </span>
+                        </div>
+
+                        <div className="d-flex align-items-center mb-2">
+                          <FaMapMarkerAlt className="text-success me-2" size={14} />
+                          <span className="text-muted" style={{ fontSize: '14px' }}>
+                            {concert.location}
+                          </span>
+                        </div>
+
+                        {concert.poster && (
+                          <div className="d-flex align-items-center mb-3">
+                            <FaImage className="text-info me-2" size={14} />
+                            <a
+                              href={`${import.meta.env.VITE_BACKEND_URL}/uploads/posters/${concert.poster}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-decoration-none"
+                              style={{ fontSize: '14px' }}
+                            >
+                              Voir l'affiche
+                            </a>
+                          </div>
+                        )}
+
+                        <div className="text-muted mb-3" style={{ fontSize: '13px' }}>
+                          <strong>{concert.programme?.length || 0}</strong> œuvre(s) au programme
+                        </div>
+                      </div>
+                    </Card.Body>
+
+                    {/* ✅ CARD FOOTER */}
+                    <Card.Footer className="border-0 bg-white p-4 pt-0">
+                      <Button
+                        variant="outline-primary"
+                        size="sm"
+                        onClick={() => handleShowDetails(concert)}
+                        className="w-100 fw-semibold"
+                        style={{
+                          borderRadius: '8px',
+                          padding: '8px 16px',
+                          fontSize: '14px',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <FaInfoCircle className="me-2" size={14} />
+                        Voir le programme
+                      </Button>
+                    </Card.Footer>
+                  </Card>
+                </Col>
+              );
+            })}
+          </Row>
+
+          {/* ✅ PROFESSIONAL PAGINATION */}
+          {getTotalPages() > 1 && (
+            <div className="d-flex justify-content-between align-items-center p-3 mt-4 border-top bg-light rounded">
+              <div className="d-flex align-items-center">
+                <span className="me-2 text-muted" style={{ fontSize: '14px' }}>
+                  Concerts par page:
+                </span>
+                <select
+                  className="form-select form-select-sm"
+                  style={{ width: 'auto' }}
+                  value={itemsPerPage}
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                 >
-                  <FaInfoCircle className="me-2" /> Voir détails
+                  {pageSizeOptions.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="text-muted" style={{ fontSize: '14px' }}>
+                {getStartIndex()}-{getEndIndex()} sur {getTotalItems()}
+              </div>
+
+              <div className="d-flex align-items-center">
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={goToFirstPage}
+                  disabled={isFirstPage()}
+                  className="me-1"
+                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                >
+                  <FaAngleDoubleLeft />
+                </Button>
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={goToPreviousPage}
+                  disabled={isFirstPage()}
+                  className="me-3"
+                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                >
+                  <FaChevronLeft />
+                </Button>
+                <span className="mx-3 text-muted" style={{ fontSize: '14px' }}>
+                  Page {currentPage + 1} sur {getTotalPages()}
+                </span>
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={goToNextPage}
+                  disabled={isLastPage()}
+                  className="ms-3 me-1"
+                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                >
+                  <FaChevronRight />
+                </Button>
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={goToLastPage}
+                  disabled={isLastPage()}
+                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                >
+                  <FaAngleDoubleRight />
                 </Button>
               </div>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
-    </div>
+    </Container>
   );
 };
 

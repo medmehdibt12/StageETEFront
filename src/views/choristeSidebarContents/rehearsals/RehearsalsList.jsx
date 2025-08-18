@@ -1,52 +1,50 @@
-/* eslint-disable prettier/prettier */
-import React, { useEffect, useState } from "react";
-import {
-  getRepetitions,
-  markRepetitionPresence,
-  markRepetitionAbsence,
-} from "../../../services/repetition.service";
-import {
-  Card,
-  Row,
-  Col,
-  Button,
-  Spinner,
-  Form,
-  InputGroup,
-} from "react-bootstrap";
-import { CheckCircle, XCircle } from "lucide-react";
-import Swal from "sweetalert2";
-import Select from "react-select";
-import { useAuth } from "../../../contexts/AuthContext";
+/* eslint-disable react/no-unescaped-entities */
+/* eslint-disable no-unused-vars */
+import React, { useEffect, useState } from 'react';
+import { getRepetitions, markRepetitionPresence, markRepetitionAbsence } from '../../../services/repetition.service';
+import { Card, Row, Col, Button, Spinner, Form, InputGroup, Container, Badge } from 'react-bootstrap';
+import { CheckCircle, XCircle, Clock, MapPin, Calendar, Search } from 'lucide-react';
+import { FaChevronLeft, FaChevronRight, FaAngleDoubleLeft, FaAngleDoubleRight, FaUserCheck, FaCalendarAlt } from 'react-icons/fa';
+import Swal from 'sweetalert2';
+import Select from 'react-select';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const TIME_FILTER_OPTIONS = [
-  { value: "upcoming", label: "À venir" },
-  { value: "past", label: "Passées" },
-  { value: "all", label: "Tous" },
+  { value: 'upcoming', label: 'À venir' },
+  { value: 'past', label: 'Passées' },
+  { value: 'all', label: 'Tous' }
 ];
 
 const RehearsalsList = () => {
   const { user } = useAuth();
 
-  // État pour le filtre “À venir / Passées / Tous” et pour la recherche par lieu
+  // État pour le filtre "À venir / Passées / Tous" et pour la recherche par lieu
   const [timeFilter, setTimeFilter] = useState(TIME_FILTER_OPTIONS[0]);
-  const [locationTerm, setLocationTerm] = useState("");
+  const [locationTerm, setLocationTerm] = useState('');
   const [repetitions, setRepetitions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [markingIds, setMarkingIds] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const repetitionsPerPage = 9;
+
+  // ✅ PROFESSIONAL PAGINATION STATE
+  const [currentPage, setCurrentPage] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(6);
+  const pageSizeOptions = [6, 12, 18, 30];
 
   useEffect(() => {
     fetchRepetitions();
   }, []);
+
+  // ✅ RESET PAGINATION WHEN FILTERS CHANGE
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [timeFilter, locationTerm]);
 
   const fetchRepetitions = async () => {
     try {
       const data = await getRepetitions();
       setRepetitions(data);
     } catch (error) {
-      console.error("Erreur lors du chargement des répétitions :", error);
+      console.error('Erreur lors du chargement des répétitions :', error);
     } finally {
       setLoading(false);
     }
@@ -58,19 +56,20 @@ const RehearsalsList = () => {
       await markRepetitionPresence(id);
       Swal.fire({
         toast: true,
-        position: "top-end",
-        icon: "success",
-        title: "Présence enregistrée",
+        position: 'top-end',
+        icon: 'success',
+        title: 'Présence enregistrée',
         showConfirmButton: false,
         timer: 3000,
+        timerProgressBar: true
       });
       await fetchRepetitions();
     } catch (err) {
       const msg = err?.response?.data?.message;
       Swal.fire({
-        icon: "error",
-        title: "Erreur",
-        text: msg || "Impossible d'enregistrer la présence.",
+        icon: 'error',
+        title: 'Erreur',
+        text: msg || "Impossible d'enregistrer la présence."
       });
     } finally {
       setMarkingIds((prev) => prev.filter((x) => x !== id));
@@ -79,19 +78,20 @@ const RehearsalsList = () => {
 
   const handleMarkAbsence = async (id) => {
     const { value: reason } = await Swal.fire({
-      title: "Motif d’absence",
-      input: "textarea",
-      inputLabel: "Pourquoi êtes-vous absent(e) ?",
-      inputPlaceholder: "Saisissez le motif ici…",
+      title: "Motif d'absence",
+      input: 'textarea',
+      inputLabel: 'Pourquoi êtes-vous absent(e) ?',
+      inputPlaceholder: 'Saisissez le motif ici…',
       showCancelButton: true,
-      confirmButtonText: "Valider",
-      cancelButtonText: "Annuler",
+      confirmButtonText: 'Valider',
+      cancelButtonText: 'Annuler',
+      confirmButtonColor: '#dc3545',
       inputValidator: (value) => {
-        if (!value || value.trim() === "") {
-          return "Le motif est requis.";
+        if (!value || value.trim() === '') {
+          return 'Le motif est requis.';
         }
         return null;
-      },
+      }
     });
 
     if (!reason) return;
@@ -101,30 +101,31 @@ const RehearsalsList = () => {
       await markRepetitionAbsence(id, reason);
       Swal.fire({
         toast: true,
-        position: "top-end",
-        icon: "success",
-        title: "Absence enregistrée",
+        position: 'top-end',
+        icon: 'success',
+        title: 'Absence enregistrée',
         showConfirmButton: false,
         timer: 3000,
+        timerProgressBar: true
       });
       await fetchRepetitions();
     } catch (err) {
-      Swal.fire("Erreur", err?.response?.data?.message || "Échec", "error");
+      Swal.fire('Erreur', err?.response?.data?.message || 'Échec', 'error');
     } finally {
       setMarkingIds((prev) => prev.filter((x) => x !== id));
     }
   };
 
   const isPastEnd = (dateStr, endTimeStr) => {
-    const [endH, endM] = endTimeStr.split(":").map(Number);
+    const [endH, endM] = endTimeStr.split(':').map(Number);
     const endDate = new Date(dateStr);
     endDate.setHours(endH, endM, 0, 0);
     return endDate.getTime() <= Date.now();
   };
 
   const hasPassed75Percent = (dateStr, startTimeStr, endTimeStr) => {
-    const [startH, startM] = startTimeStr.split(":").map(Number);
-    const [endH, endM] = endTimeStr.split(":").map(Number);
+    const [startH, startM] = startTimeStr.split(':').map(Number);
+    const [endH, endM] = endTimeStr.split(':').map(Number);
 
     const startDate = new Date(dateStr);
     startDate.setHours(startH, startM, 0, 0);
@@ -138,192 +139,264 @@ const RehearsalsList = () => {
     return Date.now() >= thresholdMs;
   };
 
-  // 1) Filtrer par “À venir / Passées / Tous” en utilisant isPastEnd
+  // ✅ GET TIME STATUS BADGE
+  const getTimeStatus = (dateStr, startTimeStr, endTimeStr) => {
+    const now = new Date();
+    const repDate = new Date(dateStr);
+    const [startH, startM] = startTimeStr.split(':').map(Number);
+    const [endH, endM] = endTimeStr.split(':').map(Number);
+
+    const startTime = new Date(repDate);
+    startTime.setHours(startH, startM, 0, 0);
+
+    const endTime = new Date(repDate);
+    endTime.setHours(endH, endM, 0, 0);
+
+    if (now < startTime) {
+      const diffHours = Math.ceil((startTime - now) / (1000 * 60 * 60));
+      if (diffHours <= 24) {
+        return (
+          <Badge bg="warning" className="ms-2">
+            Bientôt
+          </Badge>
+        );
+      }
+      return (
+        <Badge bg="info" className="ms-2">
+          À venir
+        </Badge>
+      );
+    } else if (now >= startTime && now <= endTime) {
+      return (
+        <Badge bg="success" className="ms-2">
+          En cours
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge bg="secondary" className="ms-2">
+          Terminée
+        </Badge>
+      );
+    }
+  };
+
+  // 1) Filtrer par "À venir / Passées / Tous" en utilisant isPastEnd
   const filteredByTime = repetitions.filter((rep) => {
     const isPast = isPastEnd(rep.date, rep.endTime);
-    if (timeFilter.value === "upcoming") return !isPast;
-    if (timeFilter.value === "past") return isPast;
-    return true; // “Tous”
+    if (timeFilter.value === 'upcoming') return !isPast;
+    if (timeFilter.value === 'past') return isPast;
+    return true; // "Tous"
   });
 
   // 2) Filtrer par lieu (case-insensitive)
-  const filteredRepetitions = filteredByTime.filter((rep) =>
-    rep.location.toLowerCase().includes(locationTerm.toLowerCase())
-  );
+  const filteredRepetitions = filteredByTime.filter((rep) => rep.location.toLowerCase().includes(locationTerm.toLowerCase()));
 
-  // 3) Pagination sur filteredRepetitions
-  const indexOfLast = currentPage * repetitionsPerPage;
-  const indexOfFirst = indexOfLast - repetitionsPerPage;
-  const currentRepetitions = filteredRepetitions.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(filteredRepetitions.length / repetitionsPerPage);
+  // ✅ PROFESSIONAL PAGINATION FUNCTIONS
+  const getTotalItems = () => filteredRepetitions.length;
+  const getTotalPages = () => Math.ceil(getTotalItems() / itemsPerPage);
+  const getStartIndex = () => (getTotalItems() === 0 ? 0 : currentPage * itemsPerPage + 1);
+  const getEndIndex = () => Math.min((currentPage + 1) * itemsPerPage, getTotalItems());
+
+  const getPaginatedData = () => {
+    const start = currentPage * itemsPerPage;
+    return filteredRepetitions.slice(start, start + itemsPerPage);
+  };
+
+  const handlePageSizeChange = (newSize) => {
+    setItemsPerPage(newSize);
+    setCurrentPage(0);
+  };
+
+  const goToFirstPage = () => setCurrentPage(0);
+  const goToPreviousPage = () => setCurrentPage(Math.max(0, currentPage - 1));
+  const goToNextPage = () => setCurrentPage(Math.min(getTotalPages() - 1, currentPage + 1));
+  const goToLastPage = () => setCurrentPage(getTotalPages() - 1);
+
+  const isFirstPage = () => currentPage === 0;
+  const isLastPage = () => currentPage >= getTotalPages() - 1;
 
   return (
-    <div className="p-4">
-      {/* Filtre "À venir / Passées / Tous" avec React-Select */}
-      <div style={{ maxWidth: 240, marginBottom: "1rem" }}>
-        <Select
-          options={TIME_FILTER_OPTIONS}
-          value={timeFilter}
-          onChange={(opt) => {
-            setTimeFilter(opt);
-            setCurrentPage(1);
-          }}
-          isSearchable={false}
-          placeholder="Afficher : "
-          styles={{
-            control: (provided) => ({
-              ...provided,
-              minHeight: "32px",
-              fontSize: "0.9rem",
-            }),
-            singleValue: (provided) => ({
-              ...provided,
-              marginLeft: 8,
-            }),
-            menu: (provided) => ({
-              ...provided,
-              fontSize: "0.9rem",
-            }),
-          }}
-        />
-      </div>
+    <Container fluid className="p-4" style={{ maxWidth: '1400px' }}>
+      {/* ✅ HEADER SECTION */}
+      <div className="mb-4">
+        <h2 className="fw-bold text-dark mb-1">
+          <FaUserCheck className="me-3 text-primary" />
+          Mes Répétitions
+        </h2>
+        <p className="text-muted mb-4">Gérez votre présence aux répétitions de l'orchestre</p>
 
-      {/* Champ de recherche par lieu */}
-      <Form.Group className="mb-4" style={{ maxWidth: 400 }}>
-        <InputGroup>
-          <Form.Control
-            type="text"
-            placeholder="Rechercher par lieu…"
-            value={locationTerm}
-            onChange={(e) => {
-              setLocationTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
-        </InputGroup>
-      </Form.Group>
+        {/* ✅ FILTERS SECTION */}
+        <Row className="align-items-center g-3">
+          <Col md={3}>
+            <label className="form-label fw-semibold mb-2" style={{ fontSize: '14px' }}>
+              Afficher :
+            </label>
+            <Select
+              options={TIME_FILTER_OPTIONS}
+              value={timeFilter}
+              onChange={(opt) => setTimeFilter(opt)}
+              isSearchable={false}
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb',
+                  boxShadow: 'none',
+                  fontSize: '14px',
+                  minHeight: '40px',
+                  '&:hover': { borderColor: '#d1d5db' }
+                }),
+                option: (provided, state) => ({
+                  ...provided,
+                  fontSize: '14px'
+                })
+              }}
+            />
+          </Col>
+          <Col md={4}>
+            <label className="form-label fw-semibold mb-2" style={{ fontSize: '14px' }}>
+              Rechercher par lieu :
+            </label>
+            <InputGroup>
+              <InputGroup.Text style={{ backgroundColor: '#f8f9fa', borderColor: '#e5e7eb' }}>
+                <Search size={16} className="text-muted" />
+              </InputGroup.Text>
+              <Form.Control
+                type="text"
+                placeholder="Saisissez le lieu..."
+                value={locationTerm}
+                onChange={(e) => setLocationTerm(e.target.value)}
+                style={{
+                  borderColor: '#e5e7eb',
+                  fontSize: '14px'
+                }}
+              />
+            </InputGroup>
+          </Col>
+          <Col md={5} className="text-end">
+            <div className="mt-4">
+              <small className="text-muted">
+                {getTotalItems()} répétition(s) {timeFilter.label.toLowerCase()}
+                {locationTerm && ` pour "${locationTerm}"`}
+              </small>
+            </div>
+          </Col>
+        </Row>
+      </div>
 
       {loading ? (
         <div className="text-center py-5">
-          <Spinner animation="border" />
+          <Spinner animation="border" variant="primary" size="lg" />
+          <p className="mt-3 text-muted">Chargement des répétitions...</p>
         </div>
-      ) : filteredRepetitions.length === 0 ? (
-        <p className="text-muted text-center">
-          Aucune répétition correspondant aux critères.
-        </p>
+      ) : getTotalItems() === 0 ? (
+        <div className="text-center py-5">
+          <FaCalendarAlt size={48} className="text-muted mb-3" />
+          <h5 className="text-muted">Aucune répétition trouvée</h5>
+          <p className="text-muted">
+            {locationTerm
+              ? `Aucune répétition ne correspond à "${locationTerm}"`
+              : `Aucune répétition ${timeFilter.label.toLowerCase()} pour le moment`}
+          </p>
+        </div>
       ) : (
         <>
-          <Row xs={1} md={2} lg={3} className="g-4">
-            {currentRepetitions.map((rep) => {
+          {/* ✅ REPETITIONS GRID */}
+          <Row className="g-4">
+            {getPaginatedData().map((rep) => {
               const repDateStr = rep.date;
               const repStartTime = rep.startTime;
               const repEndTime = rep.endTime;
 
               const beyond75 = hasPassed75Percent(repDateStr, repStartTime, repEndTime);
-              // const pastEnd = isPastEnd(repDateStr, repEndTime);
+              const pastEnd = isPastEnd(repDateStr, repEndTime);
 
               const markedPresent = rep.presentChoristes?.includes(user?._id);
-              const markedAbsent = rep.absentChoristes?.some(
-                (a) => a.choriste === user?._id
-              );
+              const markedAbsent = rep.absentChoristes?.some((a) => a.choriste === user?._id);
               const isMarking = markingIds.includes(rep._id);
 
               let actionButtons = null;
 
-              // 1) Si l’utilisateur est en congé, on bloque tout
-              if (user?.status === "En congé") {
+              // 1) Si l'utilisateur est en congé, on bloque tout
+              if (user?.status === 'En congé') {
                 actionButtons = (
                   <Button
-                    variant="secondary"
+                    variant="outline-secondary"
                     disabled
                     size="sm"
-                    style={{ borderRadius: 20, opacity: 0.6 }}
+                    className="w-100"
+                    style={{ borderRadius: '12px', fontWeight: '500' }}
                   >
-                    En congé
+                    🏖️ En congé
                   </Button>
                 );
 
-              // 2) Si l’action est en cours, on ne montre rien
+                // 2) Si l'action est en cours, on affiche un spinner
               } else if (isMarking) {
-                actionButtons = null;
+                actionButtons = (
+                  <Button variant="outline-primary" disabled size="sm" className="w-100" style={{ borderRadius: '12px' }}>
+                    <Spinner animation="border" size="sm" className="me-2" />
+                    Traitement...
+                  </Button>
+                );
 
-              // 3) Déjà marqué “Absent”
+                // 3) Déjà marqué "Absent"
               } else if (markedAbsent) {
                 actionButtons = (
-                  <Button
-                    variant="danger"
-                    disabled
-                    size="sm"
-                    style={{ borderRadius: 20 }}
-                  >
-                    <XCircle size={16} /> Absent
+                  <Button variant="danger" disabled size="sm" className="w-100" style={{ borderRadius: '12px', fontWeight: '500' }}>
+                    <XCircle size={16} className="me-2" /> Absent
                   </Button>
                 );
 
-              // 4) Déjà marqué “Présent”
+                // 4) Déjà marqué "Présent"
               } else if (markedPresent) {
                 actionButtons = (
-                  <Button
-                    variant="success"
-                    disabled
-                    size="sm"
-                    style={{
-                      borderRadius: 20,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      fontWeight: 500,
-                      padding: "6px 18px",
-                    }}
-                  >
-                    <CheckCircle size={16} /> Présent
+                  <Button variant="success" disabled size="sm" className="w-100" style={{ borderRadius: '12px', fontWeight: '500' }}>
+                    <CheckCircle size={16} className="me-2" /> Présent
                   </Button>
                 );
 
-              // 5) Avant 75 % de la durée : “Je suis présent” reste actif
-              } else if (!beyond75) {
+                // 5) Avant 75 % de la durée : les deux boutons sont actifs
+              } else if (!beyond75 && !pastEnd) {
                 actionButtons = (
-                  <div className="d-flex gap-2">
+                  <div className="d-grid gap-2">
                     <Button
-                      variant="outline-primary"
+                      variant="outline-success"
                       size="sm"
                       onClick={() => handleMarkPresence(rep._id)}
-                      style={{ borderRadius: 20, fontWeight: 500 }}
+                      style={{ borderRadius: '12px', fontWeight: '500' }}
                     >
+                      <CheckCircle size={16} className="me-2" />
                       Je suis présent
                     </Button>
-                    {/* “Je suis absent” toujours actif */}
                     <Button
                       variant="outline-danger"
                       size="sm"
                       onClick={() => handleMarkAbsence(rep._id)}
-                      style={{ borderRadius: 20, fontWeight: 500 }}
+                      style={{ borderRadius: '12px', fontWeight: '500' }}
                     >
+                      <XCircle size={16} className="me-2" />
                       Je suis absent
                     </Button>
                   </div>
                 );
 
-              // 6) À partir de 75 % de la durée (ou après la fin), on désactive “Je suis présent”
+                // 6) À partir de 75 % de la durée, on désactive "Je suis présent"
               } else {
                 actionButtons = (
-                  <div className="d-flex gap-2">
-                    {/* “Je suis présent” désactivé */}
-                    <Button
-                      variant="outline-secondary"
-                      disabled
-                      size="sm"
-                      style={{ borderRadius: 20, opacity: 0.6 }}
-                    >
-                      Je suis présent
+                  <div className="d-grid gap-2">
+                    <Button variant="outline-secondary" disabled size="sm" style={{ borderRadius: '12px', opacity: 0.6 }}>
+                      <CheckCircle size={16} className="me-2" />
+                      Trop tard pour marquer présent
                     </Button>
-                    {/* “Je suis absent” reste actif, même après 75 % */}
                     <Button
                       variant="outline-danger"
                       size="sm"
                       onClick={() => handleMarkAbsence(rep._id)}
-                      style={{ borderRadius: 20, fontWeight: 500 }}
+                      style={{ borderRadius: '12px', fontWeight: '500' }}
                     >
+                      <XCircle size={16} className="me-2" />
                       Je suis absent
                     </Button>
                   </div>
@@ -331,21 +404,70 @@ const RehearsalsList = () => {
               }
 
               return (
-                <Col key={rep._id}>
-                  <Card className="shadow-sm border-0" style={{ borderRadius: 16 }}>
-                    <Card.Body>
-                      <Card.Title style={{ fontWeight: 600 }}>
-                        📍 {rep.location}
-                      </Card.Title>
-                      <Card.Text>
-                        <strong>Date :</strong>{" "}
-                        {new Date(repDateStr).toLocaleDateString("fr-FR")}
-                        <br />
-                        <strong>Heure :</strong> {repStartTime} → {repEndTime}
-                      </Card.Text>
-                      <div className="d-flex justify-content-end mt-3">
-                        {actionButtons}
+                <Col key={rep._id} lg={6} xl={4}>
+                  <Card
+                    className="h-100 shadow-sm border-0"
+                    style={{
+                      borderRadius: '16px',
+                      transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-4px)';
+                      e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+                    }}
+                  >
+                    {/* ✅ CARD HEADER */}
+                    <Card.Header
+                      className="border-0 text-white d-flex align-items-center justify-content-between"
+                      style={{
+                        background: pastEnd
+                          ? 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)'
+                          : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                        borderRadius: '16px 16px 0 0'
+                      }}
+                    >
+                      <div className="d-flex align-items-center">
+                        <MapPin size={16} className="me-2" />
+                        <span className="fw-semibold" style={{ fontSize: '15px' }}>
+                          {rep.location}
+                        </span>
                       </div>
+                      {getTimeStatus(repDateStr, repStartTime, repEndTime)}
+                    </Card.Header>
+
+                    {/* ✅ CARD BODY */}
+                    <Card.Body className="p-4">
+                      <div className="rehearsal-details mb-4">
+                        <div className="d-flex align-items-center mb-3">
+                          <Calendar size={18} className="text-primary me-3" />
+                          <div>
+                            <div className="fw-semibold text-dark" style={{ fontSize: '16px' }}>
+                              {new Date(repDateStr).toLocaleDateString('fr-FR', {
+                                weekday: 'long',
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric'
+                              })}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="d-flex align-items-center">
+                          <Clock size={18} className="text-warning me-3" />
+                          <div>
+                            <span className="text-muted" style={{ fontSize: '14px' }}>
+                              {repStartTime} → {repEndTime}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ✅ ACTION BUTTONS */}
+                      <div className="mt-auto">{actionButtons}</div>
                     </Card.Body>
                   </Card>
                 </Col>
@@ -353,68 +475,80 @@ const RehearsalsList = () => {
             })}
           </Row>
 
-          {/* Pagination controls */}
-          {totalPages > 1 && (
-            <div className="d-flex justify-content-center mt-4">
-              <ul className="pagination">
-                <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
-                  <button className="page-link" onClick={() => setCurrentPage(1)}>
-                    ⏮
-                  </button>
-                </li>
-                <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
-                  <button
-                    className="page-link"
-                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                  >
-                    ◀
-                  </button>
-                </li>
+          {/* ✅ PROFESSIONAL PAGINATION */}
+          {getTotalPages() > 1 && (
+            <div className="d-flex justify-content-between align-items-center p-3 mt-4 border-top bg-light rounded">
+              <div className="d-flex align-items-center">
+                <span className="me-2 text-muted" style={{ fontSize: '14px' }}>
+                  Répétitions par page:
+                </span>
+                <select
+                  className="form-select form-select-sm"
+                  style={{ width: 'auto' }}
+                  value={itemsPerPage}
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                >
+                  {pageSizeOptions.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter(
-                    (n) =>
-                      Math.abs(currentPage - n) <= 2 ||
-                      n === 1 ||
-                      n === totalPages
-                  )
-                  .map((n, i, arr) => {
-                    const prev = arr[i - 1];
-                    return (
-                      <React.Fragment key={n}>
-                        {prev && n - prev > 1 && (
-                          <li className="page-item disabled">
-                            <span className="page-link">…</span>
-                          </li>
-                        )}
-                        <li className={`page-item ${currentPage === n ? "active" : ""}`}>
-                          <button className="page-link" onClick={() => setCurrentPage(n)}>
-                            {n}
-                          </button>
-                        </li>
-                      </React.Fragment>
-                    );
-                  })}
+              <div className="text-muted" style={{ fontSize: '14px' }}>
+                {getStartIndex()}-{getEndIndex()} sur {getTotalItems()}
+              </div>
 
-                <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
-                  <button
-                    className="page-link"
-                    onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                  >
-                    ▶
-                  </button>
-                </li>
-                <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
-                  <button className="page-link" onClick={() => setCurrentPage(totalPages)}>
-                    ⏭
-                  </button>
-                </li>
-              </ul>
+              <div className="d-flex align-items-center">
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={goToFirstPage}
+                  disabled={isFirstPage()}
+                  className="me-1"
+                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                >
+                  <FaAngleDoubleLeft />
+                </Button>
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={goToPreviousPage}
+                  disabled={isFirstPage()}
+                  className="me-3"
+                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                >
+                  <FaChevronLeft />
+                </Button>
+                <span className="mx-3 text-muted" style={{ fontSize: '14px' }}>
+                  Page {currentPage + 1} sur {getTotalPages()}
+                </span>
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={goToNextPage}
+                  disabled={isLastPage()}
+                  className="ms-3 me-1"
+                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                >
+                  <FaChevronRight />
+                </Button>
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={goToLastPage}
+                  disabled={isLastPage()}
+                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                >
+                  <FaAngleDoubleRight />
+                </Button>
+              </div>
             </div>
           )}
         </>
       )}
-    </div>
+    </Container>
   );
 };
 

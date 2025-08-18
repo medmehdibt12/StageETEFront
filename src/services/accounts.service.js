@@ -43,14 +43,11 @@ export const lockUser = async (id) => {
   return res.data;
 };
 
-
-
 // 🗑️ Permanently delete a user
 export const deleteUserPermanent = async (id) => {
   const res = await api.delete(`/users/${id}/permanent`);
   return res.data;
 };
-
 
 // 📥 Eliminate choriste (lock + set status)
 export const eliminateChoriste = async (id) => {
@@ -86,13 +83,7 @@ export const getAvailableDates = async () => {
   return res.data;
 };
 
-// // 📬 Accept membership
-// export const acceptMembership = async (id) => {
-//   const res = await api.put(`/users/accept/${id}`);
-//   return res.data;
-// };
-
-// ✅ Accept all retenu candidates
+// ✅ UPDATED: Accept all retenu candidates (now sends charter invitations)
 export const acceptAllRetenuCandidates = async () => {
   const res = await api.post('/users/accept-retenu-candidates');
   return res.data;
@@ -110,7 +101,6 @@ export const getAcceptedMemberships = async () => {
   return res.data;
 };
 
-
 export const updatePupitre = async (userId, pupitre) => {
   try {
     const response = await api.put(`/users/${userId}/voc-pupitre`, { pupitre });
@@ -120,7 +110,6 @@ export const updatePupitre = async (userId, pupitre) => {
   }
 };
 
-
 export const getActiveChoristes = async () => {
   try {
     const res = await api.get('/users/active');
@@ -128,4 +117,41 @@ export const getActiveChoristes = async () => {
   } catch (error) {
     throw new Error(error.response?.data?.message || "Erreur lors de la récupération des choristes actifs.");
   }
+};
+
+// ✅ NEW: Charter signing services
+export const getCharterForSigning = async (token) => {
+  try {
+    const res = await api.get(`/users/charter/sign/${token}`);
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Erreur lors du chargement de la charte.");
+  }
+};
+
+export const signCharter = async (token, signature) => {
+  try {
+    const res = await api.post(`/users/charter/sign/${token}`, { signature });
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Erreur lors de la signature de la charte.");
+  }
+};
+
+// ✅ NEW: Check charter signing status (optional - for admin monitoring)
+export const getCharterSigningStats = async () => {
+  try {
+    const res = await api.get('/users/charter/stats');
+    return res.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Erreur lors de la récupération des statistiques de signature.");
+  }
+};
+
+export const getChoristesByPupitre = async (pupitre = null) => {
+  const params = pupitre ? { pupitre } : {};
+  const queryString = new URLSearchParams(params).toString();
+  const url = queryString ? `/users/manager/choristes?${queryString}` : '/users/manager/choristes';
+  const res = await api.get(url);
+  return res.data;
 };

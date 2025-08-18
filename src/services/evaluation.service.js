@@ -24,3 +24,8 @@ export const getTessitureOptions = async (candidateId) => {
   return res.data;
 };
 
+
+export const getCandidateCharterStatus = async (candidateId) => {
+  const res = await api.get(`/audition-evaluations/candidate/${candidateId}/charter-status`);
+  return res.data;
+};

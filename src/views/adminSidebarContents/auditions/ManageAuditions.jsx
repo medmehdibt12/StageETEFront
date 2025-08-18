@@ -1,9 +1,8 @@
-/* eslint-disable prettier/prettier */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/no-unescaped-entities */
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Container, Card, Button, Table, Spinner, Modal, Form, Row, Col, Badge, Dropdown, Alert } from 'react-bootstrap';
+import { Container, Card, Button, Table, Spinner, Modal, Form, Row, Col, Badge, Dropdown, Alert, InputGroup } from 'react-bootstrap';
 import Select from 'react-select';
 import {
   FaPlus,
@@ -41,6 +40,7 @@ import {
   updateAuditionEvaluation,
   getAuditionEvaluation,
   getTessitureOptions,
+  getCandidateCharterStatus
 } from '../../../services/evaluation.service';
 
 import { getMembershipSubmissions } from '../../../services/accounts.service';
@@ -74,11 +74,19 @@ const ManageAuditions = () => {
   const [submitError, setSubmitError] = useState('');
   const [editingEvaluation, setEditingEvaluation] = useState(null);
 
-  // Angular Material style pagination state
+  // ✅ NEW: Main table pagination (0-based like RescheduleCandidate)
+  const [mainCurrentPage, setMainCurrentPage] = useState(0);
+  const [mainItemsPerPage, setMainItemsPerPage] = useState(5);
+  const [mainSearchQuery, setMainSearchQuery] = useState('');
+
+  // Planning modal pagination and filter states
   const [currentPage, setCurrentPage] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedHourFilter, setSelectedHourFilter] = useState('');
+  const [selectedDecisionFilter, setSelectedDecisionFilter] = useState('');
+  const [selectedPupitreFilter, setSelectedPupitreFilter] = useState('');
+
   const pageSizeOptions = [5, 10, 25, 50, 100];
 
   const today = new Date().toISOString().split('T')[0];
@@ -153,20 +161,98 @@ const ManageAuditions = () => {
     { value: 'En Attente', label: 'En Attente' }
   ];
 
+  // Filter options
+  const decisionFilterOptions = [
+    { value: '', label: 'Toutes les décisions' },
+    { value: 'Retenu', label: 'Retenu' },
+    { value: 'Non Retenu', label: 'Non Retenu' },
+    { value: 'En Attente', label: 'En Attente' },
+    { value: 'Non évalué', label: 'Non évalué' }
+  ];
+
+  const pupitreFilterOptions = [
+    { value: '', label: 'Tous les pupitres' },
+    { value: 'soprano', label: 'Soprano' },
+    { value: 'alto', label: 'Alto' },
+    { value: 'ténor', label: 'Ténor' },
+    { value: 'basse', label: 'Basse' }
+  ];
+
   // Validation rules for evaluation
   const validationRules = {
-    tessiture: { required: "Tessiture requise" },
-    note: { required: "Note requise" },
-    oeuvreChante: { required: "Œuvre chantée requise" },
-    remarque: { required: "Remarques requises" },
-    decision: { required: "Décision requise" }
+    tessiture: { required: 'Tessiture requise' },
+    note: { required: 'Note requise' },
+    oeuvreChante: { required: 'Œuvre chantée requise' },
+    remarque: { required: 'Remarques requises' },
+    decision: { required: 'Décision requise' }
+  };
+
+  // ✅ NEW: Main table filtering and pagination logic
+  const getFilteredParams = () => {
+    if (!mainSearchQuery.trim()) return paramsList;
+
+    return paramsList.filter((param) => {
+      const searchText = mainSearchQuery.toLowerCase();
+      const saison = param.saison?.toString().toLowerCase() || '';
+      const candidateCount = param.candidateCount?.toString().toLowerCase() || '';
+      const startDate = new Date(param.startDate).toLocaleDateString('fr-FR').toLowerCase();
+      const endDate = new Date(param.endDate).toLocaleDateString('fr-FR').toLowerCase();
+
+      return saison.includes(searchText) || 
+             candidateCount.includes(searchText) || 
+             startDate.includes(searchText) || 
+             endDate.includes(searchText);
+    });
+  };
+
+  const getMainTotalItems = () => getFilteredParams().length;
+  const getMainTotalPages = () => Math.ceil(getMainTotalItems() / mainItemsPerPage);
+  const getMainStartIndex = () => (getMainTotalItems() === 0 ? 0 : mainCurrentPage * mainItemsPerPage + 1);
+  const getMainEndIndex = () => Math.min((mainCurrentPage + 1) * mainItemsPerPage, getMainTotalItems());
+
+  const getPaginatedParams = () => {
+    const filteredParams = getFilteredParams();
+    const startIndex = mainCurrentPage * mainItemsPerPage;
+    const endIndex = startIndex + mainItemsPerPage;
+    return filteredParams.slice(startIndex, endIndex);
+  };
+
+  const handleMainPageSizeChange = (newSize) => {
+    setMainItemsPerPage(newSize);
+    setMainCurrentPage(0);
+  };
+
+  const goToMainFirstPage = () => setMainCurrentPage(0);
+  const goToMainPreviousPage = () => setMainCurrentPage(Math.max(0, mainCurrentPage - 1));
+  const goToMainNextPage = () => setMainCurrentPage(Math.min(getMainTotalPages() - 1, mainCurrentPage + 1));
+  const goToMainLastPage = () => setMainCurrentPage(getMainTotalPages() - 1);
+
+  const isMainFirstPage = () => mainCurrentPage === 0;
+  const isMainLastPage = () => mainCurrentPage >= getMainTotalPages() - 1;
+
+  const handleMainSearchChange = (e) => {
+    setMainSearchQuery(e.target.value);
+    setMainCurrentPage(0);
+  };
+
+  const clearMainSearch = () => {
+    setMainSearchQuery('');
+    setMainCurrentPage(0);
+  };
+
+  // Search highlighting function
+  const highlightSearchTerm = (text, searchTerm) => {
+    if (!searchTerm.trim()) return text;
+
+    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.replace(regex, '<mark style="background-color: #fff3cd; padding: 2px 4px; border-radius: 3px;">$1</mark>');
   };
 
   // Check confirmed candidates function
   const checkConfirmedCandidates = async (params) => {
     setLoadingCounts(true);
     const counts = {};
-    
+
     try {
       for (const param of params) {
         try {
@@ -188,7 +274,7 @@ const ManageAuditions = () => {
   useEffect(() => {
     if (Object.keys(initialValues).length > 0) {
       const currentValues = getValuesEval();
-      const hasChanged = Object.keys(initialValues).some(key => {
+      const hasChanged = Object.keys(initialValues).some((key) => {
         const initial = initialValues[key] || '';
         const current = currentValues[key] || '';
         return initial !== current;
@@ -260,16 +346,53 @@ const ManageAuditions = () => {
     });
   };
 
-  // Search functionality with hour filter
+  // Enhanced filtering function with all 4 filters
+  // ✅ BEST FIX: Case-insensitive filtering function
   const getFilteredSlots = () => {
     if (!planningDetails?.slots) return [];
 
     let filteredSlots = planningDetails.slots;
 
+    // Hour filter
     if (selectedHourFilter) {
       filteredSlots = filterSlotsByHour(filteredSlots, selectedHourFilter);
     }
 
+    // Decision filter
+    if (selectedDecisionFilter) {
+      filteredSlots = filteredSlots.filter((slot) => {
+        const evaluation = evaluations[slot._id];
+        if (selectedDecisionFilter === 'Non évalué') {
+          return !evaluation;
+        }
+        return evaluation && evaluation.decision === selectedDecisionFilter;
+      });
+    }
+
+    // ✅ IMPROVED: Case-insensitive pupitre filter
+    if (selectedPupitreFilter) {
+      filteredSlots = filteredSlots.filter((slot) => {
+        const evaluation = evaluations[slot._id];
+
+        // Get pupitre from evaluation first, then candidate
+        let pupitre = evaluation?.tessiture || slot.candidate?.pupitre || '';
+
+        // ✅ Normalize both values for comparison (remove accents and lowercase)
+        const normalizedPupitre = pupitre
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, ''); // Remove accents
+
+        const normalizedFilter = selectedPupitreFilter
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, ''); // Remove accents
+
+        return normalizedPupitre === normalizedFilter;
+      });
+    }
+
+    // Text search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filteredSlots = filteredSlots.filter((slot) => {
@@ -281,15 +404,7 @@ const ManageAuditions = () => {
     return filteredSlots;
   };
 
-  // Search highlighting function
-  const highlightSearchTerm = (text, searchTerm) => {
-    if (!searchTerm.trim()) return text;
-
-    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-    return text.replace(regex, '<mark style="background-color: #fff3cd; padding: 2px 4px; border-radius: 3px;">$1</mark>');
-  };
-
-  // Search and filter handlers
+  // Filter handlers
   const clearSearch = () => {
     setSearchQuery('');
     setCurrentPage(0);
@@ -300,6 +415,16 @@ const ManageAuditions = () => {
     setCurrentPage(0);
   };
 
+  const clearDecisionFilter = () => {
+    setSelectedDecisionFilter('');
+    setCurrentPage(0);
+  };
+
+  const clearPupitreFilter = () => {
+    setSelectedPupitreFilter('');
+    setCurrentPage(0);
+  };
+
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
     setCurrentPage(0);
@@ -307,6 +432,16 @@ const ManageAuditions = () => {
 
   const handleHourFilterChange = (hourFilter) => {
     setSelectedHourFilter(hourFilter);
+    setCurrentPage(0);
+  };
+
+  const handleDecisionFilterChange = (decision) => {
+    setSelectedDecisionFilter(decision);
+    setCurrentPage(0);
+  };
+
+  const handlePupitreFilterChange = (pupitre) => {
+    setSelectedPupitreFilter(pupitre);
     setCurrentPage(0);
   };
 
@@ -340,13 +475,37 @@ const ManageAuditions = () => {
     setEditingEvaluation(null);
     setSubmitError('');
 
+    // ✅ NEW: Check fresh charter status
+    try {
+      const charterStatus = await getCandidateCharterStatus(slot.candidate._id);
+
+      // Update selectedSlot with fresh charter data
+      const updatedSlot = {
+        ...slot,
+        candidate: {
+          ...slot.candidate,
+          charterSigned: charterStatus.charterSigned || false,
+          charterSignedAt: charterStatus.charterSignedAt
+        }
+      };
+      setSelectedSlot(updatedSlot);
+
+      // // ✅ Debug log
+      // console.log('Charter Status Check:', {
+      //   candidate: charterStatus.candidateName,
+      //   charterSigned: charterStatus.charterSigned,
+      //   buttonWillBeDisabled: charterStatus.charterSigned === true
+      // });
+    } catch (error) {
+      console.warn('Could not fetch charter status, using cached data:', error);
+    }
+
     // Load tessiture options based on candidate's gender
     setLoadingTessiture(true);
     try {
       const response = await getTessitureOptions(slot.candidate._id);
       setTessitureOptions(response.options);
     } catch (error) {
-      // console.error('Error fetching tessiture options:', error);
       Swal.fire('Erreur', 'Impossible de charger les options de tessiture.', 'error');
       return;
     } finally {
@@ -391,7 +550,7 @@ const ManageAuditions = () => {
 
     try {
       setSubmitError('');
-      
+
       // Validate Select fields manually
       const tessitureValid = await validateSelectField('tessiture', data.tessiture);
       const noteValid = await validateSelectField('note', data.note);
@@ -411,7 +570,7 @@ const ManageAuditions = () => {
         note: data.note,
         ordrePassage: data.ordrePassage ? parseInt(data.ordrePassage) : null,
         decision: data.decision,
-        evaluatedBy: 'AzizHasnaoui',
+        evaluatedBy: 'aziizhasnaoui',
         evaluatedAt: new Date().toISOString()
       };
 
@@ -434,7 +593,7 @@ const ManageAuditions = () => {
       setShowEvaluationModal(false);
     } catch (error) {
       // console.error('Error saving evaluation:', error);
-      setSubmitError('Erreur lors de l\'enregistrement. Veuillez réessayer.');
+      setSubmitError("Erreur lors de l'enregistrement. Veuillez réessayer.");
     }
   };
 
@@ -447,13 +606,13 @@ const ManageAuditions = () => {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Fermer sans sauvegarder',
-        cancelButtonText: 'Continuer l\'édition',
+        cancelButtonText: "Continuer l'édition",
         confirmButtonColor: '#dc3545'
       });
-      
+
       if (!result.isConfirmed) return;
     }
-    
+
     setShowEvaluationModal(false);
     setHasChanges(false);
     setSubmitError('');
@@ -669,6 +828,8 @@ const ManageAuditions = () => {
     setCurrentPage(0);
     setSearchQuery('');
     setSelectedHourFilter('');
+    setSelectedDecisionFilter('');
+    setSelectedPupitreFilter('');
     setEvaluations({});
 
     try {
@@ -682,103 +843,55 @@ const ManageAuditions = () => {
       setLoadingPlanning(false);
     }
   };
-// const handleGeneratePlanning = async () => {
-//   if (!selectedParam) return;
 
-//   try {
-//     // Show processing dialog with better info
-//     Swal.fire({
-//       title: 'Génération du planning...',
-//       html: `
-//         <div>
-//           <p>Création des créneaux d'audition...</p>
-//           <div class="spinner-border text-primary" role="status">
-//             <span class="visually-hidden">Loading...</span>
-//           </div>
-//         </div>
-//       `,
-//       allowOutsideClick: false,
-//       showConfirmButton: false
-//     });
+  const handleGeneratePlanning = async () => {
+    if (!selectedParam) return;
 
-//     const response = await generateAuditions(selectedParam._id);
+    try {
+      // Start the loading dialog
+      const loadingPromise = Swal.fire({
+        title: 'Génération du planning...',
+        text: "Création des créneaux d'audition...",
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
 
-//     if (response.success) {
-//       setShowPreviewModal(false);
-//       await fetchParams();
+      // Wait for BOTH the operation AND minimum 2 seconds
+      const [response] = await Promise.all([generateAuditions(selectedParam._id), new Promise((resolve) => setTimeout(resolve, 1500))]);
 
-//       // Success with background info
-//       Swal.fire({
-//       icon: 'success',
-//         title: 'Succès !',
-//         text: 'Les convocations ont été envoyées avec succès.',
-//         timer: 3000
-//       });
-//     } else {
-//       throw new Error(response.message || 'Erreur inconnue');
-//     }
+      // Close the loading dialog
+      Swal.close();
 
-//   } catch (error) {
-//     console.error('Error generating planning:', error);
-//     Swal.fire({
-//       icon: 'error',
-//       title: 'Erreur lors de la génération',
-//       text: error.message || 'Impossible de générer le planning. Veuillez réessayer.',
-//       confirmButtonColor: '#dc3545'
-//     });
-//   }
-// };
-const handleGeneratePlanning = async () => {
-  if (!selectedParam) return;
+      if (response.success) {
+        setShowPreviewModal(false);
+        await fetchParams();
 
-  try {
-    // Start the loading dialog
-    const loadingPromise = Swal.fire({
-      title: 'Génération du planning...',
-      text: 'Création des créneaux d\'audition...',
-      allowOutsideClick: false,
-      showConfirmButton: false,
-      didOpen: () => {
-        Swal.showLoading();
+        Swal.fire({
+          icon: 'success',
+          title: 'Succès !',
+          text: 'Les convocations ont été envoyées avec succès.',
+          timer: 3000,
+          showConfirmButton: true
+        });
+      } else {
+        throw new Error(response.message || 'Erreur inconnue');
       }
-    });
-
-    // Wait for BOTH the operation AND minimum 2 seconds
-    const [response] = await Promise.all([
-      generateAuditions(selectedParam._id),
-      new Promise(resolve => setTimeout(resolve, 1500))
-    ]);
-
-    // Close the loading dialog
-    Swal.close();
-
-    if (response.success) {
-      setShowPreviewModal(false);
-      await fetchParams();
+    } catch (error) {
+      console.error('Error generating planning:', error);
+      Swal.close();
 
       Swal.fire({
-        icon: 'success',
-        title: 'Succès !',
-        text: 'Les convocations ont été envoyées avec succès.',
-        timer: 3000,
-        showConfirmButton: true,
+        icon: 'error',
+        title: 'Erreur lors de la génération',
+        text: error.message || 'Impossible de générer le planning. Veuillez réessayer.',
+        confirmButtonColor: '#dc3545'
       });
-    } else {
-      throw new Error(response.message || 'Erreur inconnue');
     }
+  };
 
-  } catch (error) {
-    console.error('Error generating planning:', error);
-    Swal.close();
-    
-    Swal.fire({
-      icon: 'error',
-      title: 'Erreur lors de la génération',
-      text: error.message || 'Impossible de générer le planning. Veuillez réessayer.',
-      confirmButtonColor: '#dc3545'
-    });
-  }
-};
   const handleDelete = async (id) => {
     const result = await Swal.fire({
       title: 'Supprimer ce planning ?',
@@ -856,110 +969,233 @@ const handleGeneratePlanning = async () => {
     <Container style={{ marginTop: '2rem' }}>
       <Card className="shadow-sm">
         <Card.Header className="d-flex justify-content-between align-items-center">
-          <h5 className="mb-0">Paramètres des Auditions</h5>
+          <div>
+            <h5 className="mb-1">Paramètres des Auditions</h5>
+          </div>
           <Button variant="primary" onClick={openCreate}>
             <FaPlus className="me-2" /> Nouveau
           </Button>
         </Card.Header>
 
         <Card.Body>
+          {/* ✅ NEW: Search Bar */}
+          <div className="mb-3 d-flex justify-content-start">
+            <InputGroup style={{ maxWidth: '400px' }}>
+              <InputGroup.Text>
+                <FaSearch />
+              </InputGroup.Text>
+              <Form.Control
+                type="text"
+                placeholder="Rechercher par saison, nb candidats, date..."
+                value={mainSearchQuery}
+                onChange={handleMainSearchChange}
+              />
+            </InputGroup>
+          </div>
+
           {loading ? (
             <div className="text-center py-5">
               <Spinner animation="border" variant="primary" />
             </div>
           ) : (
-            <Table bordered hover responsive>
-              <thead>
-                <tr>
-                  <th>Période</th>
-                  <th>Saison</th>
-                  <th>Nb candidats</th>
-                  <th>Horaires</th>
-                  <th>Pause</th>
-                  <th>Créé le</th>
-                  <th>Statut</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paramsList.map((p) => {
-                  const isGenerated = planningStatus[p._id] || false;
+            <>
+              <Table bordered hover responsive>
+                <thead>
+                  <tr>
+                    <th>Période</th>
+                    <th>Saison</th>
+                    <th>Nb candidats</th>
+                    <th>Horaires</th>
+                    <th>Pause</th>
+                    <th>Créé le</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {getPaginatedParams().map((p) => {
+                    const isGenerated = planningStatus[p._id] || false;
+                    const periode = `${new Date(p.startDate).toLocaleDateString('fr-FR')} → ${new Date(p.endDate).toLocaleDateString('fr-FR')}`;
+                    const highlightedPeriode = mainSearchQuery ? highlightSearchTerm(periode, mainSearchQuery) : periode;
+                    const highlightedSaison = mainSearchQuery ? highlightSearchTerm(p.saison?.toString() || '', mainSearchQuery) : (p.saison || currentYear);
+                    const highlightedCandidateCount = mainSearchQuery ? highlightSearchTerm(p.candidateCount?.toString() || '', mainSearchQuery) : p.candidateCount;
 
-                  return (
-                    <tr key={p._id}>
-                      <td>
-                        {new Date(p.startDate).toLocaleDateString('fr-FR')} → {new Date(p.endDate).toLocaleDateString('fr-FR')}
-                      </td>
-                      <td>{p.saison || currentYear}</td>
-                      <td>{p.candidateCount}</td>
-                      <td>
-                        {p.sessionStartTime} – {p.sessionEndTime}
-                      </td>
-                      <td>{p.debutPause && p.finPause ? `${p.debutPause} - ${p.finPause}` : 'Aucune'}</td>
-                      <td>{new Date(p.createdAt).toLocaleDateString('fr-FR')}</td>
-                      <td>
-                        {isGenerated ? (
-                          <div className="d-flex flex-column align-items-start gap-1">
-                            <Badge bg="success">
-                              <FaUserCheck className="me-1" />
-                              Généré
-                            </Badge>
-                          </div>
-                        ) : (
-                          <Badge bg="secondary">
-                            <FaClock className="me-1" />
-                            En attente
-                          </Badge>
-                        )}
-                      </td>
-                      <td>
-                        <div className="d-flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline-secondary"
-                            onClick={() => openEdit(p)}
-                            disabled={isGenerated}
-                            title={isGenerated ? 'Modification impossible après génération' : 'Modifier'}
-                          >
-                            <FaEdit />
-                          </Button>
-
+                    return (
+                      <tr key={p._id}>
+                        <td>
+                          <span dangerouslySetInnerHTML={{ __html: highlightedPeriode }} />
+                        </td>
+                        <td>
+                          <span dangerouslySetInnerHTML={{ __html: highlightedSaison }} />
+                        </td>
+                        <td>
+                          <span dangerouslySetInnerHTML={{ __html: highlightedCandidateCount }} />
+                        </td>
+                        <td>
+                          {p.sessionStartTime} – {p.sessionEndTime}
+                        </td>
+                        <td>{p.debutPause && p.finPause ? `${p.debutPause} - ${p.finPause}` : 'Aucune'}</td>
+                        <td>{new Date(p.createdAt).toLocaleDateString('fr-FR')}</td>
+                        <td>
                           {isGenerated ? (
+                            <div className="d-flex flex-column align-items-start gap-1">
+                              <Badge bg="success">
+                                <FaUserCheck className="me-1" />
+                                Généré
+                              </Badge>
+                            </div>
+                          ) : (
+                            <Badge bg="secondary">
+                              <FaClock className="me-1" />
+                              En attente
+                            </Badge>
+                          )}
+                        </td>
+                        <td>
+                          <div className="d-flex gap-2">
                             <Button
                               size="sm"
-                              variant="outline-info"
-                              onClick={() => openPlanningVisualization(p)}
-                              title={
-                                loadingCounts 
-                                  ? 'Vérification...' 
-                                  : `Visualiser Planning (${confirmedCounts[p._id] || 0} confirmé${(confirmedCounts[p._id] || 0) > 1 ? 's' : ''})`
-                              }
+                              variant="outline-secondary"
+                              onClick={() => openEdit(p)}
+                              disabled={isGenerated}
+                              title={isGenerated ? 'Modification impossible après génération' : 'Modifier'}
                             >
-                              {loadingCounts ? <Spinner size="sm" /> : <FaEye />}
+                              <FaEdit />
                             </Button>
-                          ) : (
-                            <Button size="sm" variant="outline-success" onClick={() => openGeneratePreview(p)} title="Générer le planning">
-                              <FaCalendarAlt />
-                            </Button>
-                          )}
 
-                          <Button size="sm" variant="outline-danger" onClick={() => handleDelete(p._id)} title="Supprimer">
-                            <FaTrash />
-                          </Button>
-                        </div>
+                            {isGenerated ? (
+                              <Button
+                                size="sm"
+                                variant="outline-info"
+                                onClick={() => openPlanningVisualization(p)}
+                                title={
+                                  loadingCounts
+                                    ? 'Vérification...'
+                                    : `Visualiser Planning (${confirmedCounts[p._id] || 0} confirmé${(confirmedCounts[p._id] || 0) > 1 ? 's' : ''})`
+                                }
+                              >
+                                {loadingCounts ? <Spinner size="sm" /> : <FaEye />}
+                              </Button>
+                            ) : (
+                              <Button size="sm" variant="outline-success" onClick={() => openGeneratePreview(p)} title="Générer le planning">
+                                <FaCalendarAlt />
+                              </Button>
+                            )}
+
+                            <Button size="sm" variant="outline-danger" onClick={() => handleDelete(p._id)} title="Supprimer">
+                              <FaTrash />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {getMainTotalItems() === 0 && !loading && (
+                    <tr>
+                      <td colSpan="8" className="text-center py-3">
+                        {mainSearchQuery ? `Aucun paramètre trouvé pour "${mainSearchQuery}"` : 'Aucun planning défini.'}
                       </td>
                     </tr>
-                  );
-                })}
-                {paramsList.length === 0 && (
-                  <tr>
-                    <td colSpan="8" className="text-center py-3">
-                      Aucun planning défini.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </Table>
+                  )}
+                </tbody>
+              </Table>
+
+              {/* ✅ NEW: RescheduleCandidate Style Pagination */}
+              {getMainTotalItems() > 0 && (
+                <div className="d-flex justify-content-between align-items-center p-3 border-top bg-light">
+                  <div className="d-flex align-items-center">
+                    <span className="me-2 text-muted" style={{ fontSize: '14px' }}>
+                      Auditions par page:
+                    </span>
+                    <select
+                      className="form-select form-select-sm"
+                      style={{ width: 'auto' }}
+                      value={mainItemsPerPage}
+                      onChange={(e) => handleMainPageSizeChange(Number(e.target.value))}
+                    >
+                      {pageSizeOptions.map((size) => (
+                        <option key={size} value={size}>
+                          {size}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="text-muted" style={{ fontSize: '14px' }}>
+                    {getMainStartIndex()}-{getMainEndIndex()} sur {getMainTotalItems()}
+                  </div>
+
+                  <div className="d-flex align-items-center">
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
+                      onClick={goToMainFirstPage}
+                      disabled={isMainFirstPage()}
+                      className="me-1"
+                      style={{
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        color: isMainFirstPage() ? '#6c757d' : '#495057'
+                      }}
+                      title="Première page"
+                    >
+                      <FaAngleDoubleLeft />
+                    </Button>
+
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
+                      onClick={goToMainPreviousPage}
+                      disabled={isMainFirstPage()}
+                      className="me-3"
+                      style={{
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        color: isMainFirstPage() ? '#6c757d' : '#495057'
+                      }}
+                      title="Page précédente"
+                    >
+                      <FaChevronLeft />
+                    </Button>
+
+                    <span className="mx-3 text-muted" style={{ fontSize: '14px' }}>
+                      Page {mainCurrentPage + 1} sur {getMainTotalPages()}
+                    </span>
+
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
+                      onClick={goToMainNextPage}
+                      disabled={isMainLastPage()}
+                      className="ms-3 me-1"
+                      style={{
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        color: isMainLastPage() ? '#6c757d' : '#495057'
+                      }}
+                      title="Page suivante"
+                    >
+                      <FaChevronRight />
+                    </Button>
+
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
+                      onClick={goToMainLastPage}
+                      disabled={isMainLastPage()}
+                      style={{
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        color: isMainLastPage() ? '#6c757d' : '#495057'
+                      }}
+                      title="Dernière page"
+                    >
+                      <FaAngleDoubleRight />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </Card.Body>
       </Card>
@@ -1180,7 +1416,7 @@ const handleGeneratePlanning = async () => {
         </Modal.Footer>
       </Modal>
 
-      {/* Planning Visualization Modal */}
+      {/* Enhanced Planning Visualization Modal with All Filters */}
       <Modal show={showPlanningModal} onHide={() => setShowPlanningModal(false)} size="xl">
         <Modal.Header closeButton>
           <Modal.Title>
@@ -1188,7 +1424,7 @@ const handleGeneratePlanning = async () => {
             Planning Généré - {selectedParam?.saison}
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+        <Modal.Body style={{ maxHeight: '85vh', overflowY: 'auto' }}>
           {loadingPlanning ? (
             <div className="text-center py-5">
               <Spinner animation="border" variant="primary" />
@@ -1198,41 +1434,34 @@ const handleGeneratePlanning = async () => {
             <div>
               {/* Summary Statistics */}
               <Row className="mb-4">
-                <Col md={3}>
-                  <Card className="text-center border-primary">
-                    <Card.Body>
-                      <h4 className="text-primary">{planningDetails.totalCandidates}</h4>
+                <Col xl={3} lg={6} md={6} sm={6}>
+                  <Card className="text-center border-primary mb-2">
+                    <Card.Body className="py-3">
+                      <h4 className="text-primary mb-1">{planningDetails.totalCandidates}</h4>
                       <small>Candidats Confirmés</small>
-                      {/* {planningDetails.totalCandidates === 0 && (
-                        <div className="mt-1">
-                          <Badge bg="warning" style={{ fontSize: '0.7rem' }}>
-                            En attente de confirmations
-                          </Badge>
-                        </div>
-                      )} */}
                     </Card.Body>
                   </Card>
                 </Col>
-                <Col md={3}>
-                  <Card className="text-center border-success">
-                    <Card.Body>
-                      <h4 className="text-success">{planningDetails.totalDays}</h4>
+                <Col xl={3} lg={6} md={6} sm={6}>
+                  <Card className="text-center border-success mb-2">
+                    <Card.Body className="py-3">
+                      <h4 className="text-success mb-1">{planningDetails.totalDays}</h4>
                       <small>Jours d'Audition</small>
                     </Card.Body>
                   </Card>
                 </Col>
-                <Col md={3}>
-                  <Card className="text-center border-info">
-                    <Card.Body>
-                      <h4 className="text-info">{planningDetails.totalSlots}</h4>
+                <Col xl={3} lg={6} md={6} sm={6}>
+                  <Card className="text-center border-info mb-2">
+                    <Card.Body className="py-3">
+                      <h4 className="text-info mb-1">{planningDetails.totalSlots}</h4>
                       <small>Blocs Horaires</small>
                     </Card.Body>
                   </Card>
                 </Col>
-                <Col md={3}>
-                  <Card className="text-center border-warning">
-                    <Card.Body>
-                      <h4 className="text-warning">{planningDetails.averagePerDay}</h4>
+                <Col xl={3} lg={6} md={6} sm={6}>
+                  <Card className="text-center border-warning mb-2">
+                    <Card.Body className="py-3">
+                      <h4 className="text-warning mb-1">{planningDetails.averagePerDay}</h4>
                       <small>Candidats/Jour</small>
                     </Card.Body>
                   </Card>
@@ -1241,126 +1470,266 @@ const handleGeneratePlanning = async () => {
 
               {/* Table Container */}
               <div className="border rounded">
-                {/* Search and Filter Header */}
+                {/* Enhanced Responsive Search and Filter Header */}
                 <div className="bg-light p-3 border-bottom">
-                  <Row className="align-items-center mb-3">
-                    <Col md={4}>
-                      <h6 className="mb-0">
-                        <FaUsers className="me-2" />
-                        Liste des Candidats
-                        {(searchQuery || selectedHourFilter) && (
-                          <Badge bg="primary" className="ms-2">
-                            {getTotalItems()} résultat{getTotalItems() > 1 ? 's' : ''}
-                          </Badge>
+                  {/* Filters Row */}
+                  <Row className="g-3 mb-3">
+                    {/* Search Filter */}
+                    <Col xl={3} lg={6} md={6} sm={12}>
+                      <div className="position-relative">
+                        <Form.Control
+                          type="text"
+                          placeholder="Rechercher par nom..."
+                          value={searchQuery}
+                          onChange={handleSearchChange}
+                          className="pe-5"
+                          style={{
+                            borderRadius: '20px',
+                            border: '1px solid #dee2e6',
+                            paddingLeft: '40px',
+                            fontSize: '0.9rem'
+                          }}
+                        />
+                        <FaSearch
+                          className="position-absolute text-muted"
+                          style={{
+                            left: '12px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            fontSize: '14px'
+                          }}
+                        />
+                        {searchQuery && (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            onClick={clearSearch}
+                            className="position-absolute p-0 text-muted"
+                            style={{
+                              right: '10px',
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              fontSize: '18px',
+                              lineHeight: 1,
+                              textDecoration: 'none'
+                            }}
+                            title="Effacer la recherche"
+                          >
+                            ×
+                          </Button>
                         )}
-                      </h6>
+                      </div>
                     </Col>
-                    <Col md={8}>
-                      <Row>
-                        <Col md={6}>
-                          {/* Search Input */}
-                          <div className="position-relative">
-                            <Form.Control
-                              type="text"
-                              placeholder="Rechercher par nom..."
-                              value={searchQuery}
-                              onChange={handleSearchChange}
-                              className="pe-5"
-                              style={{
-                                borderRadius: '20px',
-                                border: '1px solid #dee2e6',
-                                paddingLeft: '40px'
-                              }}
-                            />
-                            <FaSearch
-                              className="position-absolute text-muted"
-                              style={{
-                                left: '12px',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                fontSize: '14px'
-                              }}
-                            />
-                            {searchQuery && (
-                              <Button
-                                variant="link"
-                                size="sm"
-                                onClick={clearSearch}
-                                className="position-absolute p-0 text-muted"
-                                style={{
-                                  right: '10px',
-                                  top: '50%',
-                                  transform: 'translateY(-50%)',
-                                  fontSize: '18px',
-                                  lineHeight: 1,
-                                  textDecoration: 'none'
-                                }}
-                                title="Effacer la recherche"
+
+                    {/* Hour Filter */}
+                    <Col xl={3} lg={6} md={6} sm={12}>
+                      <div className="d-flex align-items-center">
+                        <FaClock className="text-muted me-2 flex-shrink-0" style={{ fontSize: '14px' }} />
+                        <Dropdown style={{ flex: 1 }}>
+                          <Dropdown.Toggle
+                            variant="outline-secondary"
+                            className="w-100 text-start d-flex justify-content-between align-items-center"
+                            style={{
+                              borderRadius: '20px',
+                              border: '1px solid #dee2e6',
+                              fontSize: '0.9rem',
+                              paddingRight: '30px'
+                            }}
+                          >
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {selectedHourFilter
+                                ? getHourFilterOptions().find((opt) => opt.value === selectedHourFilter)?.label || 'Heure'
+                                : 'Filtrer par heure'}
+                            </span>
+                          </Dropdown.Toggle>
+                          <Dropdown.Menu className="w-100" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            <Dropdown.Item onClick={() => clearHourFilter()} active={!selectedHourFilter}>
+                              <FaClock className="me-2" />
+                              Toutes les heures
+                            </Dropdown.Item>
+                            <Dropdown.Divider />
+                            {getHourFilterOptions().map((option) => (                              <Dropdown.Item
+                                key={option.value}
+                                onClick={() => handleHourFilterChange(option.value)}
+                                active={selectedHourFilter === option.value}
                               >
-                                ×
-                              </Button>
+                                <FaClock className="me-2" />
+                                {option.label}
+                              </Dropdown.Item>
+                            ))}
+                          </Dropdown.Menu>
+                        </Dropdown>
+                      </div>
+                    </Col>
+
+                    {/* Decision Filter */}
+                    <Col xl={3} lg={6} md={6} sm={12}>
+                      <div className="d-flex align-items-center">
+                        <FaUserCheck className="text-muted me-2 flex-shrink-0" style={{ fontSize: '14px' }} />
+                        <Dropdown style={{ flex: 1 }}>
+                          <Dropdown.Toggle
+                            variant="outline-secondary"
+                            className="w-100 text-start d-flex justify-content-between align-items-center"
+                            style={{
+                              borderRadius: '20px',
+                              border: '1px solid #dee2e6',
+                              fontSize: '0.9rem',
+                              paddingRight: '30px'
+                            }}
+                          >
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {selectedDecisionFilter
+                                ? decisionFilterOptions.find((opt) => opt.value === selectedDecisionFilter)?.label || 'Décision'
+                                : 'Filtrer par décision'}
+                            </span>
+                          </Dropdown.Toggle>
+                          <Dropdown.Menu className="w-100" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            <Dropdown.Item onClick={() => clearDecisionFilter()} active={!selectedDecisionFilter}>
+                              <FaUserCheck className="me-2" />
+                              Toutes les décisions
+                            </Dropdown.Item>
+                            <Dropdown.Divider />
+                            {decisionFilterOptions.slice(1).map((option) => (
+                              <Dropdown.Item
+                                key={option.value}
+                                onClick={() => handleDecisionFilterChange(option.value)}
+                                active={selectedDecisionFilter === option.value}
+                              >
+                                <FaUserCheck className="me-2" />
+                                {option.label}
+                              </Dropdown.Item>
+                            ))}
+                          </Dropdown.Menu>
+                        </Dropdown>
+                      </div>
+                    </Col>
+
+                    {/* Pupitre Filter */}
+                    <Col xl={3} lg={6} md={6} sm={12}>
+                      <div className="d-flex align-items-center">
+                        <FaMicrophone className="text-muted me-2 flex-shrink-0" style={{ fontSize: '14px' }} />
+                        <Dropdown style={{ flex: 1 }}>
+                          <Dropdown.Toggle
+                            variant="outline-secondary"
+                            className="w-100 text-start d-flex justify-content-between align-items-center"
+                            style={{
+                              borderRadius: '20px',
+                              border: '1px solid #dee2e6',
+                              fontSize: '0.9rem',
+                              paddingRight: '30px'
+                            }}
+                          >
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {selectedPupitreFilter
+                                ? pupitreFilterOptions.find((opt) => opt.value === selectedPupitreFilter)?.label || 'Pupitre'
+                                : 'Filtrer par pupitre'}
+                            </span>
+                          </Dropdown.Toggle>
+                          <Dropdown.Menu className="w-100" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            <Dropdown.Item onClick={() => clearPupitreFilter()} active={!selectedPupitreFilter}>
+                              <FaMicrophone className="me-2" />
+                              Tous les pupitres
+                            </Dropdown.Item>
+                            <Dropdown.Divider />
+                            {pupitreFilterOptions.slice(1).map((option) => (
+                              <Dropdown.Item
+                                key={option.value}
+                                onClick={() => handlePupitreFilterChange(option.value)}
+                                active={selectedPupitreFilter === option.value}
+                              >
+                                <FaMicrophone className="me-2" />
+                                {option.label}
+                              </Dropdown.Item>
+                            ))}
+                          </Dropdown.Menu>
+                        </Dropdown>
+                      </div>
+                    </Col>
+                  </Row>
+
+                  {/* Results Counter */}
+                  <Row>
+                    <Col>
+                      <div className="d-flex justify-content-between align-items-center flex-wrap">
+                        <h6 className="mb-0">
+                          <FaUsers className="me-2" />
+                          {searchQuery || selectedHourFilter || selectedDecisionFilter || selectedPupitreFilter ? (
+                            <>
+                              <Badge bg="primary" className="me-2">
+                                {getTotalItems()} résultat{getTotalItems() > 1 ? 's' : ''}
+                              </Badge>
+                              <small className="text-muted d-none d-sm-inline">
+                                trouvé{getTotalItems() > 1 ? 's' : ''} avec les filtres actifs
+                              </small>
+                            </>
+                          ) : (
+                            <>
+                              Liste des Candidats
+                              <Badge bg="secondary" className="ms-2">
+                                {getTotalItems()} total
+                              </Badge>
+                            </>
+                          )}
+                        </h6>
+
+                        {/* Active Filters Indicator */}
+                        {(searchQuery || selectedHourFilter || selectedDecisionFilter || selectedPupitreFilter) && (
+                          <div className="d-flex flex-wrap gap-1">
+                            {searchQuery && (
+                              <Badge bg="info" className="d-flex align-items-center">
+                                <FaSearch className="me-1" style={{ fontSize: '10px' }} />
+                                {searchQuery.length > 10 ? `${searchQuery.substring(0, 10)}...` : searchQuery}
+                              </Badge>
+                            )}
+                            {selectedHourFilter && (
+                              <Badge bg="warning" className="d-flex align-items-center">
+                                <FaClock className="me-1" style={{ fontSize: '10px' }} />
+                                {getHourFilterOptions()
+                                  .find((opt) => opt.value === selectedHourFilter)
+                                  ?.label.split(' - ')[0] || 'Heure'}
+                              </Badge>
+                            )}
+                            {selectedDecisionFilter && (
+                              <Badge bg="success" className="d-flex align-items-center">
+                                <FaUserCheck className="me-1" style={{ fontSize: '10px' }} />
+                                {selectedDecisionFilter}
+                              </Badge>
+                            )}
+                            {selectedPupitreFilter && (
+                              <Badge bg="danger" className="d-flex align-items-center">
+                                <FaMicrophone className="me-1" style={{ fontSize: '10px' }} />
+                                {selectedPupitreFilter}
+                              </Badge>
                             )}
                           </div>
-                        </Col>
-                        <Col md={6}>
-                          {/* Hour Filter */}
-                          <div className="d-flex align-items-center">
-                            <FaFilter className="text-muted me-2" />
-                            <Dropdown style={{ flex: 1 }}>
-                              <Dropdown.Toggle
-                                variant="outline-secondary"
-                                className="w-100 text-start"
-                                style={{
-                                  borderRadius: '20px',
-                                  border: '1px solid #dee2e6'
-                                }}
-                              >
-                                {selectedHourFilter
-                                  ? getHourFilterOptions().find((opt) => opt.value === selectedHourFilter)?.label || 'Toutes les heures'
-                                  : 'Filtrer par heure'}
-                              </Dropdown.Toggle>
-                              <Dropdown.Menu className="w-100">
-                                <Dropdown.Item onClick={() => clearHourFilter()} active={!selectedHourFilter}>
-                                  <FaClock className="me-2" />
-                                  Toutes les heures
-                                </Dropdown.Item>
-                                <Dropdown.Divider />
-                                {getHourFilterOptions().map((option) => (
-                                  <Dropdown.Item
-                                    key={option.value}
-                                    onClick={() => handleHourFilterChange(option.value)}
-                                    active={selectedHourFilter === option.value}
-                                  >
-                                    <FaClock className="me-2" />
-                                    {option.label}
-                                  </Dropdown.Item>
-                                ))}
-                              </Dropdown.Menu>
-                            </Dropdown>
-                          </div>
-                        </Col>
-                      </Row>
+                        )}
+                      </div>
                     </Col>
                   </Row>
                 </div>
 
-                {/* Table Content */}
-                <div>
-                  <Table hover bordered responsive className="mb-0" style={{ textAlign: 'center' }}>
+                {/* Enhanced Responsive Table Content */}
+                <div className="table-responsive">
+                  <Table hover bordered className="mb-0" style={{ fontSize: '0.9rem' }}>
                     <thead className="table-dark">
                       <tr>
-                        <th style={{ width: '80px' }}>#</th>
-                        <th style={{ width: '80px' }}>Candidat</th>
-                        <th style={{ width: '200px' }}>Date</th>
-                        <th style={{ width: '150px' }}>Heure</th>
-                        <th style={{ width: '150px' }}>Décision</th>
-                        <th style={{ width: '200px' }}>Actions</th>
+                        <th style={{ width: '50px', textAlign: 'center' }}>#</th>
+                        <th style={{ minWidth: '150px', textAlign: 'center' }}>Candidat</th>
+                        <th style={{ minWidth: '120px', textAlign: 'center' }} className="d-none d-md-table-cell">
+                          Date
+                        </th>
+                        <th style={{ minWidth: '100px', textAlign: 'center' }}>Heure</th>
+                        <th style={{ minWidth: '80px', textAlign: 'center' }} className="d-none d-lg-table-cell">
+                          Pupitre
+                        </th>
+                        <th style={{ minWidth: '100px', textAlign: 'center' }}>Décision</th>
+                        <th style={{ minWidth: '120px', textAlign: 'center' }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {loadingEvaluations ? (
                         <tr>
-                          <td colSpan="6" className="text-center py-4">
+                          <td colSpan="7" className="text-center py-4">
                             <Spinner animation="border" size="sm" /> Chargement des évaluations...
                           </td>
                         </tr>
@@ -1369,38 +1738,109 @@ const handleGeneratePlanning = async () => {
                           const fullName = `${slot.candidate.firstName} ${slot.candidate.lastName}`;
                           const highlightedName = searchQuery ? highlightSearchTerm(fullName, searchQuery) : fullName;
                           const isEvaluated = hasEvaluation(slot._id);
+                          const evaluation = evaluations[slot._id];
+                          const pupitre = evaluation?.tessiture || slot.candidate?.pupitre || '-';
 
                           return (
                             <tr key={slot._id}>
-                              <td>{currentPage * itemsPerPage + index + 1}</td>
-                              <td>
-                                <div className="d-flex align-items-center justify-content-center">
-                                  <strong dangerouslySetInnerHTML={{ __html: highlightedName }} />
+                              <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{currentPage * itemsPerPage + index + 1}</td>
+                              <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                                <div className="d-flex flex-column align-items-center">
+                                  <strong
+                                    dangerouslySetInnerHTML={{ __html: highlightedName }}
+                                    style={{ fontSize: '0.9rem', lineHeight: '1.2' }}
+                                  />
+                                  {/* Mobile: Show date on small screens */}
+                                  <small className="text-muted d-md-none mt-1">{formatDate(slot.date)}</small>
                                 </div>
                               </td>
-                              <td>{formatDate(slot.date)}</td>
-                              <td>
-                                <Badge bg="info" className="px-3">
-                                  {slot.startTime} - {slot.endTime}
+                              <td style={{ textAlign: 'center', verticalAlign: 'middle' }} className="d-none d-md-table-cell">
+                                <div style={{ fontSize: '0.85rem', lineHeight: '1.3' }}>{formatDate(slot.date)}</div>
+                              </td>
+                              <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                                <Badge bg="info" className="px-2 py-1" style={{ fontSize: '0.75rem' }}>
+                                  <div>
+                                    {slot.startTime} - {slot.endTime}
+                                  </div>
                                 </Badge>
                               </td>
-                              <td>{getDecisionBadge(slot._id) || <Badge bg="secondary">Non évalué</Badge>}</td>
-                              <td>
+                              <td style={{ textAlign: 'center', verticalAlign: 'middle' }} className="d-none d-lg-table-cell">
+                                {pupitre !== '-' ? (
+                                  <Badge
+                                    bg={
+                                      pupitre === 'soprano'
+                                        ? 'danger'
+                                        : pupitre === 'alto'
+                                          ? 'warning'
+                                          : pupitre === 'ténor'
+                                            ? 'success'
+                                            : pupitre === 'basse'
+                                              ? 'primary'
+                                              : 'secondary'
+                                    }
+                                    className="px-2"
+                                    style={{ fontSize: '0.75rem' }}
+                                  >
+                                    {pupitre.charAt(0).toUpperCase() + pupitre.slice(1)}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-muted" style={{ fontSize: '0.8rem' }}>
+                                    -
+                                  </span>
+                                )}
+                              </td>
+                              <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                                <div className="d-flex flex-column align-items-center gap-1">
+                                  {getDecisionBadge(slot._id) || (
+                                    <Badge bg="secondary" style={{ fontSize: '0.75rem' }}>
+                                      Non évalué
+                                    </Badge>
+                                  )}
+                                  {/* Mobile: Show pupitre on small screens */}
+                                  {pupitre !== '-' && (
+                                    <Badge
+                                      bg={
+                                        pupitre === 'soprano'
+                                          ? 'danger'
+                                          : pupitre === 'alto'
+                                            ? 'warning'
+                                            : pupitre === 'ténor'
+                                              ? 'success'
+                                              : pupitre === 'basse'
+                                                ? 'primary'
+                                                : 'secondary'
+                                      }
+                                      className="px-2 d-lg-none"
+                                      style={{ fontSize: '0.7rem' }}
+                                    >
+                                      {pupitre.charAt(0).toUpperCase() + pupitre.slice(1)}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </td>
+                              <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                                 <Button
                                   size="sm"
                                   variant={isEvaluated ? 'outline-success' : 'outline-primary'}
                                   onClick={() => openEvaluationModal(slot)}
                                   title={isEvaluated ? "Voir/Modifier l'évaluation" : 'Auditioner le candidat'}
+                                  style={{
+                                    fontSize: '0.75rem',
+                                    padding: '0.375rem 0.75rem',
+                                    whiteSpace: 'nowrap'
+                                  }}
                                 >
                                   {isEvaluated ? (
                                     <>
-                                      <FaCheckCircle className="me-1" />
-                                      Voir/Modifier
+                                      <FaCheckCircle className="me-1" style={{ fontSize: '0.8rem' }} />
+                                      <span className="d-none d-sm-inline">Voir/Modifier</span>
+                                      <span className="d-sm-none">Voir</span>
                                     </>
                                   ) : (
                                     <>
-                                      <FaMicrophone className="me-1" />
-                                      Auditioner
+                                      <FaMicrophone className="me-1" style={{ fontSize: '0.8rem' }} />
+                                      <span className="d-none d-sm-inline">Auditioner</span>
+                                      <span className="d-sm-none">Éval</span>
                                     </>
                                   )}
                                 </Button>
@@ -1410,23 +1850,21 @@ const handleGeneratePlanning = async () => {
                         })
                       ) : (
                         <tr>
-                          <td colSpan="6" className="text-center py-4 text-muted">
+                          <td colSpan="7" className="text-center py-5 text-muted">
                             <div className="d-flex flex-column align-items-center">
-                              {searchQuery || selectedHourFilter ? (
+                              {searchQuery || selectedHourFilter || selectedDecisionFilter || selectedPupitreFilter ? (
                                 <>
-                                  <FaFilter className="mb-2" style={{ fontSize: '2rem', opacity: 0.3 }} />
-                                  <span>
-                                    Aucun candidat trouvé
-                                    {searchQuery && ` pour "${searchQuery}"`}
-                                    {selectedHourFilter &&
-                                      ` pour ${getHourFilterOptions().find((opt) => opt.value === selectedHourFilter)?.label}`}
-                                  </span>
+                                  <FaFilter className="mb-3" style={{ fontSize: '2.5rem', opacity: 0.3 }} />
+                                  <h6 className="mb-2">Aucun candidat trouvé</h6>
+                                  <p className="mb-2">Aucun résultat ne correspond aux filtres sélectionnés</p>
+                                  <small className="text-muted">Essayez de modifier ou supprimer certains filtres</small>
                                 </>
                               ) : (
                                 <>
-                                  <FaUsers className="mb-2" style={{ fontSize: '2rem', opacity: 0.3 }} />
-                                  <span>Aucun candidat n'a encore confirmé sa présence</span>
-                                  <small className="text-muted mt-1">
+                                  <FaUsers className="mb-3" style={{ fontSize: '2.5rem', opacity: 0.3 }} />
+                                  <h6 className="mb-2">Aucun candidat confirmé</h6>
+                                  <p className="mb-2">Aucun candidat n'a encore confirmé sa présence</p>
+                                  <small className="text-muted">
                                     Le planning reste ouvert pour consultation et suivi des confirmations
                                   </small>
                                 </>
@@ -1439,40 +1877,29 @@ const handleGeneratePlanning = async () => {
                   </Table>
                 </div>
 
-                {/* Pagination */}
+                {/* Enhanced Responsive Pagination */}
                 {getTotalItems() > 0 && (
                   <div className="d-flex justify-content-between align-items-center p-3 border-top bg-light">
                     <div className="d-flex align-items-center">
                       <span className="me-2 text-muted" style={{ fontSize: '14px' }}>
                         Candidats par page:
                       </span>
-                      <Dropdown>
-                        <Dropdown.Toggle
-                          variant="outline-secondary"
-                          size="sm"
-                          style={{
-                            minWidth: '70px',
-                            border: '1px solid #dee2e6',
-                            backgroundColor: 'white',
-                            color: '#495057'
-                          }}
-                        >
-                          {itemsPerPage}
-                        </Dropdown.Toggle>
-                        <Dropdown.Menu>
-                          {pageSizeOptions.map((size) => (
-                            <Dropdown.Item key={size} onClick={() => handlePageSizeChange(size)} active={size === itemsPerPage}>
-                              {size}
-                            </Dropdown.Item>
-                          ))}
-                        </Dropdown.Menu>
-                      </Dropdown>
+                      <select
+                        className="form-select form-select-sm"
+                        style={{ width: 'auto' }}
+                        value={itemsPerPage}
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                      >
+                        {pageSizeOptions.map((size) => (
+                          <option key={size} value={size}>
+                            {size}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     <div className="text-muted" style={{ fontSize: '14px' }}>
-                      {searchQuery || selectedHourFilter
-                        ? `${getStartIndex()}-${getEndIndex()} sur ${getTotalItems()} trouvé${getTotalItems() > 1 ? 's' : ''}`
-                        : `${getStartIndex()}-${getEndIndex()} sur ${getTotalItems()}`}
+                      {getStartIndex()}-{getEndIndex()} sur {getTotalItems()}
                     </div>
 
                     <div className="d-flex align-items-center">
@@ -1549,7 +1976,11 @@ const handleGeneratePlanning = async () => {
             </div>
           ) : (
             <div className="text-center py-5">
-              <p>Aucun planning trouvé.</p>
+              <div className="d-flex flex-column align-items-center">
+                <FaUsers className="mb-3 text-muted" style={{ fontSize: '3rem', opacity: 0.3 }} />
+                <h5 className="text-muted">Aucun planning trouvé</h5>
+                <p className="text-muted mb-0">Le planning n'a pas encore été généré ou aucune donnée n'est disponible.</p>
+              </div>
             </div>
           )}
         </Modal.Body>
@@ -1561,13 +1992,7 @@ const handleGeneratePlanning = async () => {
       </Modal>
 
       {/* Enhanced Evaluation Modal */}
-      <Modal 
-        show={showEvaluationModal} 
-        onHide={handleCloseEvaluationModal} 
-        size="lg"
-        backdrop="static"
-        keyboard={false}
-      >
+      <Modal show={showEvaluationModal} onHide={handleCloseEvaluationModal} size="lg" backdrop="static" keyboard={false}>
         <Modal.Header closeButton>
           <Modal.Title>
             <FaMicrophone className="me-2 text-primary" />
@@ -1622,18 +2047,16 @@ const handleGeneratePlanning = async () => {
                       placeholder="Sélectionner la tessiture..."
                       isClearable
                       isDisabled={isSubmitting}
-                      className={(!watchEval('tessiture') && errorsEval.tessiture) ? 'is-invalid' : ''}
+                      className={!watchEval('tessiture') && errorsEval.tessiture ? 'is-invalid' : ''}
                       styles={{
                         control: (base, state) => ({
                           ...base,
-                          borderColor: (!watchEval('tessiture') && errorsEval.tessiture) ? '#dc3545' : base.borderColor
+                          borderColor: !watchEval('tessiture') && errorsEval.tessiture ? '#dc3545' : base.borderColor
                         })
                       }}
                     />
                   )}
-                  {!watchEval('tessiture') && (
-                    <div className="invalid-feedback d-block">Tessiture requise</div>
-                  )}
+                  {!watchEval('tessiture') && <div className="invalid-feedback d-block">Tessiture requise</div>}
                 </Form.Group>
               </Col>
 
@@ -1641,23 +2064,21 @@ const handleGeneratePlanning = async () => {
                 <Form.Group>
                   <Form.Label>Note *</Form.Label>
                   <Select
-                     options={noteOptions}
+                    options={noteOptions}
                     value={noteOptions.find((opt) => opt.value === watchEval('note'))}
                     onChange={(selected) => handleSelectChange('note', selected)}
                     placeholder="Sélectionner la note..."
                     isClearable
                     isDisabled={isSubmitting}
-                    className={(!watchEval('note') && errorsEval.note) ? 'is-invalid' : ''}
+                    className={!watchEval('note') && errorsEval.note ? 'is-invalid' : ''}
                     styles={{
                       control: (base, state) => ({
                         ...base,
-                        borderColor: (!watchEval('note') && errorsEval.note) ? '#dc3545' : base.borderColor
+                        borderColor: !watchEval('note') && errorsEval.note ? '#dc3545' : base.borderColor
                       })
                     }}
                   />
-                  {!watchEval('note') && (
-                    <div className="invalid-feedback d-block">Note requise</div>
-                  )}
+                  {!watchEval('note') && <div className="invalid-feedback d-block">Note requise</div>}
                 </Form.Group>
               </Col>
             </Row>
@@ -1674,26 +2095,22 @@ const handleGeneratePlanning = async () => {
                     {...registerEval('oeuvreChante', validationRules.oeuvreChante)}
                     isInvalid={!!errorsEval.oeuvreChante}
                   />
-                  <Form.Control.Feedback type="invalid">
-                    {errorsEval.oeuvreChante?.message}
-                  </Form.Control.Feedback>
+                  <Form.Control.Feedback type="invalid">{errorsEval.oeuvreChante?.message}</Form.Control.Feedback>
                 </Form.Group>
               </Col>
 
               <Col md={4}>
                 <Form.Group>
                   <Form.Label>Ordre de Passage</Form.Label>
-                  <Form.Control 
-                    type="number" 
+                  <Form.Control
+                    type="number"
                     min="1"
                     max="999"
-                    placeholder="Optionnel" 
+                    placeholder="Optionnel"
                     disabled={isSubmitting}
-                    {...registerEval('ordrePassage')} 
+                    {...registerEval('ordrePassage')}
                   />
-                  <Form.Text className="text-muted">
-                    Champ optionnel
-                  </Form.Text>
+                  <Form.Text className="text-muted">Champ optionnel</Form.Text>
                 </Form.Group>
               </Col>
             </Row>
@@ -1703,17 +2120,15 @@ const handleGeneratePlanning = async () => {
               <Col>
                 <Form.Group>
                   <Form.Label>Remarques *</Form.Label>
-                  <Form.Control 
-                    as="textarea" 
-                    rows={3} 
-                    placeholder="Observations, commentaires sur la performance..." 
+                  <Form.Control
+                    as="textarea"
+                    rows={3}
+                    placeholder="Observations, commentaires sur la performance..."
                     disabled={isSubmitting}
                     {...registerEval('remarque', validationRules.remarque)}
                     isInvalid={!!errorsEval.remarque}
                   />
-                  <Form.Control.Feedback type="invalid">
-                    {errorsEval.remarque?.message}
-                  </Form.Control.Feedback>
+                  <Form.Control.Feedback type="invalid">{errorsEval.remarque?.message}</Form.Control.Feedback>
                 </Form.Group>
               </Col>
             </Row>
@@ -1730,49 +2145,34 @@ const handleGeneratePlanning = async () => {
                     placeholder="Prendre une décision..."
                     isClearable
                     isDisabled={isSubmitting}
-                    className={(!watchEval('decision') && errorsEval.decision) ? 'is-invalid' : ''}
+                    className={!watchEval('decision') && errorsEval.decision ? 'is-invalid' : ''}
                     styles={{
                       control: (base, state) => ({
                         ...base,
-                        borderColor: (!watchEval('decision') && errorsEval.decision) ? '#dc3545' : base.borderColor
+                        borderColor: !watchEval('decision') && errorsEval.decision ? '#dc3545' : base.borderColor
                       })
                     }}
                   />
-                  {!watchEval('decision') && (
-                    <div className="invalid-feedback d-block">Décision requise</div>
-                  )}
+                  {!watchEval('decision') && <div className="invalid-feedback d-block">Décision requise</div>}
                 </Form.Group>
               </Col>
             </Row>
-
-            {/* Form Progress Indicator */}
-            {/* {!editingEvaluation && (
-              <div className="mt-3">
-                <small className="text-muted">
-                  Champs remplis: {Object.values(getValuesEval()).filter(v => v && v !== '').length}/5 requis
-                </small>
-              </div>
-            )} */}
           </Modal.Body>
 
           <Modal.Footer>
-            <Button 
-              variant="secondary" 
-              onClick={handleCloseEvaluationModal}
-              disabled={isSubmitting}
-              className="me-2"
-            >
+            <Button variant="secondary" onClick={handleCloseEvaluationModal} disabled={isSubmitting} className="me-2">
               <FaTimes className="me-2" />
               Annuler
             </Button>
-            
-            <Button 
-              variant="primary" 
+
+            <Button
+              variant="primary"
               type="submit"
               disabled={
-                isSubmitting || 
-                (editingEvaluation && !hasChanges) || 
-                (!editingEvaluation && !isFormValid())
+                isSubmitting ||
+                (editingEvaluation && !hasChanges) ||
+                (!editingEvaluation && !isFormValid()) ||
+                selectedSlot?.candidate?.charterSigned === true
               }
             >
               {isSubmitting ? (

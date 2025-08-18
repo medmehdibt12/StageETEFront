@@ -9,82 +9,87 @@ const useMenuItems = () => {
       title: 'Gérer les Comptes',
       type: 'item',
       url: '/admin/manage-accounts',
-      icon: 'feather icon-users' // manage multiple user accounts
+      icon: 'feather icon-users'
     },
-    // {
-    //   id: 'manage-choriste',
-    //   title: 'Liste des Choristes ',
-    //   type: 'item',
-    //   url: '/admin/manage-choriste',
-    //   icon: 'feather icon-users' // list of users/groups
-    // },
     {
       id: 'manage-oeuvres',
       title: 'Gérer les Œuvres',
       type: 'item',
       url: '/admin/manage-oeuvres',
-      icon: 'feather icon-music' // music works
+      icon: 'feather icon-music'
     },
     {
       id: 'manage-concerts',
       title: 'Gérer les Concerts',
       type: 'item',
       url: '/admin/manage-concerts',
-      icon: 'feather icon-calendar' // calendar events
+      icon: 'feather icon-calendar'
     },
     {
       id: 'manage-rehearsals',
       title: 'Gérer les Répétitions',
       type: 'item',
       url: '/admin/manage-rehearsals',
-      icon: 'feather icon-clock' // rehearsal times
+      icon: 'feather icon-clock'
     },
-
-    // {
-    //   id: 'manage-eliminations',
-    //   title: 'Gérer les Éliminations',
-    //   type: 'item',
-    //   url: '/admin/manage-eliminations',
-    //   icon: 'feather icon-user-x' // removing users
-    // },
     {
       id: 'final-participants',
       title: 'Participants Finaux aux Concerts',
       type: 'item',
       url: '/admin/final-participants',
-      icon: 'feather icon-award' // final participants / awards
+      icon: 'feather icon-award'
     }
   ];
 
+  // ✅ DYNAMIC: Base choriste pages + conditional chef de pupitre page
   const choristePages = [
     {
       id: 'season-programme',
       title: 'Programme de la Saison',
       type: 'item',
-      icon: 'feather icon-calendar', // season program calendar
+      icon: 'feather icon-calendar',
       url: '/choriste/season-programme'
     },
     {
       id: 'liste-repetitions',
       title: 'Liste des Répétitions',
       type: 'item',
-      icon: 'feather icon-clock', // rehearsal list with times
+      icon: 'feather icon-clock',
       url: '/choriste/repetitions'
     },
     {
       id: 'liste-concerts',
       title: 'Disponibilité aux Concerts',
       type: 'item',
-      icon: 'feather icon-music', // concerts related
+      icon: 'feather icon-music',
       url: '/choriste/concerts'
     },
     {
       id: 'declare-conge',
       title: 'Déclarer un congé',
       type: 'item',
-      icon: 'feather icon-file-text', // leave declaration form
+      icon: 'feather icon-file-text',
       url: '/choriste/declare-conge'
-    }
+    },
+    // ✅ CONDITIONAL: Only show if choriste is ALSO chef de pupitre
+    ...(user?.isChefDePupitre
+      ? [
+          {
+            id: 'manage-presences',
+            title: 'Gérer les présences',
+            type: 'item',
+            icon: 'feather icon-check-square',
+            url: '/chefpupitre/choriste-list-presence'
+          },
+          {
+            id: 'manage-repetitions',
+            title: 'Gérer les Répétitions',
+            type: 'item',
+            url: '/chefpupitre/manage-rep-forpupitre',
+            icon: 'feather icon-clock'
+          }
+        ]
+      : [])
   ];
 
   const managerPages = [
@@ -92,22 +97,37 @@ const useMenuItems = () => {
       id: 'seasons-programme',
       title: 'Programme de la Saison',
       type: 'item',
-      icon: 'feather icon-calendar', // program calendar
+      icon: 'feather icon-calendar',
       url: '/program/season-programme'
     },
     {
       id: 'gerer-conge',
       title: 'Liste Declaration des Congés',
       type: 'item',
-      icon: 'feather icon-check-square', // manage leave requests
+      icon: 'feather icon-check-square',
       url: '/manager/manage-duty'
     },
     {
       id: 'gerer-tessitures',
       title: 'Modification des tessitures',
       type: 'item',
-      icon: 'feather icon-sliders', // vocal range/settings
+      icon: 'feather icon-sliders',
       url: '/manager/modify-tessiture'
+    },
+    {
+      id: 'absence-report',
+      title: 'État des Absences',
+      type: 'item',
+      url: '/manager/absence-list',
+      icon: 'feather icon-file-text'
+    },
+
+    {
+      id: 'manage-chef',
+      title: 'Gérer les Chefs de pupitre',
+      type: 'item',
+      url: '/manager/manage-chef',
+      icon: 'feather icon-users'
     },
     {
       id: 'manage-auditions',
@@ -121,7 +141,7 @@ const useMenuItems = () => {
       title: 'Listes des candidats',
       type: 'item',
       url: '/manager/manage-membership',
-      icon: 'feather icon-user-check' // membership approvals
+      icon: 'feather icon-user-check'
     },
     {
       id: 'reschedule-requests',
@@ -137,7 +157,7 @@ const useMenuItems = () => {
       id: 'seasons-programme',
       title: 'Programme de la Saison',
       type: 'item',
-      icon: 'feather icon-calendar', // season program calendar
+      icon: 'feather icon-calendar',
       url: '/program/season-programme'
     },
     {
@@ -145,7 +165,7 @@ const useMenuItems = () => {
       title: 'Liste des Choristes',
       type: 'item',
       url: '/chef/list-choriste',
-      icon: 'feather icon-users' // list of users/groups
+      icon: 'feather icon-users'
     }
   ];
 
@@ -163,7 +183,7 @@ const useMenuItems = () => {
             id: 'dashboard',
             title: 'Dashboard',
             type: 'item',
-            icon: 'feather icon-home', // dashboard/home icon
+            icon: 'feather icon-home',
             url: '/dashboard'
           }
         ]

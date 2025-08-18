@@ -58,6 +58,10 @@ const routes = [
     element: lazy(() => import('./views/candidate/ConvocationResponse'))
   },
   {
+    path: '/charter/sign/:token',
+    element: lazy(() => import('./views/candidate/CharterSigning'))
+  },
+  {
     path: '*',
     guard: RequireAuth,
     layout: AdminLayout,
@@ -148,11 +152,28 @@ const routes = [
         path: '/manager/manage-membership',
         element: lazy(() => import('./views/adminSidebarContents/membership/ManageMembership'))
       },
+      {
+        path: '/manager/manage-chef',
+        element: lazy(() => import('./views/managerSidebarContents/chefpupitre/ManageChefPupitre'))
+      },
+      {
+        path: '/manager/absence-list',
+        element: lazy(() => import('./views/managerSidebarContents/absencelist/AbsenceReport'))
+      },
 
-      // 🔽 Chef Pages
+      // 🔽 Chef Choeur Pages
       {
         path: '/chef/list-choriste',
         element: lazy(() => import('./views/chefSidebarContents/choriste/ListChoriste'))
+      },
+      // 🔽 Chef Pupitre Pages
+      {
+        path: '/chefpupitre/choriste-list-presence',
+        element: lazy(() => import('./views/chefpupitreSidebarContents/presence/PresenceList'))
+      },
+      {
+        path: '/chefpupitre/manage-rep-forpupitre',
+        element: lazy(() => import('./views/chefpupitreSidebarContents/notifhispupitre/ChefPupitreNotifications'))
       },
       {
         path: '*',

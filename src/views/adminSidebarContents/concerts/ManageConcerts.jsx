@@ -1,48 +1,85 @@
+/* eslint-disable react/no-unescaped-entities */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
-/* eslint-disable prettier/prettier */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import {
   getConcerts,
   createConcert,
-  updateConcert,
+  updateConcert
   // deleteConcertPermanent,
-} from "../../../services/concert.service";
-import { Eye } from "lucide-react";
-import { getOeuvres } from "../../../services/oeuvre.service";
-import { Button, Form, Modal, Table, Col, Row, Spinner } from "react-bootstrap";
-import CreatableSelect from "react-select/creatable";
-import Select from "react-select";
-import { Formik } from "formik";
-import * as Yup from "yup";
-import Swal from "sweetalert2";
-import { BACKEND_URL } from "../../../utils/axiosInstance";
-
-const ITEMS_PER_PAGE = 5;
+} from '../../../services/concert.service';
+import { Eye } from 'lucide-react';
+import { getOeuvres } from '../../../services/oeuvre.service';
+import { Button, Form, Modal, Table, Col, Row, Spinner, InputGroup } from 'react-bootstrap';
+import CreatableSelect from 'react-select/creatable';
+import Select from 'react-select';
+import { Formik } from 'formik';
+import * as Yup from 'yup';
+import Swal from 'sweetalert2';
+import { BACKEND_URL } from '../../../utils/axiosInstance';
+import { FaChevronLeft, FaChevronRight, FaAngleDoubleLeft, FaAngleDoubleRight } from 'react-icons/fa';
+import { Search } from 'lucide-react';
 
 const ManageConcerts = () => {
   const [concerts, setConcerts] = useState([]);
   const [oeuvres, setOeuvres] = useState([]);
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
+
+  // ✅ PROFESSIONAL PAGINATION STATE
+  const [currentPage, setCurrentPage] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const pageSizeOptions = [5, 10, 25, 50];
+
+  // ✅ IMAGE FILE VALIDATION FUNCTION
+  const validateImageFile = (file) => {
+    if (!file) return true;
+
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+
+    if (!allowedTypes.includes(file.type) || !allowedExtensions.includes(fileExtension)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Format non supporté',
+        text: 'Veuillez sélectionner une image au format JPG, PNG ou GIF.',
+        confirmButtonColor: '#1e3a5f'
+      });
+      return false;
+    }
+
+    if (file.size > maxSize) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Fichier trop volumineux',
+        text: "La taille de l'image ne doit pas dépasser 5MB.",
+        confirmButtonColor: '#1e3a5f'
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const formatDateTime = (isoString) => {
     const d = new Date(isoString);
 
-    const day = String(d.getDate()).padStart(2, "0");
-    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
     const year = d.getFullYear();
-    const hours = String(d.getHours()).padStart(2, "0");
-    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
 
     return `${day}/${month}/${year}, ${hours}:${minutes}`;
   };
 
   const now = new Date();
-  const pad = (n) => String(n).padStart(2, "0");
+  const pad = (n) => String(n).padStart(2, '0');
 
   // local YYYY-MM-DD
   const todayString = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
@@ -51,29 +88,24 @@ const ManageConcerts = () => {
   const nowHM = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
   const formatConcertDateFR = (isoString) => {
-    return new Date(isoString).toLocaleDateString("fr-FR", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
+    return new Date(isoString).toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
     });
   };
 
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [activeConcerts, allOeuvres] = await Promise.all([
-        getConcerts(),
-        getOeuvres(),
-      ]);
+      const [activeConcerts, allOeuvres] = await Promise.all([getConcerts(), getOeuvres()]);
       setConcerts(activeConcerts);
       setOeuvres(allOeuvres);
-      const uniqueLocations = [
-        ...new Set(activeConcerts.map((c) => c.location)),
-      ].map((l) => ({ label: l, value: l }));
+      const uniqueLocations = [...new Set(activeConcerts.map((c) => c.location))].map((l) => ({ label: l, value: l }));
       setLocations(uniqueLocations);
     } catch (err) {
-      console.error("Erreur de chargement:", err);
+      console.error('Erreur de chargement:', err);
     } finally {
       setLoading(false);
     }
@@ -83,68 +115,104 @@ const ManageConcerts = () => {
     fetchAll();
   }, []);
 
-  const filtered = concerts.filter((c) =>
-    c.location.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  const pageCount = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-  const paginated = filtered.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  // ✅ RESET PAGINATION WHEN SEARCH CHANGES
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [searchTerm]);
 
-  // const handlePermanentDelete = async (id) => {
-  //   const { isConfirmed } = await Swal.fire({
-  //     title: "Supprimer définitivement ?",
-  //     text: "Cette action est irréversible.",
-  //     icon: "warning",
-  //     showCancelButton: true,
-  //     confirmButtonText: "Oui, supprimer",
-  //   });
-  //   if (isConfirmed) {
-  //     await deleteConcertPermanent(id);
-  //     fetchAll();
-  //     Swal.fire(
-  //       "Supprimé",
-  //       "Le concert a été supprimé définitivement.",
-  //       "success"
-  //     );
-  //   }
-  // };
+  const filtered = concerts.filter((c) => c.location.toLowerCase().includes(searchTerm.toLowerCase()));
 
+  // ✅ PROFESSIONAL PAGINATION FUNCTIONS
+  const getTotalItems = () => filtered.length;
+  const getTotalPages = () => Math.ceil(getTotalItems() / itemsPerPage);
+  const getStartIndex = () => (getTotalItems() === 0 ? 0 : currentPage * itemsPerPage + 1);
+  const getEndIndex = () => Math.min((currentPage + 1) * itemsPerPage, getTotalItems());
+
+  const getPaginatedData = () => {
+    const start = currentPage * itemsPerPage;
+    return filtered.slice(start, start + itemsPerPage);
+  };
+
+  const handlePageSizeChange = (newSize) => {
+    setItemsPerPage(newSize);
+    setCurrentPage(0);
+  };
+
+  const goToFirstPage = () => setCurrentPage(0);
+  const goToPreviousPage = () => setCurrentPage(Math.max(0, currentPage - 1));
+  const goToNextPage = () => setCurrentPage(Math.min(getTotalPages() - 1, currentPage + 1));
+  const goToLastPage = () => setCurrentPage(getTotalPages() - 1);
+
+  const isFirstPage = () => currentPage === 0;
+  const isLastPage = () => currentPage >= getTotalPages() - 1;
+
+  // ✅ ENHANCED SUBMIT WITH ERROR HANDLING
   const handleSubmit = async (values, { setSubmitting, resetForm }) => {
-    const formData = new FormData(); // ← Make sure this line is here!
+    // ✅ VALIDATE IMAGE FILE BEFORE SUBMISSION
+    if (values.poster instanceof File && !validateImageFile(values.poster)) {
+      setSubmitting(false);
+      return;
+    }
+
+    const formData = new FormData();
     try {
       const fullDateTime = new Date(`${values.date}T${values.time}`);
-      formData.append("title", values.title);
-      formData.append("dateHeure", fullDateTime.toISOString());
-      formData.append("location", values.location.value);
-      formData.append(
-        "programme",
-        JSON.stringify(values.programme.map((o) => o.value))
-      );
+      formData.append('title', values.title);
+      formData.append('dateHeure', fullDateTime.toISOString());
+      formData.append('location', values.location.value);
+      formData.append('programme', JSON.stringify(values.programme.map((o) => o.value)));
       if (values.poster instanceof File) {
-        formData.append("poster", values.poster);
+        formData.append('poster', values.poster);
       }
 
       if (editing) {
         await updateConcert(editing._id, formData);
-        Swal.fire("Mis à jour", "Le concert a été modifié.", "success");
+        Swal.fire({
+          icon: 'success',
+          title: 'Mis à jour',
+          text: 'Le concert a été modifié.',
+          timer: 2000,
+          showConfirmButton: false
+        });
       } else {
         await createConcert(formData);
-        Swal.fire("Créé", "Le concert a été ajouté.", "success");
+        Swal.fire({
+          icon: 'success',
+          title: 'Créé',
+          text: 'Le concert a été ajouté.',
+          timer: 2000,
+          showConfirmButton: false
+        });
       }
 
-      await fetchAll(); // refresh the table
+      await fetchAll();
       resetForm();
       setShowModal(false);
       setEditing(null);
-      setCurrentPage(1); // optional: go back to page 1
+      setCurrentPage(0);
     } catch (err) {
-      Swal.fire(
-        "Erreur",
-        err.response?.data?.message || "Échec de l'opération.",
-        "error"
-      );
+      console.error('Concert save error:', err);
+
+      // ✅ HANDLE SPECIFIC POSTER ERROR FROM BACKEND
+      const errorData = err.response?.data;
+      const errorType = errorData?.type;
+
+      if (errorType === 'FILE_FORMAT_ERROR' || err.code === 'INVALID_POSTER_FORMAT') {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Format non supporté',
+          text: 'Veuillez sélectionner une affiche au format JPG, PNG ou GIF.',
+          confirmButtonColor: '#1e3a5f'
+        });
+      } else {
+        const errorMessage = errorData?.message || err.message || "Échec de l'opération.";
+        Swal.fire({
+          icon: 'error',
+          title: 'Erreur',
+          text: errorMessage,
+          confirmButtonColor: '#1e3a5f'
+        });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -152,23 +220,11 @@ const ManageConcerts = () => {
 
   const handleViewProgramme = (programme, concertDate) => {
     const formattedDate = formatConcertDateFR(concertDate);
-    // const dateObj = new Date(concertDate);
-    // const formattedTime = dateObj.toLocaleTimeString("fr-FR", {
-    //   hour: "2-digit",
-    //   minute: "2-digit",
-    // });
-    //   <span style="margin-left:0.5rem; font-weight:500; color:#555;">
-    //   à ${formattedTime}
-    // </span>
 
-    // const arrangersString = allArrangers.length ? allArrangers.join(", ") : "—";
-    // build each piece card
     const piecesHtml = programme
       .map((o) => {
-        // ① define these before using them:
-        const composers = o.composers.join(", ");
-        const arrangers =
-          o.arrangers && o.arrangers.length ? o.arrangers.join(", ") : "—";
+        const composers = o.composers.join(', ');
+        const arrangers = o.arrangers && o.arrangers.length ? o.arrangers.join(', ') : '—';
 
         return `
       <div class="prog-card">
@@ -193,7 +249,7 @@ const ManageConcerts = () => {
       </div>
     `;
       })
-      .join("");
+      .join('');
 
     Swal.fire({
       html: `
@@ -358,26 +414,34 @@ const ManageConcerts = () => {
         </div>
       `,
       customClass: {
-        popup: "swal2-programme-popup",
-        confirmButton: "swal2-programme-btn",
+        popup: 'swal2-programme-popup',
+        confirmButton: 'swal2-programme-btn'
       },
       showConfirmButton: true,
-      confirmButtonText: "Fermer",
-      width: "660px",
+      confirmButtonText: 'Fermer',
+      width: '660px',
       padding: 0,
-      background: "transparent",
+      background: 'transparent'
     });
   };
 
   return (
     <div className="p-4">
       <div className="d-flex justify-content-between mb-3">
-        <Form.Control
-          placeholder="Rechercher par lieu"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ maxWidth: "300px" }}
-        />
+        <InputGroup style={{ maxWidth: '300px' }}>
+          <InputGroup.Text style={{ backgroundColor: '#f8f9fa', borderColor: '#e5e7eb' }}>
+            <Search size={16} className="text-muted" />
+          </InputGroup.Text>
+          <Form.Control
+            placeholder="Rechercher par lieu"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              borderColor: '#e5e7eb',
+              fontSize: '14px'
+            }}
+          />
+        </InputGroup>
         <Button
           variant="success"
           onClick={() => {
@@ -408,26 +472,18 @@ const ManageConcerts = () => {
               </tr>
             </thead>
             <tbody>
-              {paginated.map((concert, idx) => (
+              {getPaginatedData().map((concert, idx) => (
                 <tr key={concert._id}>
-                  <td>{(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}</td>
+                  <td>{getStartIndex() + idx}</td>
                   <td>{concert.title}</td>
                   <td>{formatDateTime(concert.dateHeure)}</td>
                   <td>{concert.location}</td>
                   <td className="text-center align-middle">
-                    <div
-                      className="d-flex justify-content-center align-items-center"
-                      style={{ height: "100%" }}
-                    >
+                    <div className="d-flex justify-content-center align-items-center" style={{ height: '100%' }}>
                       <Button
                         className="p-0 text-primary"
                         variant="link"
-                        onClick={() =>
-                          handleViewProgramme(
-                            concert.programme,
-                            concert.dateHeure
-                          )
-                        }
+                        onClick={() => handleViewProgramme(concert.programme, concert.dateHeure)}
                       >
                         <Eye size={20} />
                       </Button>
@@ -441,21 +497,21 @@ const ManageConcerts = () => {
                         alt="Affiche"
                         style={{
                           width: 50,
-                          cursor: "zoom-in",
-                          borderRadius: 4,
+                          cursor: 'zoom-in',
+                          borderRadius: 4
                         }}
                         onClick={() =>
                           Swal.fire({
                             imageUrl: `${BACKEND_URL}/uploads/posters/${concert.poster}`,
-                            imageAlt: "Zoom affiche",
+                            imageAlt: 'Zoom affiche',
                             showCloseButton: true,
                             showConfirmButton: false,
-                            background: "#fff",
+                            background: '#fff'
                           })
                         }
                       />
                     ) : (
-                      "-"
+                      '-'
                     )}
                   </td>
                   <td>
@@ -471,49 +527,95 @@ const ManageConcerts = () => {
                           time: d.toTimeString().substring(0, 5),
                           location: {
                             label: concert.location,
-                            value: concert.location,
+                            value: concert.location
                           },
                           programme: concert.programme.map((o) => ({
                             value: o._id,
-                            label: o.title,
+                            label: o.title
                           })),
-                          previewPoster: concert.poster
-                            ? `${BACKEND_URL}/uploads/posters/${concert.poster}`
-                            : "",
-                          poster: concert.poster || "",
+                          previewPoster: concert.poster ? `${BACKEND_URL}/uploads/posters/${concert.poster}` : '',
+                          poster: concert.poster || ''
                         });
                         setShowModal(true);
                       }}
                     >
                       Modifier
                     </Button>
-                    {/* <Button
-                      size="sm"
-                      variant="danger"
-                      onClick={() => handlePermanentDelete(concert._id)}
-                    >
-                      Supprimer
-                    </Button> */}
                   </td>
                 </tr>
               ))}
             </tbody>
           </Table>
 
-          {pageCount > 1 && (
-            <div className="d-flex justify-content-center mt-3 gap-1 flex-wrap">
-              {Array.from({ length: pageCount }, (_, i) => (
-                <Button
-                  key={i}
-                  size="sm"
-                  variant={
-                    i + 1 === currentPage ? "primary" : "outline-secondary"
-                  }
-                  onClick={() => setCurrentPage(i + 1)}
+          {/* ✅ PROFESSIONAL PAGINATION */}
+          {getTotalPages() >= 0 && (
+            <div className="d-flex justify-content-between align-items-center p-3 border-top bg-light">
+              <div className="d-flex align-items-center">
+                <span className="me-2 text-muted" style={{ fontSize: '14px' }}>
+                  Concerts par page:
+                </span>
+                <select
+                  className="form-select form-select-sm"
+                  style={{ width: 'auto' }}
+                  value={itemsPerPage}
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                 >
-                  {i + 1}
+                  {pageSizeOptions.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="text-muted" style={{ fontSize: '14px' }}>
+                {getStartIndex()}-{getEndIndex()} sur {getTotalItems()}
+              </div>
+
+              <div className="d-flex align-items-center">
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={goToFirstPage}
+                  disabled={isFirstPage()}
+                  className="me-1"
+                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                >
+                  <FaAngleDoubleLeft />
                 </Button>
-              ))}
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={goToPreviousPage}
+                  disabled={isFirstPage()}
+                  className="me-3"
+                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                >
+                  <FaChevronLeft />
+                </Button>
+                <span className="mx-3 text-muted" style={{ fontSize: '14px' }}>
+                  Page {currentPage + 1} sur {getTotalPages()}
+                </span>
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={goToNextPage}
+                  disabled={isLastPage()}
+                  className="ms-3 me-1"
+                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                >
+                  <FaChevronRight />
+                </Button>
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  onClick={goToLastPage}
+                  disabled={isLastPage()}
+                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                >
+                  <FaAngleDoubleRight />
+                </Button>
+              </div>
             </div>
           )}
         </>
@@ -521,9 +623,7 @@ const ManageConcerts = () => {
 
       <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
         <Modal.Header closeButton>
-          <Modal.Title>
-            {editing ? "Modifier un concert" : "Ajouter un concert"}
-          </Modal.Title>
+          <Modal.Title>{editing ? 'Modifier un concert' : 'Ajouter un concert'}</Modal.Title>
         </Modal.Header>
 
         <Formik
@@ -531,32 +631,21 @@ const ManageConcerts = () => {
             date: editing?.date || todayString,
             time: editing?.time || nowHM,
             location: editing?.location || null,
-            poster: editing?.poster || "",
-            previewPoster: editing?.previewPoster || "",
+            poster: editing?.poster || '',
+            previewPoster: editing?.previewPoster || '',
             programme: editing?.programme || [],
-            title: editing?.title || "",
+            title: editing?.title || ''
           }}
           validationSchema={Yup.object({
-            title: Yup.string().required("Le titre est requis"),
-            date: Yup.string().required("Date requise"),
-            time: Yup.string().required("Heure requise"),
-            location: Yup.object().nullable().required("Lieu requis"),
-            programme: Yup.array().min(1, "Au moins une œuvre est requise"),
+            title: Yup.string().required('Le titre est requis'),
+            date: Yup.string().required('Date requise'),
+            time: Yup.string().required('Heure requise'),
+            location: Yup.object().nullable().required('Lieu requis'),
+            programme: Yup.array().min(1, 'Au moins une œuvre est requise')
           })}
           onSubmit={handleSubmit}
         >
-          {({
-            handleSubmit,
-            handleChange,
-            setFieldValue,
-            values,
-            errors,
-            touched,
-            handleBlur,
-            isValid,
-            dirty,
-            isSubmitting,
-          }) => (
+          {({ handleSubmit, handleChange, setFieldValue, values, errors, touched, handleBlur, isValid, dirty, isSubmitting }) => (
             <Form noValidate onSubmit={handleSubmit}>
               <Modal.Body>
                 <Row className="mb-3">
@@ -572,9 +661,7 @@ const ManageConcerts = () => {
                         onBlur={handleBlur}
                         isInvalid={touched.title && !!errors.title}
                       />
-                      <Form.Control.Feedback type="invalid">
-                        {errors.title}
-                      </Form.Control.Feedback>
+                      <Form.Control.Feedback type="invalid">{errors.title}</Form.Control.Feedback>
                     </Form.Group>
                   </Col>
                   <Col>
@@ -584,15 +671,12 @@ const ManageConcerts = () => {
                         type="date"
                         name="date"
                         value={values.date}
-                        min={todayString} // ← only allow today or future
+                        min={todayString}
                         onChange={handleChange}
                         onBlur={handleBlur}
                         isInvalid={touched.date && !!errors.date}
                       />
-
-                      <Form.Control.Feedback type="invalid">
-                        {errors.date}
-                      </Form.Control.Feedback>
+                      <Form.Control.Feedback type="invalid">{errors.date}</Form.Control.Feedback>
                     </Form.Group>
                   </Col>
                   <Col>
@@ -604,21 +688,14 @@ const ManageConcerts = () => {
                         value={values.time}
                         onChange={(e) => {
                           const newTime = e.target.value;
-                          // if the selected date is today, disallow any time before nowHM
-                          if (values.date === todayString && newTime < nowHM)
-                            return;
+                          if (values.date === todayString && newTime < nowHM) return;
                           handleChange(e);
                         }}
                         onBlur={handleBlur}
                         isInvalid={touched.time && !!errors.time}
-                        {...(values.date === todayString
-                          ? { min: nowHM } // enforce min time only on today
-                          : {})}
+                        {...(values.date === todayString ? { min: nowHM } : {})}
                       />
-
-                      <Form.Control.Feedback type="invalid">
-                        {errors.time}
-                      </Form.Control.Feedback>
+                      <Form.Control.Feedback type="invalid">{errors.time}</Form.Control.Feedback>
                     </Form.Group>
                   </Col>
                 </Row>
@@ -629,19 +706,14 @@ const ManageConcerts = () => {
                     isClearable
                     options={locations}
                     value={values.location}
-                    onChange={(val) => setFieldValue("location", val)}
-                    onBlur={() => handleBlur({ target: { name: "location" } })}
-                    className={
-                      touched.location && errors.location ? "is-invalid" : ""
-                    }
+                    onChange={(val) => setFieldValue('location', val)}
+                    onBlur={() => handleBlur({ target: { name: 'location' } })}
+                    className={touched.location && errors.location ? 'is-invalid' : ''}
                   />
-                  {touched.location && errors.location && (
-                    <div className="invalid-feedback d-block">
-                      {errors.location}
-                    </div>
-                  )}
+                  {touched.location && errors.location && <div className="invalid-feedback d-block">{errors.location}</div>}
                 </Form.Group>
 
+                {/* ✅ ENHANCED POSTER UPLOAD WITH VALIDATION */}
                 <Form.Group className="mb-2">
                   <Form.Label>Affiche (image) (optionnel)</Form.Label>
                   <Form.Control
@@ -649,16 +721,18 @@ const ManageConcerts = () => {
                     name="poster"
                     onChange={(e) => {
                       const file = e.currentTarget.files[0];
-                      setFieldValue("poster", file);
-                      if (file) {
-                        setFieldValue(
-                          "previewPoster",
-                          URL.createObjectURL(file)
-                        );
+                      if (file && validateImageFile(file)) {
+                        setFieldValue('poster', file);
+                        setFieldValue('previewPoster', URL.createObjectURL(file));
+                      } else {
+                        e.target.value = '';
+                        setFieldValue('poster', '');
+                        setFieldValue('previewPoster', '');
                       }
                     }}
-                    accept="image/*"
+                    accept=".jpg,.jpeg,.png,.gif"
                   />
+                  <Form.Text className="text-muted">Formats acceptés: JPG, PNG, GIF (max 5MB)</Form.Text>
 
                   {values.previewPoster && (
                     <div className="mt-3 d-flex flex-column align-items-center text-center">
@@ -666,18 +740,18 @@ const ManageConcerts = () => {
                         src={values.previewPoster}
                         alt="Affiche preview"
                         style={{
-                          maxWidth: "100%",
-                          maxHeight: "300px",
-                          borderRadius: "8px",
-                          boxShadow: "0 0 6px rgba(0,0,0,0.1)",
-                          cursor: "zoom-in",
+                          maxWidth: '100%',
+                          maxHeight: '300px',
+                          borderRadius: '8px',
+                          boxShadow: '0 0 6px rgba(0,0,0,0.1)',
+                          cursor: 'zoom-in'
                         }}
                         onClick={() =>
                           Swal.fire({
                             imageUrl: values.previewPoster,
-                            imageAlt: "Zoom affiche",
+                            imageAlt: 'Zoom affiche',
                             showCloseButton: true,
-                            showConfirmButton: false,
+                            showConfirmButton: false
                           })
                         }
                       />
@@ -686,11 +760,11 @@ const ManageConcerts = () => {
                         size="sm"
                         className="mt-2"
                         onClick={() => {
-                          setFieldValue("poster", "");
-                          setFieldValue("previewPoster", "");
+                          setFieldValue('poster', '');
+                          setFieldValue('previewPoster', '');
                         }}
                       >
-                        Supprimer l’affiche
+                        Supprimer l'affiche
                       </Button>
                     </div>
                   )}
@@ -702,20 +776,14 @@ const ManageConcerts = () => {
                     isMulti
                     options={oeuvres.map((o) => ({
                       label: o.title,
-                      value: o._id,
+                      value: o._id
                     }))}
                     value={values.programme}
-                    onChange={(val) => setFieldValue("programme", val)}
-                    onBlur={() => handleBlur({ target: { name: "programme" } })}
-                    className={
-                      touched.programme && errors.programme ? "is-invalid" : ""
-                    }
+                    onChange={(val) => setFieldValue('programme', val)}
+                    onBlur={() => handleBlur({ target: { name: 'programme' } })}
+                    className={touched.programme && errors.programme ? 'is-invalid' : ''}
                   />
-                  {touched.programme && errors.programme && (
-                    <div className="invalid-feedback d-block">
-                      {errors.programme}
-                    </div>
-                  )}
+                  {touched.programme && errors.programme && <div className="invalid-feedback d-block">{errors.programme}</div>}
                 </Form.Group>
               </Modal.Body>
 
@@ -723,12 +791,17 @@ const ManageConcerts = () => {
                 <Button variant="secondary" onClick={() => setShowModal(false)}>
                   Annuler
                 </Button>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  disabled={isSubmitting || !isValid || (editing && !dirty)}
-                >
-                  {editing ? "Mettre à jour" : "Créer"}
+                <Button type="submit" variant="primary" disabled={isSubmitting || !isValid || (editing && !dirty)}>
+                  {isSubmitting ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" />
+                      {editing ? 'Mise à jour...' : 'Création...'}
+                    </>
+                  ) : editing ? (
+                    'Mettre à jour'
+                  ) : (
+                    'Créer'
+                  )}
                 </Button>
               </Modal.Footer>
             </Form>

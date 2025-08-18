@@ -15,17 +15,24 @@ const titleMap = {
   // "/admin/manage-choriste": "Liste des Choristes",
 
   '/user/profile': 'Mon Profil',
+
   '/choriste/season-programme': 'Programme de la Saison',
   '/choriste/repetitions': 'Liste des Répétitions',
   '/choriste/concerts': 'Disponibilité aux Concerts',
   '/choriste/declare-conge': 'Déclarer un Congé',
+
+  '/manager/manage-chef': 'Gérer les Chefs de pupitre',
   '/manager/manage-duty': 'Liste Declaration des Congés',
   '/manager/modify-tessiture': 'Modification des tessitures',
   '/manager/reschedule-requests': 'Gérer les Demandes de Reprogrammation',
   '/manager/manage-auditions': 'Gérer les Auditions',
   '/manager/manage-membership': 'Listes des candidats',
-  '/chef/list-choriste': 'Liste des Choristes'
+  '/manager/absence-list': 'État des Absences',
 
+  '/chef/list-choriste': 'Liste des Choristes',
+
+  '/chefpupitre/choriste-list-presence': 'Gérer les présences',
+  '/chefpupitre/manage-rep-forpupitre': 'Gérer les Répétitions',
   // "/program/season-programme": "Liste des Concerts",
   //
 

@@ -1,9 +1,25 @@
 /* eslint-disable react/prop-types */
-/* eslint-disable prettier/prettier */
+
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/no-unescaped-entities */
 import React, { useEffect, useState } from 'react';
-import { Container, Button, Table, Badge, Form, Card, Row, Col, InputGroup, Spinner, Modal, Tabs, Tab, Alert, Dropdown } from 'react-bootstrap';
+import {
+  Container,
+  Button,
+  Table,
+  Badge,
+  Form,
+  Card,
+  Row,
+  Col,
+  InputGroup,
+  Spinner,
+  Modal,
+  Tabs,
+  Tab,
+  Alert,
+  Dropdown
+} from 'react-bootstrap';
 import {
   FaSearch,
   FaFilter,
@@ -27,10 +43,10 @@ import {
 } from 'react-icons/fa';
 import Select from 'react-select';
 import Swal from 'sweetalert2';
-import { 
-  getMembershipSubmissions, 
+import {
+  getMembershipSubmissions,
   getScheduledCandidatesWithSlots,
-  // acceptMembership, 
+  // acceptMembership,
   refuseMembership,
   acceptAllRetenuCandidates
 } from '../../../services/accounts.service';
@@ -81,15 +97,15 @@ const ManageMembership = () => {
   // Pagination states for each tab
   const [pendingPagination, setPendingPagination] = useState({
     currentPage: 0,
-    itemsPerPage: 10
+    itemsPerPage: 5
   });
   const [scheduledPagination, setScheduledPagination] = useState({
     currentPage: 0,
-    itemsPerPage: 10
+    itemsPerPage: 5
   });
   const [auditionedPagination, setAuditionedPagination] = useState({
     currentPage: 0,
-    itemsPerPage: 10
+    itemsPerPage: 5
   });
 
   const pageSizeOptions = [5, 10, 25, 50, 100];
@@ -151,7 +167,6 @@ const ManageMembership = () => {
     })
   };
 
-
   // Sortable header component
   const SortableHeader = ({ field, children, currentSort, direction, onSort }) => (
     <th
@@ -187,19 +202,26 @@ const ManageMembership = () => {
   };
 
   // Updated filtering and sorting function with date/time filters
-  const getFilteredMemberships = (memberships, filterText, sortField, sortDirection, alphabeticFilter, decisionFilter = null, dateFilter = null, timeFilter = null) => {
+  const getFilteredMemberships = (
+    memberships,
+    filterText,
+    sortField,
+    sortDirection,
+    alphabeticFilter,
+    decisionFilter = null,
+    dateFilter = null,
+    timeFilter = null
+  ) => {
     let filtered = [...memberships];
 
     // Apply date filter (NEW)
     if (dateFilter) {
-      filtered = filtered.filter(member => member.auditionDate === dateFilter);
+      filtered = filtered.filter((member) => member.auditionDate === dateFilter);
     }
 
     // Apply time filter (NEW)
     if (timeFilter) {
-      filtered = filtered.filter(member => 
-        `${member.auditionStartTime}-${member.auditionEndTime}` === timeFilter
-      );
+      filtered = filtered.filter((member) => `${member.auditionStartTime}-${member.auditionEndTime}` === timeFilter);
     }
 
     // Apply text filter
@@ -283,21 +305,21 @@ const ManageMembership = () => {
     }
 
     // Extract unique dates
-    const uniqueDates = [...new Set(
-      scheduledMemberships
-        .filter(member => member.auditionDate)
-        .map(member => member.auditionDate)
-    )].sort();
+    const uniqueDates = [
+      ...new Set(scheduledMemberships.filter((member) => member.auditionDate).map((member) => member.auditionDate))
+    ].sort();
 
     // Extract unique time ranges
-    const uniqueTimeSlots = [...new Set(
-      scheduledMemberships
-        .filter(member => member.auditionStartTime && member.auditionEndTime)
-        .map(member => `${member.auditionStartTime}-${member.auditionEndTime}`)
-    )].sort();
+    const uniqueTimeSlots = [
+      ...new Set(
+        scheduledMemberships
+          .filter((member) => member.auditionStartTime && member.auditionEndTime)
+          .map((member) => `${member.auditionStartTime}-${member.auditionEndTime}`)
+      )
+    ].sort();
 
     // Format date options
-    const dateOptions = uniqueDates.map(date => ({
+    const dateOptions = uniqueDates.map((date) => ({
       value: date,
       label: new Date(date).toLocaleDateString('fr-FR', {
         weekday: 'long',
@@ -308,7 +330,7 @@ const ManageMembership = () => {
     }));
 
     // Format time slot options
-    const timeSlotOptions = uniqueTimeSlots.map(slot => ({
+    const timeSlotOptions = uniqueTimeSlots.map((slot) => ({
       value: slot,
       label: slot
     }));
@@ -319,26 +341,34 @@ const ManageMembership = () => {
 
   // Get count of candidates with "Retenu" decision
   const getRetenuCandidatesCount = () => {
-    return auditionedMemberships.filter(member => 
-      member.evaluationData && member.evaluationData.decision === 'Retenu'
-    ).length;
+    return auditionedMemberships.filter((member) => member.evaluationData && member.evaluationData.decision === 'Retenu').length;
   };
 
   // Pagination helpers
   const getPaginationForTab = (tab) => {
     switch (tab) {
-      case 'pending': return pendingPagination;
-      case 'scheduled': return scheduledPagination;
-      case 'auditioned': return auditionedPagination;
-      default: return pendingPagination;
+      case 'pending':
+        return pendingPagination;
+      case 'scheduled':
+        return scheduledPagination;
+      case 'auditioned':
+        return auditionedPagination;
+      default:
+        return pendingPagination;
     }
   };
 
   const setPaginationForTab = (tab, pagination) => {
     switch (tab) {
-      case 'pending': setPendingPagination(pagination); break;
-      case 'scheduled': setScheduledPagination(pagination); break;
-      case 'auditioned': setAuditionedPagination(pagination); break;
+      case 'pending':
+        setPendingPagination(pagination);
+        break;
+      case 'scheduled':
+        setScheduledPagination(pagination);
+        break;
+      case 'auditioned':
+        setAuditionedPagination(pagination);
+        break;
     }
   };
 
@@ -390,7 +420,6 @@ const ManageMembership = () => {
       // Fetch auditioned memberships (those with evaluations)
       const auditionedData = await getMembershipSubmissions('Auditioned');
       setAuditionedMemberships(auditionedData);
-
     } catch (error) {
       Swal.fire({
         icon: 'error',
@@ -457,39 +486,39 @@ const ManageMembership = () => {
   // };
 
   // ✅ Simplified bulk accept - just loading + background polling
-const handleBulkAcceptRetenu = async () => {
-  const retenuCount = getRetenuCandidatesCount();
+  const handleBulkAcceptRetenu = async () => {
+    const retenuCount = getRetenuCandidatesCount();
 
-  if (retenuCount === 0) {
+    if (retenuCount === 0) {
+      Swal.fire({
+        icon: 'info',
+        title: 'Aucun candidat retenu',
+        text: 'Il n\'y a actuellement aucun candidat avec le statut "Retenu".'
+      });
+      return;
+    }
+
     Swal.fire({
-      icon: 'info',
-      title: 'Aucun candidat retenu',
-      text: 'Il n\'y a actuellement aucun candidat avec le statut "Retenu".'
-    });
-    return;
-  }
-
-  Swal.fire({
-    title: 'Accepter tous les candidats retenus?',
-    html: `
+      title: 'Accepter tous les candidats retenus?',
+      html: `
       <p>Vous êtes sur le point d'accepter <strong>${retenuCount} candidat(s)</strong> retenu(s).</p>
     `,
-    icon: 'question',
-    showCancelButton: true,
-    confirmButtonColor: '#28a745',
-    cancelButtonColor: '#6c757d',
-    confirmButtonText: `Oui, accepter ${retenuCount} candidat(s)`,
-    cancelButtonText: 'Annuler',
-    width: '500px'
-  }).then(async (result) => {
-    if (result.isConfirmed) {
-      setIsBulkAccepting(true);
-      
-      try {
-        // Show processing dialog
-        Swal.fire({ 
-          title: 'Acceptation en cours...', 
-          html: `
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#28a745',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: `Oui, accepter ${retenuCount} candidat(s)`,
+      cancelButtonText: 'Annuler',
+      width: '500px'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        setIsBulkAccepting(true);
+
+        try {
+          // Show processing dialog
+          Swal.fire({
+            title: 'Acceptation en cours...',
+            html: `
             <div>
               <p>Mise à jour de ${retenuCount} candidat(s)...</p>
               <div class="spinner-border text-primary" role="status">
@@ -497,47 +526,49 @@ const handleBulkAcceptRetenu = async () => {
               </div>
             </div>
           `,
-          allowOutsideClick: false,
-          showConfirmButton: false
-        });
-
-        // Process acceptance
-        const response = await acceptAllRetenuCandidates();
-        
-        if (response.success) {
-          // Success with background info
-          Swal.fire({
-            icon: 'success',
-            title: 'Candidats acceptés avec succès!',
-            html: `
-              <div>
-                <p><strong>${response.totalAccepted} candidat(s)</strong> ont été acceptés.</p>
-              </div>
-            `,
-            confirmButtonText: 'Parfait!',
-            confirmButtonColor: '#28a745'
+            allowOutsideClick: false,
+            showConfirmButton: false
           });
-          
-          // Refresh data to show updated status
-          setRefreshTrigger(prev => prev + 1);
-        } else {
-          throw new Error(response.message || 'Erreur inconnue');
-        }
 
-      } catch (error) {
-        // console.error('Bulk accept error:', error);
-        Swal.fire({
-          icon: 'error',
-          title: 'Erreur lors de l\'acceptation',
-          text: error.message || 'Une erreur est survenue. Veuillez réessayer.',
-          confirmButtonColor: '#dc3545'
-        });
-      } finally {
-        setIsBulkAccepting(false);
+          // Process acceptance
+          const response = await acceptAllRetenuCandidates();
+
+          if (response.success) {
+            // Success with background info
+            Swal.fire({
+              icon: 'success',
+              title: 'Candidats acceptés avec succès!',
+              html: `
+      <div>
+        <p><strong>${response.totalProcessed} candidat(s)</strong> ont été acceptés.</p>
+        <p style="color: #28a745; font-size: 14px; margin-top: 10px;">
+          Les invitations à signer la charte sont envoyées.
+        </p>
+      </div>
+    `,
+              confirmButtonText: 'Parfait!',
+              confirmButtonColor: '#28a745'
+            });
+
+            // Refresh data to show updated status
+            setRefreshTrigger((prev) => prev + 1);
+          } else {
+            throw new Error(response.message || 'Erreur inconnue');
+          }
+        } catch (error) {
+          // console.error('Bulk accept error:', error);
+          Swal.fire({
+            icon: 'error',
+            title: "Erreur lors de l'acceptation",
+            text: error.message || 'Une erreur est survenue. Veuillez réessayer.',
+            confirmButtonColor: '#dc3545'
+          });
+        } finally {
+          setIsBulkAccepting(false);
+        }
       }
-    }
-  });
-};
+    });
+  };
 
   const openRefuseModal = (id) => {
     setCurrentMemberId(id);
@@ -607,14 +638,14 @@ const handleBulkAcceptRetenu = async () => {
 
   const renderMembershipTable = (memberships, isLoading, filterText, setFilterText, tabType) => {
     const decisionFilter = tabType === 'auditioned' ? selectedDecision?.value || '' : null;
-    
+
     // Updated filteredMemberships call with date/time filters
     const filteredMemberships = getFilteredMemberships(
-      memberships, 
-      filterText, 
-      sortField, 
-      sortDirection, 
-      alphabeticFilter?.value || '', 
+      memberships,
+      filterText,
+      sortField,
+      sortDirection,
+      alphabeticFilter?.value || '',
       decisionFilter,
       tabType === 'scheduled' ? selectedDate?.value : null,
       tabType === 'scheduled' ? selectedTimeRange?.value : null
@@ -792,20 +823,22 @@ const handleBulkAcceptRetenu = async () => {
                 <div className="empty-icon mb-3">📋</div>
                 <h5>Aucune candidature trouvée</h5>
                 <p className="text-muted">
-                  {filterText || alphabeticFilter || (tabType === 'scheduled' && (selectedDate || selectedTimeRange)) || (tabType === 'auditioned' && selectedDecision)
+                  {filterText ||
+                  alphabeticFilter ||
+                  (tabType === 'scheduled' && (selectedDate || selectedTimeRange)) ||
+                  (tabType === 'auditioned' && selectedDecision)
                     ? 'Aucun résultat pour ces filtres'
                     : tabType === 'pending'
                       ? 'Toutes les candidatures ont été traitées'
                       : tabType === 'scheduled'
                         ? "Aucun test n'est programmé actuellement"
-                        : "Aucune audition n'a été effectuée"
-                  }
+                        : "Aucune audition n'a été effectuée"}
                 </p>
               </div>
             ) : (
               <div className="border rounded">
                 <Table hover bordered responsive className="mb-0" style={{ backgroundColor: 'white' }}>
-                  <thead >
+                  <thead>
                     <tr>
                       <SortableHeader field="name" currentSort={sortField} direction={sortDirection} onSort={handleSort}>
                         Prénom et Nom
@@ -825,15 +858,11 @@ const handleBulkAcceptRetenu = async () => {
                           </SortableHeader>
                         </>
                       )}
-                      {tabType === 'auditioned' && (
-                        <th style={{ fontWeight: '600', padding: '12px 8px' }}>Évaluation</th>
-                      )}
+                      {tabType === 'auditioned' && <th style={{ fontWeight: '600', padding: '12px 8px' }}>Évaluation</th>}
                       <th style={{ fontWeight: '600', padding: '12px 8px' }}>Connaissances musicales</th>
                       <th style={{ fontWeight: '600', padding: '12px 8px' }}>Active dans autre chœur</th>
                       <th style={{ fontWeight: '600', padding: '12px 8px' }}>Détails</th>
-                      {tabType === 'auditioned' && (
-                        <th style={{ fontWeight: '600', padding: '12px 8px' }}>Actions</th>
-                      )}
+                      {tabType === 'auditioned' && <th style={{ fontWeight: '600', padding: '12px 8px' }}>Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -853,14 +882,10 @@ const handleBulkAcceptRetenu = async () => {
                                 {member.gender}
                               </Badge>
                             </td>
-                            <td style={{ padding: '12px 8px' }}>
-                              {new Date(member.birthDate).toLocaleDateString('fr-FR')}
-                            </td>
+                            <td style={{ padding: '12px 8px' }}>{new Date(member.birthDate).toLocaleDateString('fr-FR')}</td>
                             {tabType === 'scheduled' && (
                               <>
-                                <td style={{ padding: '12px 8px' }}>
-                                  {member.auditionDate ? formatDate(member.auditionDate) : '—'}
-                                </td>
+                                <td style={{ padding: '12px 8px' }}>{member.auditionDate ? formatDate(member.auditionDate) : '—'}</td>
                                 <td style={{ padding: '12px 8px' }}>
                                   {member.auditionStartTime && member.auditionEndTime && (
                                     <Badge bg="info" className="px-3">
@@ -915,12 +940,7 @@ const handleBulkAcceptRetenu = async () => {
                             {tabType === 'auditioned' && (
                               <td style={{ padding: '12px 8px' }}>
                                 <div className="d-flex gap-2">
-                                  <Button 
-                                    variant="danger" 
-                                    size="sm" 
-                                    onClick={() => openRefuseModal(member._id)} 
-                                    title="Refuser"
-                                  >
+                                  <Button variant="danger" size="sm" onClick={() => openRefuseModal(member._id)} title="Refuser">
                                     <FaTimes />
                                   </Button>
                                 </div>
@@ -1023,7 +1043,7 @@ const handleBulkAcceptRetenu = async () => {
                                               <div className="info-item">
                                                 <span className="info-label">Nom du parrain</span>
                                                 <span className="info-value">{member.sponsorName}</span>
-                              </div>
+                                              </div>
                                             )}
                                           </div>
                                         </div>
@@ -1059,31 +1079,18 @@ const handleBulkAcceptRetenu = async () => {
                       <span className="me-2 text-muted" style={{ fontSize: '14px' }}>
                         Candidats par page:
                       </span>
-                      <Dropdown>
-                        <Dropdown.Toggle
-                          variant="outline-secondary"
-                          size="sm"
-                          style={{
-                            minWidth: '70px',
-                            border: '1px solid #dee2e6',
-                            backgroundColor: 'white',
-                            color: '#495057'
-                          }}
-                        >
-                          {pagination.itemsPerPage}
-                        </Dropdown.Toggle>
-                        <Dropdown.Menu>
-                          {pageSizeOptions.map((size) => (
-                            <Dropdown.Item 
-                              key={size} 
-                              onClick={() => handlePageSizeChange(tabType, size)} 
-                              active={size === pagination.itemsPerPage}
-                            >
-                              {size}
-                            </Dropdown.Item>
-                          ))}
-                        </Dropdown.Menu>
-                      </Dropdown>
+                      <select
+                        className="form-select form-select-sm"
+                        style={{ width: 'auto' }}
+                        value={pagination.itemsPerPage}
+                        onChange={(e) => handlePageSizeChange(tabType, Number(e.target.value))}
+                      >
+                        {pageSizeOptions.map((size) => (
+                          <option key={size} value={size}>
+                            {size}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     <div className="text-muted" style={{ fontSize: '14px' }}>
@@ -1125,7 +1132,7 @@ const handleBulkAcceptRetenu = async () => {
 
                       <span className="mx-3 text-muted" style={{ fontSize: '14px' }}>
                         Page {pagination.currentPage + 1} sur {totalPages}
-                    </span>
+                      </span>
 
                       <Button
                         variant="outline-secondary"
@@ -1225,26 +1232,27 @@ const handleBulkAcceptRetenu = async () => {
                 </span>
               }
             >
-              {renderMembershipTable(auditionedMemberships, isLoadingAuditioned, filterTextAuditioned, setFilterTextAuditioned, 'auditioned')}
+              {renderMembershipTable(
+                auditionedMemberships,
+                isLoadingAuditioned,
+                filterTextAuditioned,
+                setFilterTextAuditioned,
+                'auditioned'
+              )}
             </Tab>
           </Tabs>
         </Card.Body>
       </Card>
 
       {/* Evaluation Details Modal */}
-      <Modal 
-        show={showEvaluationModal} 
-        onHide={() => setShowEvaluationModal(false)}
-        centered
-        size="md"
-      >
+      <Modal show={showEvaluationModal} onHide={() => setShowEvaluationModal(false)} centered size="md">
         <Modal.Header closeButton>
           <Modal.Title>
             <FaEye className="me-2" />
             Détails de l'évaluation
           </Modal.Title>
         </Modal.Header>
-        
+
         <Modal.Body>
           {selectedEvaluationData && (
             <div className="evaluation-content">
@@ -1281,10 +1289,13 @@ const handleBulkAcceptRetenu = async () => {
                     <div className="details-section-content">
                       <div className="info-item">
                         <span className="info-label">Statut</span>
-                        <Badge 
+                        <Badge
                           bg={
-                            selectedEvaluationData.decision === 'Retenu' ? 'success' :
-                            selectedEvaluationData.decision === 'Non Retenu' ? 'danger' : 'warning'
+                            selectedEvaluationData.decision === 'Retenu'
+                              ? 'success'
+                              : selectedEvaluationData.decision === 'Non Retenu'
+                                ? 'danger'
+                                : 'warning'
                           }
                         >
                           {selectedEvaluationData.decision}
@@ -1317,7 +1328,7 @@ const handleBulkAcceptRetenu = async () => {
             </div>
           )}
         </Modal.Body>
-        
+
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowEvaluationModal(false)}>
             Fermer
