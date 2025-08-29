@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 import React, { useState, useEffect } from 'react';
 import {
   Container,
@@ -42,10 +43,10 @@ const PresenceList = () => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
 
-  // 🔍 Search functionality
+  // Search functionality
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Angular Material style pagination (0-based like RescheduleCandidate)
+  // Pagination
   const [currentPage, setCurrentPage] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const pageSizeOptions = [5, 10, 25, 50];
@@ -70,11 +71,18 @@ const PresenceList = () => {
   const loadRepetitions = async () => {
     try {
       const data = await getRepetitions();
+
+      if (!data || !Array.isArray(data)) {
+        setRepetitions([]);
+        return;
+      }
+
       // Sort by date (most recent first)
       const sortedData = data.sort((a, b) => new Date(b.date) - new Date(a.date));
       setRepetitions(sortedData);
     } catch (error) {
       console.error('Error loading repetitions:', error);
+      setRepetitions([]);
       Swal.fire('Erreur', 'Erreur lors du chargement des répétitions.', 'error');
     } finally {
       setInitialLoading(false);
@@ -108,7 +116,7 @@ const PresenceList = () => {
     }
   };
 
-  // 🔍 Filter choristes based on search term
+  // Filter choristes based on search term
   const getFilteredChoristes = () => {
     if (!choristesData?.choristes) return [];
     if (!searchTerm.trim()) return choristesData.choristes;
@@ -122,7 +130,7 @@ const PresenceList = () => {
     });
   };
 
-  // 🔍 Handle search change and reset pagination
+  // Handle search change and reset pagination
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
     setCurrentPage(0); // Reset to first page when searching
@@ -166,7 +174,12 @@ const PresenceList = () => {
       setManualReason('');
     } catch (error) {
       console.error('Error adding manual presence:', error);
-      Swal.fire('Erreur', error.response?.data?.message || "Erreur lors de l'ajout de la présence manuelle.", 'error');
+      Swal.fire({
+        title: 'Action Interdite',
+        text: error.response?.data?.message || 'Erreur lors du retrait du participant.',
+        icon: 'warning',
+        confirmButtonText: 'OK'
+      });
     } finally {
       setProcessing(false);
     }
@@ -198,8 +211,12 @@ const PresenceList = () => {
         // Reload data
         await loadChoristesStatus(selectedRepetition.value);
       } catch (error) {
-        console.error('Error removing manual presence:', error);
-        Swal.fire('Erreur', error.response?.data?.message || 'Erreur lors de la suppression.', 'error');
+        Swal.fire({
+          title: 'Action Interdite',
+          text: error.response?.data?.message || 'Erreur lors de la suppression.',
+          icon: 'warning',
+          confirmButtonText: 'OK'
+        });
       } finally {
         setProcessing(false);
       }
@@ -232,25 +249,38 @@ const PresenceList = () => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    try {
+      const date = new Date(dateString);
+
+      if (isNaN(date.getTime())) {
+        return 'Date invalide';
+      }
+
+      return date.toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'Erreur date';
+    }
   };
 
   // Convert repetitions to react-select options
-  const repetitionOptions = repetitions.map((rep) => ({
-    value: rep._id,
-    label: `${formatDate(rep.date)} - ${rep.startTime} à ${rep.endTime} - ${rep.location}`,
-    date: rep.date,
-    startTime: rep.startTime,
-    endTime: rep.endTime,
-    location: rep.location
-  }));
+  const repetitionOptions = repetitions
+    .filter((rep) => rep._id && rep.date && rep.startTime && rep.endTime && rep.location)
+    .map((rep) => ({
+      value: rep._id,
+      label: `${formatDate(rep.date)} - ${rep.startTime} à ${rep.endTime} - ${rep.location}`,
+      date: rep.date,
+      startTime: rep.startTime,
+      endTime: rep.endTime,
+      location: rep.location,
+      pupitres: rep.pupitres
+    }));
 
-  // 🔍 Updated pagination logic with filtered data (0-based like RescheduleCandidate)
+  // Pagination logic
   const getTotalItems = () => getFilteredChoristes().length;
   const getTotalPages = () => Math.ceil(getTotalItems() / itemsPerPage);
   const getStartIndex = () => (getTotalItems() === 0 ? 0 : currentPage * itemsPerPage + 1);
@@ -334,7 +364,7 @@ const PresenceList = () => {
           <div>
             <h4 className="mb-1 fw-bold text-dark">
               <FaEye className="me-3 text-primary" />
-              Gestion des Présences - Chef de Pupitre
+              Gestion des présences - Chef de pupitre
             </h4>
             <p className="text-muted mb-0">Visualisez et gérez les présences de votre pupitre</p>
           </div>
@@ -349,56 +379,57 @@ const PresenceList = () => {
         </Card.Header>
 
         <Card.Body>
-          {/* Repetition Selector with React-Select */}
-          <Row className="mb-4">
-            <Col>
-              <Form.Group>
-                <Form.Label className="fw-semibold mb-2">Sélectionner une répétition</Form.Label>
-                <Select
-                  value={selectedRepetition}
-                  onChange={handleRepetitionChange}
-                  options={repetitionOptions}
-                  placeholder="-- Choisir une répétition --"
-                  isClearable
-                  styles={customSelectStyles}
-                  formatOptionLabel={(option) => (
-                    <div className="py-1">
-                      <div className="fw-semibold text-dark">{formatDate(option.date)}</div>
-                      <small className="text-muted">
-                        {option.startTime} - {option.endTime} • {option.location}
-                      </small>
-                    </div>
-                  )}
-                />
-              </Form.Group>
-            </Col>
-          </Row>
-
-          {/* Repetition Info */}
-          {selectedRepetition && choristesData && (
-            <Alert variant="info" className="border-0 mb-4" style={{ backgroundColor: '#e3f2fd' }}>
-              <Row>
-                <Col md={8}>
-                  <h6 className="mb-1">
-                    <strong>Répétition:</strong> {formatDate(choristesData.repetition.date)}
-                    de {choristesData.repetition.startTime} à {choristesData.repetition.endTime}
-                  </h6>
-                  <div className="text-muted">
-                    <strong>Lieu:</strong> {choristesData.repetition.location}
-                  </div>
-                </Col>
-                <Col md={4} className="text-md-end">
-                  <Badge bg="primary" className="me-2 p-2">
-                    Pupitre: {choristesData.chefPupitre}
-                  </Badge>
-                </Col>
-              </Row>
+          {/* Empty state when no repetitions found */}
+          {repetitions.length === 0 && (
+            <Alert variant="warning" className="text-center mb-4">
+              <FaEye className="mb-2" style={{ fontSize: '2rem', opacity: 0.5 }} />
+              <h6>Aucune répétition disponible</h6>
+              <p className="mb-0">Aucune répétition concernant votre pupitre n'est actuellement programmée.</p>
             </Alert>
+          )}
+
+          {/* Repetition Selector */}
+          {repetitions.length > 0 && (
+            <Row className="mb-4">
+              <Col>
+                <Form.Group>
+                  <Form.Label className="fw-semibold mb-2">Sélectionner une répétition</Form.Label>
+                  <Select
+                    value={selectedRepetition}
+                    onChange={handleRepetitionChange}
+                    options={repetitionOptions}
+                    placeholder="-- Choisir une répétition --"
+                    isClearable
+                    styles={customSelectStyles}
+                    noOptionsMessage={() => 'Aucune répétition disponible'}
+                    formatOptionLabel={(option) => (
+                      <div className="py-1">
+                        <div className="fw-semibold text-dark">{formatDate(option.date)}</div>
+                        <div className="d-flex justify-content-between align-items-center">
+                          <small className="text-muted">
+                            {option.startTime} - {option.endTime} • {option.location}
+                          </small>
+                          {/* {option.pupitres && option.pupitres.length > 0 && (
+                            <div className="d-flex gap-1">
+                              {option.pupitres.map((pupitre, index) => (
+                                <Badge key={index} bg="light" text="dark" className="px-1" style={{ fontSize: '9px' }}>
+                                  {pupitre}
+                                </Badge>
+                              ))}
+                            </div>
+                          )} */}
+                        </div>
+                      </div>
+                    )}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
           )}
 
           {choristesData && (
             <>
-              {/* 🔍 Search Bar */}
+              {/* Search Bar */}
               <div className="mb-3 d-flex justify-content-start">
                 <InputGroup style={{ maxWidth: '400px' }}>
                   <InputGroup.Text>
@@ -502,99 +533,108 @@ const PresenceList = () => {
                     </tbody>
                   </Table>
 
-                  {/* Pagination - Exact RescheduleCandidate Style */}
-                  <div className="d-flex justify-content-between align-items-center p-3 border-top bg-light">
-                    <div className="d-flex align-items-center">
-                      <span className="me-2 text-muted" style={{ fontSize: '14px' }}>
-                        Choristes par page:
-                      </span>
-                      <select
-                        className="form-select form-select-sm"
-                        style={{ width: 'auto' }}
-                        value={itemsPerPage}
-                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                      >
-                        {pageSizeOptions.map((size) => (
-                          <option key={size} value={size}>
-                            {size}
-                          </option>
-                        ))}
-                      </select>
+                  {/* Pagination */}
+                  {getTotalPages() > 1 && (
+                    <div className="d-flex flex-column flex-md-row justify-content-between align-items-center p-2 p-md-3 border-top bg-light gap-2">
+                      <div className="d-flex align-items-center order-2 order-md-1">
+                        <span className="me-2 text-muted" style={{ fontSize: '13px' }}>
+                          <span className="d-none d-sm-inline">Choristes par page:</span>
+                          <span className="d-sm-none">Par page:</span>
+                        </span>
+                        <Select
+                          className="form-select form-select-sm"
+                          style={{ width: 'auto', fontSize: '13px' }}
+                          value={itemsPerPage}
+                          onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                        >
+                          {pageSizeOptions.map((size) => (
+                            <option key={size} value={size}>
+                              {size}
+                            </option>
+                          ))}
+                        </Select>
+                      </div>
+
+                      <div className="text-muted order-1 order-md-2" style={{ fontSize: '13px' }}>
+                        {getStartIndex()}-{getEndIndex()} sur {getTotalItems()}
+                      </div>
+
+                      <div className="d-flex align-items-center order-3">
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          onClick={goToFirstPage}
+                          disabled={isFirstPage()}
+                          className="me-1"
+                          style={{
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            color: isFirstPage() ? '#6c757d' : '#495057',
+                            padding: '4px 8px'
+                          }}
+                          title="Première page"
+                        >
+                          <FaAngleDoubleLeft size={12} />
+                        </Button>
+
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          onClick={goToPreviousPage}
+                          disabled={isFirstPage()}
+                          className="me-2 me-md-3"
+                          style={{
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            color: isFirstPage() ? '#6c757d' : '#495057',
+                            padding: '4px 8px'
+                          }}
+                          title="Page précédente"
+                        >
+                          <FaChevronLeft size={12} />
+                        </Button>
+
+                        <span className="mx-2 mx-md-3 text-muted" style={{ fontSize: '13px' }}>
+                          <span className="d-none d-sm-inline">Page </span>
+                          {currentPage + 1}
+                          <span className="d-none d-sm-inline"> sur {getTotalPages()}</span>
+                        </span>
+
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          onClick={goToNextPage}
+                          disabled={isLastPage()}
+                          className="ms-2 ms-md-3 me-1"
+                          style={{
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            color: isLastPage() ? '#6c757d' : '#495057',
+                            padding: '4px 8px'
+                          }}
+                          title="Page suivante"
+                        >
+                          <FaChevronRight size={12} />
+                        </Button>
+
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          onClick={goToLastPage}
+                          disabled={isLastPage()}
+                          style={{
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            color: isLastPage() ? '#6c757d' : '#495057',
+                            padding: '4px 8px'
+                          }}
+                          title="Dernière page"
+                        >
+                          <FaAngleDoubleRight size={12} />
+                        </Button>
+                      </div>
                     </div>
-
-                    <div className="text-muted" style={{ fontSize: '14px' }}>
-                      {getStartIndex()}-{getEndIndex()} sur {getTotalItems()}
-                    </div>
-
-                    <div className="d-flex align-items-center">
-                      <Button
-                        variant="outline-secondary"
-                        size="sm"
-                        onClick={goToFirstPage}
-                        disabled={isFirstPage()}
-                        className="me-1"
-                        style={{
-                          border: 'none',
-                          backgroundColor: 'transparent',
-                          color: isFirstPage() ? '#6c757d' : '#495057'
-                        }}
-                        title="Première page"
-                      >
-                        <FaAngleDoubleLeft />
-                      </Button>
-
-                      <Button
-                        variant="outline-secondary"
-                        size="sm"
-                        onClick={goToPreviousPage}
-                        disabled={isFirstPage()}
-                        className="me-3"
-                        style={{
-                          border: 'none',
-                          backgroundColor: 'transparent',
-                          color: isFirstPage() ? '#6c757d' : '#495057'
-                        }}
-                        title="Page précédente"
-                      >
-                        <FaChevronLeft />
-                      </Button>
-
-                      <span className="mx-3 text-muted" style={{ fontSize: '14px' }}>
-                        Page {currentPage + 1} sur {getTotalPages()}
-                      </span>
-
-                      <Button
-                        variant="outline-secondary"
-                        size="sm"
-                        onClick={goToNextPage}
-                        disabled={isLastPage()}
-                        className="ms-3 me-1"
-                        style={{
-                          border: 'none',
-                          backgroundColor: 'transparent',
-                          color: isLastPage() ? '#6c757d' : '#495057'
-                        }}
-                        title="Page suivante"
-                      >
-                        <FaChevronRight />
-                      </Button>
-
-                      <Button
-                        variant="outline-secondary"
-                        size="sm"
-                        onClick={goToLastPage}
-                        disabled={isLastPage()}
-                        style={{
-                          border: 'none',
-                          backgroundColor: 'transparent',
-                          color: isLastPage() ? '#6c757d' : '#495057'
-                        }}
-                        title="Dernière page"
-                      >
-                        <FaAngleDoubleRight />
-                      </Button>
-                    </div>
-                  </div>
+                  )}
                 </>
               )}
             </>
@@ -602,7 +642,7 @@ const PresenceList = () => {
         </Card.Body>
       </Card>
 
-      {/* Professional Manual Presence Modal */}
+      {/* Manual Presence Modal */}
       <Modal show={showManualModal} onHide={() => !processing && setShowManualModal(false)} size="lg" centered>
         <Modal.Header closeButton className="border-bottom">
           <Modal.Title className="h5 fw-semibold">

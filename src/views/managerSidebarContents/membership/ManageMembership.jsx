@@ -1,3 +1,4 @@
+/* eslint-disable default-case */
 /* eslint-disable react/prop-types */
 
 /* eslint-disable no-unused-vars */
@@ -124,7 +125,7 @@ const ManageMembership = () => {
     { value: '', label: 'Toutes les décisions' },
     { value: 'Retenu', label: 'Retenu' },
     { value: 'Non Retenu', label: 'Non Retenu' },
-    { value: 'En attente', label: 'En attente' }
+    { value: 'En Attente', label: 'En Attente' }
   ];
 
   // Custom styles for Select components
@@ -453,38 +454,6 @@ const ManageMembership = () => {
     });
   };
 
-  // const handleAcceptMember = async (id) => {
-  //   Swal.fire({
-  //     title: 'Accepter ce candidat?',
-  //     text: 'Êtes-vous sûr de vouloir accepter ce candidat?',
-  //     icon: 'question',
-  //     showCancelButton: true,
-  //     confirmButtonColor: '#28a745',
-  //     cancelButtonColor: '#6c757d',
-  //     confirmButtonText: 'Oui, accepter',
-  //     cancelButtonText: 'Annuler'
-  //   }).then(async (result) => {
-  //     if (result.isConfirmed) {
-  //       try {
-  //         Swal.fire({ title: 'Acceptation en cours...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-  //         await acceptMembership(id);
-  //         Swal.fire({
-  //           icon: 'success',
-  //           title: 'Candidat accepté',
-  //           text: 'Le candidat a été accepté avec succès.'
-  //         });
-  //         setRefreshTrigger((prev) => prev + 1);
-  //       } catch (error) {
-  //         Swal.fire({
-  //           icon: 'error',
-  //           title: 'Erreur',
-  //           text: "Impossible d'accepter le candidat."
-  //         });
-  //       }
-  //     }
-  //   });
-  // };
-
   // ✅ Simplified bulk accept - just loading + background polling
   const handleBulkAcceptRetenu = async () => {
     const retenuCount = getRetenuCandidatesCount();
@@ -663,9 +632,9 @@ const ManageMembership = () => {
 
     return (
       <>
-        {/* Search and Filter Controls */}
-        <Row className="mb-3 align-items-center">
-          <Col md={3}>
+        {/* ✅ RESPONSIVE: Search and Filter Controls */}
+        <Row className="mb-3 align-items-center g-3">
+          <Col lg={3} md={6} sm={12}>
             <div className="position-relative">
               <Form.Control
                 type="text"
@@ -713,7 +682,7 @@ const ManageMembership = () => {
             </div>
           </Col>
 
-          <Col md={3}>
+          <Col lg={3} md={6} sm={12}>
             <Select
               value={alphabeticFilter}
               onChange={(selected) => {
@@ -731,7 +700,7 @@ const ManageMembership = () => {
           {/* Tab 2 specific filters */}
           {tabType === 'scheduled' && (
             <>
-              <Col md={3}>
+              <Col lg={3} md={6} sm={12}>
                 <Select
                   value={selectedDate}
                   onChange={(selected) => {
@@ -745,7 +714,7 @@ const ManageMembership = () => {
                   styles={selectStyles}
                 />
               </Col>
-              <Col md={3}>
+              <Col lg={3} md={6} sm={12}>
                 <Select
                   value={selectedTimeRange}
                   onChange={(selected) => {
@@ -764,50 +733,54 @@ const ManageMembership = () => {
 
           {/* Tab 3 specific filter for decisions */}
           {tabType === 'auditioned' && (
-            <Col md={3}>
-              <Select
-                value={selectedDecision}
-                onChange={(selected) => {
-                  setSelectedDecision(selected);
-                  handlePageChange(tabType, 0);
-                }}
-                options={decisionOptions}
-                placeholder="Filtrer par décision"
-                isClearable={true}
-                isSearchable={false}
-                styles={selectStyles}
-              />
-            </Col>
+            <>
+              <Col lg={3} md={6} sm={12}>
+                <Select
+                  value={selectedDecision}
+                  onChange={(selected) => {
+                    setSelectedDecision(selected);
+                    handlePageChange(tabType, 0);
+                  }}
+                  options={decisionOptions}
+                  placeholder="Filtrer par décision"
+                  isClearable={true}
+                  isSearchable={false}
+                  styles={selectStyles}
+                />
+              </Col>
+              <Col lg={3} md={6} sm={12} className="text-end">
+                {/* Bulk Accept Button for Auditioned Tab */}
+                <Button
+                  variant="success"
+                  onClick={handleBulkAcceptRetenu}
+                  disabled={getRetenuCandidatesCount() === 0 || isBulkAccepting}
+                  size="sm"
+                  className="w-100 w-lg-auto"
+                  style={{
+                    borderRadius: '8px',
+                    fontWeight: '500',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  {isBulkAccepting ? (
+                    <>
+                      <Spinner animation="border" size="sm" className="me-2" />
+                      Traitement...
+                    </>
+                  ) : (
+                    <>
+                      <FaCheckDouble className="me-1" />
+                      <span className="d-none d-sm-inline">Accepter les retenus ({getRetenuCandidatesCount()})</span>
+                      <span className="d-sm-none">Accepter ({getRetenuCandidatesCount()})</span>
+                    </>
+                  )}
+                </Button>
+              </Col>
+            </>
           )}
 
-          <Col md={tabType === 'scheduled' ? 2 : tabType === 'auditioned' ? 3 : 6} className="text-end">
-            {/* Bulk Accept Button for Auditioned Tab */}
-            {tabType === 'auditioned' && (
-              <Button
-                variant="success"
-                onClick={handleBulkAcceptRetenu}
-                disabled={getRetenuCandidatesCount() === 0 || isBulkAccepting}
-                size="sm"
-                style={{
-                  borderRadius: '8px',
-                  fontWeight: '500',
-                  fontSize: '0.875rem'
-                }}
-              >
-                {isBulkAccepting ? (
-                  <>
-                    <Spinner animation="border" size="sm" className="me-2" />
-                    Traitement...
-                  </>
-                ) : (
-                  <>
-                    <FaCheckDouble className="me-1" />
-                    Accepter les retenus ({getRetenuCandidatesCount()})
-                  </>
-                )}
-              </Button>
-            )}
-          </Col>
+          {/* For other tabs, add empty column to maintain grid */}
+          {tabType !== 'auditioned' && tabType !== 'scheduled' && <Col lg={6} md={12} sm={12}></Col>}
         </Row>
 
         {/* Table */}
@@ -1072,16 +1045,17 @@ const ManageMembership = () => {
                   </tbody>
                 </Table>
 
-                {/* Pagination */}
+                {/* ✅ RESPONSIVE: Pagination */}
                 {filteredMemberships.length > 0 && (
-                  <div className="d-flex justify-content-between align-items-center p-3 border-top bg-light">
-                    <div className="d-flex align-items-center">
-                      <span className="me-2 text-muted" style={{ fontSize: '14px' }}>
-                        Candidats par page:
+                  <div className="d-flex flex-column flex-md-row justify-content-between align-items-center p-2 p-md-3 border-top bg-light gap-2">
+                    <div className="d-flex align-items-center order-2 order-md-1">
+                      <span className="me-2 text-muted" style={{ fontSize: '13px' }}>
+                        <span className="d-none d-sm-inline">Candidats par page:</span>
+                        <span className="d-sm-none">Par page:</span>
                       </span>
                       <select
                         className="form-select form-select-sm"
-                        style={{ width: 'auto' }}
+                        style={{ width: 'auto', fontSize: '13px' }}
                         value={pagination.itemsPerPage}
                         onChange={(e) => handlePageSizeChange(tabType, Number(e.target.value))}
                       >
@@ -1093,11 +1067,11 @@ const ManageMembership = () => {
                       </select>
                     </div>
 
-                    <div className="text-muted" style={{ fontSize: '14px' }}>
+                    <div className="text-muted order-1 order-md-2" style={{ fontSize: '13px' }}>
                       {startIndex}-{endIndex} sur {filteredMemberships.length}
                     </div>
 
-                    <div className="d-flex align-items-center">
+                    <div className="d-flex align-items-center order-3">
                       <Button
                         variant="outline-secondary"
                         size="sm"
@@ -1107,11 +1081,12 @@ const ManageMembership = () => {
                         style={{
                           border: 'none',
                           backgroundColor: 'transparent',
-                          color: isFirstPage ? '#6c757d' : '#495057'
+                          color: isFirstPage ? '#6c757d' : '#495057',
+                          padding: '4px 8px'
                         }}
                         title="Première page"
                       >
-                        <FaAngleDoubleLeft />
+                        <FaAngleDoubleLeft size={12} />
                       </Button>
 
                       <Button
@@ -1119,19 +1094,22 @@ const ManageMembership = () => {
                         size="sm"
                         onClick={() => handlePageChange(tabType, pagination.currentPage - 1)}
                         disabled={isFirstPage}
-                        className="me-3"
+                        className="me-2 me-md-3"
                         style={{
                           border: 'none',
                           backgroundColor: 'transparent',
-                          color: isFirstPage ? '#6c757d' : '#495057'
+                          color: isFirstPage ? '#6c757d' : '#495057',
+                          padding: '4px 8px'
                         }}
                         title="Page précédente"
                       >
-                        <FaChevronLeft />
+                        <FaChevronLeft size={12} />
                       </Button>
 
-                      <span className="mx-3 text-muted" style={{ fontSize: '14px' }}>
-                        Page {pagination.currentPage + 1} sur {totalPages}
+                      <span className="mx-2 mx-md-3 text-muted" style={{ fontSize: '13px' }}>
+                        <span className="d-none d-sm-inline">Page </span>
+                        {pagination.currentPage + 1}
+                        <span className="d-none d-sm-inline"> sur {totalPages}</span>
                       </span>
 
                       <Button
@@ -1139,15 +1117,16 @@ const ManageMembership = () => {
                         size="sm"
                         onClick={() => handlePageChange(tabType, pagination.currentPage + 1)}
                         disabled={isLastPage}
-                        className="ms-3 me-1"
+                        className="ms-2 ms-md-3 me-1"
                         style={{
                           border: 'none',
                           backgroundColor: 'transparent',
-                          color: isLastPage ? '#6c757d' : '#495057'
+                          color: isLastPage ? '#6c757d' : '#495057',
+                          padding: '4px 8px'
                         }}
                         title="Page suivante"
                       >
-                        <FaChevronRight />
+                        <FaChevronRight size={12} />
                       </Button>
 
                       <Button
@@ -1158,11 +1137,12 @@ const ManageMembership = () => {
                         style={{
                           border: 'none',
                           backgroundColor: 'transparent',
-                          color: isLastPage ? '#6c757d' : '#495057'
+                          color: isLastPage ? '#6c757d' : '#495057',
+                          padding: '4px 8px'
                         }}
                         title="Dernière page"
                       >
-                        <FaAngleDoubleRight />
+                        <FaAngleDoubleRight size={12} />
                       </Button>
                     </div>
                   </div>
@@ -1200,7 +1180,8 @@ const ManageMembership = () => {
                   <Badge bg="primary" pill className="me-2">
                     {pendingMemberships.length}
                   </Badge>
-                  En attente d'audition
+                  <span className="d-none d-sm-inline">En attente d'audition</span>
+                  <span className="d-sm-none">En attente</span>
                 </span>
               }
             >
@@ -1214,7 +1195,8 @@ const ManageMembership = () => {
                   <Badge bg="warning" pill className="me-2">
                     {scheduledMemberships.length}
                   </Badge>
-                  Audition programmée
+                  <span className="d-none d-sm-inline">Audition programmée</span>
+                  <span className="d-sm-none">Programmée</span>
                 </span>
               }
             >
@@ -1228,7 +1210,8 @@ const ManageMembership = () => {
                   <Badge bg="success" pill className="me-2">
                     {auditionedMemberships.length}
                   </Badge>
-                  Audition effectuée
+                  <span className="d-none d-sm-inline">Audition effectuée</span>
+                  <span className="d-sm-none">Effectuée</span>
                 </span>
               }
             >

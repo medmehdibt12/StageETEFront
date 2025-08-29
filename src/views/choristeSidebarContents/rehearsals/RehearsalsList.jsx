@@ -16,7 +16,7 @@ const TIME_FILTER_OPTIONS = [
 ];
 
 const RehearsalsList = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   // État pour le filtre "À venir / Passées / Tous" et pour la recherche par lieu
   const [timeFilter, setTimeFilter] = useState(TIME_FILTER_OPTIONS[0]);
@@ -52,8 +52,10 @@ const RehearsalsList = () => {
 
   const handleMarkPresence = async (id) => {
     setMarkingIds((prev) => [...prev, id]);
+
     try {
       await markRepetitionPresence(id);
+
       Swal.fire({
         toast: true,
         position: 'top-end',
@@ -63,13 +65,17 @@ const RehearsalsList = () => {
         timer: 3000,
         timerProgressBar: true
       });
-      await fetchRepetitions();
-    } catch (err) {
-      const msg = err?.response?.data?.message;
+
+      await Promise.all([fetchRepetitions(), refreshUser()]);
+    } catch (error) {
+      console.error('Error marking presence:', error);
+
+      const errorMessage = error?.response?.data?.message || "Impossible d'enregistrer la présence.";
+
       Swal.fire({
         icon: 'error',
         title: 'Erreur',
-        text: msg || "Impossible d'enregistrer la présence."
+        text: errorMessage
       });
     } finally {
       setMarkingIds((prev) => prev.filter((x) => x !== id));
@@ -97,8 +103,10 @@ const RehearsalsList = () => {
     if (!reason) return;
 
     setMarkingIds((prev) => [...prev, id]);
+
     try {
       await markRepetitionAbsence(id, reason);
+
       Swal.fire({
         toast: true,
         position: 'top-end',
@@ -108,9 +116,18 @@ const RehearsalsList = () => {
         timer: 3000,
         timerProgressBar: true
       });
-      await fetchRepetitions();
-    } catch (err) {
-      Swal.fire('Erreur', err?.response?.data?.message || 'Échec', 'error');
+
+      await Promise.all([fetchRepetitions(), refreshUser()]);
+    } catch (error) {
+      console.error('Error marking absence:', error);
+
+      const errorMessage = error?.response?.data?.message || "Échec lors de l'enregistrement de l'absence.";
+
+      Swal.fire({
+        icon: 'error',
+        title: 'Erreur',
+        text: errorMessage
+      });
     } finally {
       setMarkingIds((prev) => prev.filter((x) => x !== id));
     }
@@ -181,6 +198,60 @@ const RehearsalsList = () => {
     }
   };
 
+  // ✅ PRESENCE/ABSENCE CHECKING (no elimination logic)
+  const getUserPresenceStatus = (rep) => {
+    const userId = user?._id?.toString();
+    if (!userId) return { isPresent: false, isAbsent: false };
+
+    // 1. Check in presentChoristes (can be ObjectIds or populated objects)
+    let isInPresentList = false;
+    if (rep.presentChoristes && Array.isArray(rep.presentChoristes)) {
+      isInPresentList = rep.presentChoristes.some((choriste) => {
+        const choristeId = typeof choriste === 'object' && choriste._id ? choriste._id.toString() : choriste.toString();
+        return choristeId === userId;
+      });
+    }
+
+    // 2. Check in absentChoristes (array of objects with choriste field)
+    let isInAbsentList = false;
+    if (rep.absentChoristes && Array.isArray(rep.absentChoristes)) {
+      isInAbsentList = rep.absentChoristes.some((absent) => {
+        if (!absent.choriste) return false;
+        const choristeId =
+          typeof absent.choriste === 'object' && absent.choriste._id ? absent.choriste._id.toString() : absent.choriste.toString();
+        return choristeId === userId;
+      });
+    }
+
+    // 3. Check in manualPresences for 'present' type
+    let manualPresent = false;
+    if (rep.manualPresences && Array.isArray(rep.manualPresences)) {
+      manualPresent = rep.manualPresences.some((manual) => {
+        if (!manual.choriste || manual.type !== 'present') return false;
+        const choristeId =
+          typeof manual.choriste === 'object' && manual.choriste._id ? manual.choriste._id.toString() : manual.choriste.toString();
+        return choristeId === userId;
+      });
+    }
+
+    // 4. Check in manualPresences for 'absent' type
+    let manualAbsent = false;
+    if (rep.manualPresences && Array.isArray(rep.manualPresences)) {
+      manualAbsent = rep.manualPresences.some((manual) => {
+        if (!manual.choriste || manual.type !== 'absent') return false;
+        const choristeId =
+          typeof manual.choriste === 'object' && manual.choriste._id ? manual.choriste._id.toString() : manual.choriste.toString();
+        return choristeId === userId;
+      });
+    }
+
+    // Final determination
+    const isPresent = isInPresentList || manualPresent;
+    const isAbsent = isInAbsentList || manualAbsent;
+
+    return { isPresent, isAbsent };
+  };
+
   // 1) Filtrer par "À venir / Passées / Tous" en utilisant isPastEnd
   const filteredByTime = repetitions.filter((rep) => {
     const isPast = isPastEnd(rep.date, rep.endTime);
@@ -220,11 +291,11 @@ const RehearsalsList = () => {
     <Container fluid className="p-4" style={{ maxWidth: '1400px' }}>
       {/* ✅ HEADER SECTION */}
       <div className="mb-4">
-        <h2 className="fw-bold text-dark mb-1">
+        {/* <h2 className="fw-bold text-dark mb-1">
           <FaUserCheck className="me-3 text-primary" />
           Mes Répétitions
         </h2>
-        <p className="text-muted mb-4">Gérez votre présence aux répétitions de l'orchestre</p>
+        <p className="text-muted mb-4">Gérez votre présence aux répétitions de l'orchestre</p> */}
 
         {/* ✅ FILTERS SECTION */}
         <Row className="align-items-center g-3">
@@ -312,9 +383,13 @@ const RehearsalsList = () => {
               const beyond75 = hasPassed75Percent(repDateStr, repStartTime, repEndTime);
               const pastEnd = isPastEnd(repDateStr, repEndTime);
 
-              const markedPresent = rep.presentChoristes?.includes(user?._id);
-              const markedAbsent = rep.absentChoristes?.some((a) => a.choriste === user?._id);
+              // ✅ SIMPLIFIED: Only check presence/absence (no elimination)
+              const { isPresent: markedPresent, isAbsent: markedAbsent } = getUserPresenceStatus(rep);
+
               const isMarking = markingIds.includes(rep._id);
+
+              // ✅ SIMPLIFIED: Check if automatically absent (past end and no action taken)
+              const isAutoAbsent = pastEnd && !markedPresent && !markedAbsent;
 
               let actionButtons = null;
 
@@ -341,7 +416,15 @@ const RehearsalsList = () => {
                   </Button>
                 );
 
-                // 3) Déjà marqué "Absent"
+                // 3) Auto-absent (past end, no action taken) - RED BUTTON
+              } else if (isAutoAbsent) {
+                actionButtons = (
+                  <Button variant="danger" disabled size="sm" className="w-100" style={{ borderRadius: '12px', fontWeight: '500' }}>
+                    <XCircle size={16} className="me-2" /> Absent (par défaut)
+                  </Button>
+                );
+
+                // 4) Déjà marqué "Absent" - RED BUTTON
               } else if (markedAbsent) {
                 actionButtons = (
                   <Button variant="danger" disabled size="sm" className="w-100" style={{ borderRadius: '12px', fontWeight: '500' }}>
@@ -349,7 +432,7 @@ const RehearsalsList = () => {
                   </Button>
                 );
 
-                // 4) Déjà marqué "Présent"
+                // 5) Déjà marqué "Présent" - GREEN BUTTON
               } else if (markedPresent) {
                 actionButtons = (
                   <Button variant="success" disabled size="sm" className="w-100" style={{ borderRadius: '12px', fontWeight: '500' }}>
@@ -357,7 +440,7 @@ const RehearsalsList = () => {
                   </Button>
                 );
 
-                // 5) Avant 75 % de la durée : les deux boutons sont actifs
+                // 6) Avant 75 % de la durée : les deux boutons sont actifs
               } else if (!beyond75 && !pastEnd) {
                 actionButtons = (
                   <div className="d-grid gap-2">
@@ -382,7 +465,7 @@ const RehearsalsList = () => {
                   </div>
                 );
 
-                // 6) À partir de 75 % de la durée, on désactive "Je suis présent"
+                // 7) À partir de 75 % de la durée, on désactive "Je suis présent"
               } else {
                 actionButtons = (
                   <div className="d-grid gap-2">
@@ -409,11 +492,26 @@ const RehearsalsList = () => {
                     className="h-100 shadow-sm border-0"
                     style={{
                       borderRadius: '16px',
-                      transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                      // ✅ SIMPLIFIED: Visual indicator only for presence/absence
+                      ...(isAutoAbsent && {
+                        border: '2px solid #dc2626',
+                        opacity: 0.85
+                      }),
+                      // ✅ GREEN border for present
+                      ...(markedPresent && {
+                        border: '2px solid #10b981'
+                      }),
+                      // ✅ RED border for absent
+                      ...(markedAbsent && {
+                        border: '2px solid #dc2626'
+                      })
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-4px)';
-                      e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.1)';
+                      if (!isAutoAbsent) {
+                        e.currentTarget.style.transform = 'translateY(-4px)';
+                        e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.1)';
+                      }
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'translateY(0)';
@@ -424,9 +522,15 @@ const RehearsalsList = () => {
                     <Card.Header
                       className="border-0 text-white d-flex align-items-center justify-content-between"
                       style={{
-                        background: pastEnd
-                          ? 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)'
-                          : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                        background: isAutoAbsent
+                          ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' // Red for auto-absent
+                          : markedPresent
+                            ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' // Green for present
+                            : markedAbsent
+                              ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' // Red for absent
+                              : pastEnd
+                                ? 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)'
+                                : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
                         borderRadius: '16px 16px 0 0'
                       }}
                     >
@@ -436,11 +540,36 @@ const RehearsalsList = () => {
                           {rep.location}
                         </span>
                       </div>
-                      {getTimeStatus(repDateStr, repStartTime, repEndTime)}
+                      {isAutoAbsent ? (
+                        <Badge bg="light" text="dark" className="ms-2">
+                          Absent
+                        </Badge>
+                      ) : markedPresent ? (
+                        <Badge bg="light" text="dark" className="ms-2">
+                          Présent
+                        </Badge>
+                      ) : markedAbsent ? (
+                        <Badge bg="light" text="dark" className="ms-2">
+                          Absent
+                        </Badge>
+                      ) : (
+                        getTimeStatus(repDateStr, repStartTime, repEndTime)
+                      )}
                     </Card.Header>
 
                     {/* ✅ CARD BODY */}
                     <Card.Body className="p-4">
+                      {/* ✅ SIMPLIFIED: Only auto-absent notice (no elimination) */}
+                      {isAutoAbsent && (
+                        <div className="alert alert-warning mb-3 p-3" style={{ borderRadius: '12px', fontSize: '13px' }}>
+                          <div className="d-flex align-items-center">
+                            <XCircle size={16} className="me-2" />
+                            <strong>Marqué absent automatiquement</strong>
+                          </div>
+                          <small className="text-muted">Aucune action prise avant la fin de la répétition</small>
+                        </div>
+                      )}
+
                       <div className="rehearsal-details mb-4">
                         <div className="d-flex align-items-center mb-3">
                           <Calendar size={18} className="text-primary me-3" />
@@ -475,16 +604,17 @@ const RehearsalsList = () => {
             })}
           </Row>
 
-          {/* ✅ PROFESSIONAL PAGINATION */}
+          {/* ✅ RESPONSIVE: Professional Pagination */}
           {getTotalPages() > 1 && (
-            <div className="d-flex justify-content-between align-items-center p-3 mt-4 border-top bg-light rounded">
-              <div className="d-flex align-items-center">
-                <span className="me-2 text-muted" style={{ fontSize: '14px' }}>
-                  Répétitions par page:
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-center p-2 p-md-3 mt-4 border-top bg-light rounded gap-2">
+              <div className="d-flex align-items-center order-2 order-md-1">
+                <span className="me-2 text-muted" style={{ fontSize: '13px' }}>
+                  <span className="d-none d-sm-inline">Répétitions par page:</span>
+                  <span className="d-sm-none">Par page:</span>
                 </span>
                 <select
                   className="form-select form-select-sm"
-                  style={{ width: 'auto' }}
+                  style={{ width: 'auto', fontSize: '13px' }}
                   value={itemsPerPage}
                   onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                 >
@@ -496,52 +626,78 @@ const RehearsalsList = () => {
                 </select>
               </div>
 
-              <div className="text-muted" style={{ fontSize: '14px' }}>
+              <div className="text-muted order-1 order-md-2" style={{ fontSize: '13px' }}>
                 {getStartIndex()}-{getEndIndex()} sur {getTotalItems()}
               </div>
 
-              <div className="d-flex align-items-center">
+              <div className="d-flex align-items-center order-3">
                 <Button
                   variant="outline-secondary"
                   size="sm"
                   onClick={goToFirstPage}
                   disabled={isFirstPage()}
                   className="me-1"
-                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                  style={{
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    color: isFirstPage() ? '#6c757d' : '#495057',
+                    padding: '4px 8px'
+                  }}
+                  title="Première page"
                 >
-                  <FaAngleDoubleLeft />
+                  <FaAngleDoubleLeft size={12} />
                 </Button>
                 <Button
                   variant="outline-secondary"
                   size="sm"
                   onClick={goToPreviousPage}
                   disabled={isFirstPage()}
-                  className="me-3"
-                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                  className="me-2 me-md-3"
+                  style={{
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    color: isFirstPage() ? '#6c757d' : '#495057',
+                    padding: '4px 8px'
+                  }}
+                  title="Page précédente"
                 >
-                  <FaChevronLeft />
+                  <FaChevronLeft size={12} />
                 </Button>
-                <span className="mx-3 text-muted" style={{ fontSize: '14px' }}>
-                  Page {currentPage + 1} sur {getTotalPages()}
+                <span className="mx-2 mx-md-3 text-muted" style={{ fontSize: '13px' }}>
+                  <span className="d-none d-sm-inline">Page </span>
+                  {currentPage + 1}
+                  <span className="d-none d-sm-inline"> sur {getTotalPages()}</span>
                 </span>
                 <Button
                   variant="outline-secondary"
                   size="sm"
                   onClick={goToNextPage}
                   disabled={isLastPage()}
-                  className="ms-3 me-1"
-                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                  className="ms-2 ms-md-3 me-1"
+                  style={{
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    color: isLastPage() ? '#6c757d' : '#495057',
+                    padding: '4px 8px'
+                  }}
+                  title="Page suivante"
                 >
-                  <FaChevronRight />
+                  <FaChevronRight size={12} />
                 </Button>
                 <Button
                   variant="outline-secondary"
                   size="sm"
                   onClick={goToLastPage}
                   disabled={isLastPage()}
-                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                  style={{
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    color: isLastPage() ? '#6c757d' : '#495057',
+                    padding: '4px 8px'
+                  }}
+                  title="Dernière page"
                 >
-                  <FaAngleDoubleRight />
+                  <FaAngleDoubleRight size={12} />
                 </Button>
               </div>
             </div>

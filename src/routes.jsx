@@ -50,7 +50,7 @@ const routes = [
   },
   {
     path: '/confirm-email',
-    element: lazy(() => import('./views/public/ConfirmEmailSuccess'))
+    element: lazy(() => import('./views/candidate/public/ConfirmEmailSuccess'))
   },
   // 🎯 NEW: Public convocation response route (no auth required)
   {
@@ -86,10 +86,6 @@ const routes = [
       },
 
       {
-        path: '/admin/manage-choriste',
-        element: lazy(() => import('./views/adminSidebarContents/choriste/ManageChoriste'))
-      },
-      {
         path: '/admin/manage-concerts',
         element: lazy(() => import('./views/adminSidebarContents/concerts/ManageConcerts'))
       },
@@ -112,7 +108,7 @@ const routes = [
       // 🔽 Choriste Pages
       {
         path: '/choriste/season-programme',
-        element: lazy(() => import('./views/choristeSidebarContents/season/SeasonProgramme'))
+        element: lazy(() => import('./views/common/season/SeasonProgramme'))
       },
       {
         path: '/choriste/declare-conge',
@@ -130,7 +126,7 @@ const routes = [
       // 🔽 Manager Pages
       {
         path: '/program/season-programme',
-        element: lazy(() => import('./views/choristeSidebarContents/season/SeasonProgramme'))
+        element: lazy(() => import('./views/common/season/SeasonProgramme'))
       },
       {
         path: '/manager/manage-duty',
@@ -146,11 +142,11 @@ const routes = [
       },
       {
         path: '/manager/manage-auditions',
-        element: lazy(() => import('./views/adminSidebarContents/auditions/ManageAuditions'))
+        element: lazy(() => import('./views/managerSidebarContents/auditions/ManageAuditions'))
       },
       {
         path: '/manager/manage-membership',
-        element: lazy(() => import('./views/adminSidebarContents/membership/ManageMembership'))
+        element: lazy(() => import('./views/managerSidebarContents/membership/ManageMembership'))
       },
       {
         path: '/manager/manage-chef',
@@ -159,6 +155,14 @@ const routes = [
       {
         path: '/manager/absence-list',
         element: lazy(() => import('./views/managerSidebarContents/absencelist/AbsenceReport'))
+      },
+      {
+        path: '/manager/manage-rep-forpupitre',
+        element: lazy(() => import('./views/managerSidebarContents/repTimeChange/ManagerNotifications'))
+      },
+      {
+        path: '/manager/manage-chart',
+        element: lazy(() => import('./views/managerSidebarContents/chart/ManageChart'))
       },
 
       // 🔽 Chef Choeur Pages
@@ -172,9 +176,10 @@ const routes = [
         element: lazy(() => import('./views/chefpupitreSidebarContents/presence/PresenceList'))
       },
       {
-        path: '/chefpupitre/manage-rep-forpupitre',
-        element: lazy(() => import('./views/chefpupitreSidebarContents/notifhispupitre/ChefPupitreNotifications'))
+        path: '/chefpupitre/final-participants',
+        element: lazy(() => import('./views/chefpupitreSidebarContents/participants/PupitreFinalParticipants'))
       },
+
       {
         path: '*',
         exact: 'true',

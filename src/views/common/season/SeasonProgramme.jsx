@@ -211,7 +211,7 @@ const SeasonProgramme = () => {
           .swal2-programme-btn { background: rgb(76, 89, 104) !important; color: white !important; border-radius: 22px; padding: 8px 26px !important; font-size: 14px !important; }
         </style>
         <div class="prog-modal-container">
-          <div class="prog-header"><h1>Orchestre Symphonique de Carthage</h1></div>
+          <div class="prog-header"><h1>Carthage Symphony Orchestra</h1></div>
           <div class="prog-subheader">
             <img src="../../src/assets/images/music.png" alt="CSO Logo" />
             <p>Programme du ${formattedDate}</p>
@@ -249,7 +249,7 @@ const SeasonProgramme = () => {
                 : "<em style='color: gray;'>Aucune répétition prévue</em>"
             }
           </div>
-          <div class="prog-footer">Orchestre Symphonique de Carthage</div>
+          <div class="prog-footer">Carthage Symphony Orchestra</div>
         </div>
       `,
         customClass: {
@@ -272,11 +272,11 @@ const SeasonProgramme = () => {
     <Container fluid className="p-4" style={{ maxWidth: '1400px' }}>
       {/* ✅ HEADER SECTION */}
       <div className="mb-4">
-        <h2 className="fw-bold text-dark mb-1">
+        {/* <h2 className="fw-bold text-dark mb-1">
           <FaMusic className="me-3 text-primary" />
           Programme de la Saison
         </h2>
-        <p className="text-muted mb-4">Découvrez tous les concerts de l'Orchestre Symphonique de Carthage</p>
+        <p className="text-muted mb-4">Découvrez tous les concerts de l'</p> */}
 
         {/* ✅ FILTERS SECTION */}
         <Row className="align-items-center g-3">
@@ -462,16 +462,17 @@ const SeasonProgramme = () => {
             })}
           </Row>
 
-          {/* ✅ PROFESSIONAL PAGINATION */}
+          {/* ✅ RESPONSIVE: Professional Pagination */}
           {getTotalPages() > 1 && (
-            <div className="d-flex justify-content-between align-items-center p-3 mt-4 border-top bg-light rounded">
-              <div className="d-flex align-items-center">
-                <span className="me-2 text-muted" style={{ fontSize: '14px' }}>
-                  Concerts par page:
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-center p-2 p-md-3 mt-4 border-top bg-light rounded gap-2">
+              <div className="d-flex align-items-center order-2 order-md-1">
+                <span className="me-2 text-muted" style={{ fontSize: '13px' }}>
+                  <span className="d-none d-sm-inline">Concerts par page:</span>
+                  <span className="d-sm-none">Par page:</span>
                 </span>
                 <select
                   className="form-select form-select-sm"
-                  style={{ width: 'auto' }}
+                  style={{ width: 'auto', fontSize: '13px' }}
                   value={itemsPerPage}
                   onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                 >
@@ -483,52 +484,78 @@ const SeasonProgramme = () => {
                 </select>
               </div>
 
-              <div className="text-muted" style={{ fontSize: '14px' }}>
+              <div className="text-muted order-1 order-md-2" style={{ fontSize: '13px' }}>
                 {getStartIndex()}-{getEndIndex()} sur {getTotalItems()}
               </div>
 
-              <div className="d-flex align-items-center">
+              <div className="d-flex align-items-center order-3">
                 <Button
                   variant="outline-secondary"
                   size="sm"
                   onClick={goToFirstPage}
                   disabled={isFirstPage()}
                   className="me-1"
-                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                  style={{
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    color: isFirstPage() ? '#6c757d' : '#495057',
+                    padding: '4px 8px'
+                  }}
+                  title="Première page"
                 >
-                  <FaAngleDoubleLeft />
+                  <FaAngleDoubleLeft size={12} />
                 </Button>
                 <Button
                   variant="outline-secondary"
                   size="sm"
                   onClick={goToPreviousPage}
                   disabled={isFirstPage()}
-                  className="me-3"
-                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                  className="me-2 me-md-3"
+                  style={{
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    color: isFirstPage() ? '#6c757d' : '#495057',
+                    padding: '4px 8px'
+                  }}
+                  title="Page précédente"
                 >
-                  <FaChevronLeft />
+                  <FaChevronLeft size={12} />
                 </Button>
-                <span className="mx-3 text-muted" style={{ fontSize: '14px' }}>
-                  Page {currentPage + 1} sur {getTotalPages()}
+                <span className="mx-2 mx-md-3 text-muted" style={{ fontSize: '13px' }}>
+                  <span className="d-none d-sm-inline">Page </span>
+                  {currentPage + 1}
+                  <span className="d-none d-sm-inline"> sur {getTotalPages()}</span>
                 </span>
                 <Button
                   variant="outline-secondary"
                   size="sm"
                   onClick={goToNextPage}
                   disabled={isLastPage()}
-                  className="ms-3 me-1"
-                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                  className="ms-2 ms-md-3 me-1"
+                  style={{
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    color: isLastPage() ? '#6c757d' : '#495057',
+                    padding: '4px 8px'
+                  }}
+                  title="Page suivante"
                 >
-                  <FaChevronRight />
+                  <FaChevronRight size={12} />
                 </Button>
                 <Button
                   variant="outline-secondary"
                   size="sm"
                   onClick={goToLastPage}
                   disabled={isLastPage()}
-                  style={{ border: 'none', backgroundColor: 'transparent' }}
+                  style={{
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    color: isLastPage() ? '#6c757d' : '#495057',
+                    padding: '4px 8px'
+                  }}
+                  title="Dernière page"
                 >
-                  <FaAngleDoubleRight />
+                  <FaAngleDoubleRight size={12} />
                 </Button>
               </div>
             </div>

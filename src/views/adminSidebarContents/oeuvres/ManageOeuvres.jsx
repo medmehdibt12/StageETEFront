@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { BACKEND_URL } from '../../../utils/axiosInstance';
 import React, { useEffect, useState } from 'react';
-import { Eye, DownloadCloud } from 'lucide-react';
+import { Eye, DownloadCloud, Music2, Plus } from 'lucide-react';
 import CreatableSelect from 'react-select/creatable';
 import { FaChevronLeft, FaChevronRight, FaAngleDoubleLeft, FaAngleDoubleRight } from 'react-icons/fa';
 import {
@@ -10,7 +10,7 @@ import {
   updateOeuvre
   // deleteOeuvrePermanent,
 } from '../../../services/oeuvre.service';
-import { Button, Form, Modal, Table, Col, Row, Spinner, Badge, InputGroup } from 'react-bootstrap';
+import { Button, Form, Modal, Table, Col, Row, Spinner, Badge, InputGroup, Container, Card } from 'react-bootstrap';
 import { Search } from 'lucide-react';
 
 import Swal from 'sweetalert2';
@@ -142,191 +142,255 @@ const ManageOeuvres = () => {
   };
 
   return (
-    <div className="p-4">
-      <div className="d-flex justify-content-between mb-3">
-        <InputGroup style={{ maxWidth: '300px' }}>
-          <InputGroup.Text style={{ backgroundColor: '#f8f9fa', borderColor: '#e5e7eb' }}>
-            <Search size={16} className="text-muted" />
-          </InputGroup.Text>
-          <Form.Control
-            placeholder="Rechercher par titre"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              borderColor: '#e5e7eb',
-              fontSize: '14px'
-            }}
-          />
-        </InputGroup>
-        <Button
-          variant="success"
-          onClick={() => {
-            setEditing(null);
-            setShowModal(true);
-          }}
-        >
-          + Ajouter une œuvre
-        </Button>
-      </div>
+    <Container fluid className="px-3 px-md-4" style={{ marginTop: '2rem', maxWidth: '1400px' }}>
+      {/* ✅ RESPONSIVE: Header Section */}
+      {/* <div className="mb-4">
+        <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3">
+          <div>
+            <h2 className="fw-bold text-dark mb-1 d-flex align-items-center">
+              <Music2 className="me-2 me-md-3 text-primary" />
+              <span className="d-none d-sm-inline">Gestion des Œuvres</span>
+              <span className="d-sm-none">Œuvres</span>
+            </h2>
+            <p className="text-muted mb-0 d-none d-sm-block">Gérez votre bibliothèque musicale et vos partitions</p>
+          </div>
+        </div>
+      </div> */}
+
+      {/* ✅ RESPONSIVE: Controls Section */}
+      <Card className="shadow-sm border-0 mb-4">
+        <Card.Body className="p-3 p-md-4">
+          <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <InputGroup style={{ maxWidth: '400px' }} className="flex-grow-1 flex-md-grow-0">
+              <InputGroup.Text style={{ backgroundColor: '#f8f9fa', borderColor: '#e5e7eb' }}>
+                <Search size={16} className="text-muted" />
+              </InputGroup.Text>
+              <Form.Control
+                placeholder="Rechercher par titre"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  borderColor: '#e5e7eb',
+                  fontSize: '14px'
+                }}
+              />
+            </InputGroup>
+            <Button
+              variant="success"
+              onClick={() => {
+                setEditing(null);
+                setShowModal(true);
+              }}
+              className="d-flex align-items-center px-3 py-2"
+            >
+              <Plus className="me-1 me-sm-2" size={14} />
+              <span className="d-none d-sm-inline">Ajouter une œuvre</span>
+              <span className="d-sm-none">Ajouter</span>
+            </Button>
+          </div>
+        </Card.Body>
+      </Card>
 
       {loading ? (
         <div className="text-center py-5">
-          <Spinner animation="border" />
+          <Spinner animation="border" variant="primary" size="lg" />
+          <p className="mt-3 text-muted">Chargement des œuvres...</p>
         </div>
       ) : (
         <>
-          <Table bordered hover responsive>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Titre</th>
-                <th>Compositeurs</th>
-                <th>Arrangeurs</th>
-                <th>Genre</th>
-                <th className="text-center">Chœur requis</th>
-                <th>Paroles (PDF)</th>
-                <th>Partition (PDF)</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
+          {/* ✅ RESPONSIVE: Table */}
+          <Card className="shadow-sm border-0">
+            <div className="table-responsive">
+              <Table bordered hover responsive className="mb-0">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Titre</th>
+                    <th>Compositeurs</th>
+                    <th>Arrangeurs</th>
+                    <th>Genre</th>
+                    <th className="text-center">Chœur requis</th>
+                    <th>Paroles (PDF)</th>
+                    <th>Partition (PDF)</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
 
-            <tbody>
-              {getPaginatedData().map((o, index) => (
-                <tr key={o._id}>
-                  <td>{getStartIndex() + index}</td>
-                  <td>{o.title}</td>
-                  <td>{o.composers.join(', ')}</td>
-                  <td>{o.arrangers.join(', ')}</td>
-                  <td>{o.genre || '-'}</td>
-                  <td className="text-center align-middle">
-                    {o.requiresChoir ? <Badge bg="success">Oui</Badge> : <Badge bg="secondary">Non</Badge>}
-                  </td>
+                <tbody>
+                  {getPaginatedData().map((o, index) => (
+                    <tr key={o._id}>
+                      <td>{getStartIndex() + index}</td>
+                      <td>{o.title}</td>
+                      <td>{o.composers.join(', ')}</td>
+                      <td>{o.arrangers.join(', ')}</td>
+                      <td>{o.genre || '-'}</td>
+                      <td className="text-center align-middle">
+                        {o.requiresChoir ? <Badge bg="success">Oui</Badge> : <Badge bg="secondary">Non</Badge>}
+                      </td>
 
-                  <td className="text-center align-middle">
-                    {o.lyrics ? (
-                      <div className="d-inline-flex align-items-center justify-content-center gap-3">
-                        <Button variant="link" className="p-0 text-primary" onClick={() => handlePdfPreview(o.lyrics)}>
-                          <Eye size={20} />
+                      <td className="text-center align-middle">
+                        {o.lyrics ? (
+                          <div className="d-inline-flex align-items-center justify-content-center gap-3">
+                            <Button variant="link" className="p-0 text-primary" onClick={() => handlePdfPreview(o.lyrics)}>
+                              <Eye size={20} />
+                            </Button>
+                            <Button variant="link" className="p-0 text-primary" onClick={() => handlePdfDownload(o.lyrics)}>
+                              <DownloadCloud size={20} />
+                            </Button>
+                          </div>
+                        ) : (
+                          '-'
+                        )}
+                      </td>
+
+                      <td className="text-center align-middle">
+                        {o.partition ? (
+                          <div className="d-inline-flex align-items-center justify-content-center gap-3">
+                            <Button variant="link" className="p-0 text-primary" onClick={() => handlePdfPreview(o.partition)}>
+                              <Eye size={20} />
+                            </Button>
+                            <Button variant="link" className="p-0 text-primary" onClick={() => handlePdfDownload(o.partition)}>
+                              <DownloadCloud size={20} />
+                            </Button>
+                          </div>
+                        ) : (
+                          '-'
+                        )}
+                      </td>
+
+                      <td>
+                        <Button
+                          size="sm"
+                          variant="warning"
+                          className="me-2"
+                          onClick={() => {
+                            setEditing(o);
+                            setShowModal(true);
+                          }}
+                        >
+                          Modifier
                         </Button>
-                        <Button variant="link" className="p-0 text-primary" onClick={() => handlePdfDownload(o.lyrics)}>
-                          <DownloadCloud size={20} />
-                        </Button>
-                      </div>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-
-                  <td className="text-center align-middle">
-                    {o.partition ? (
-                      <div className="d-inline-flex align-items-center justify-content-center gap-3">
-                        <Button variant="link" className="p-0 text-primary" onClick={() => handlePdfPreview(o.partition)}>
-                          <Eye size={20} />
-                        </Button>
-                        <Button variant="link" className="p-0 text-primary" onClick={() => handlePdfDownload(o.partition)}>
-                          <DownloadCloud size={20} />
-                        </Button>
-                      </div>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-
-                  <td>
-                    <Button
-                      size="sm"
-                      variant="warning"
-                      className="me-2"
-                      onClick={() => {
-                        setEditing(o);
-                        setShowModal(true);
-                      }}
-                    >
-                      Modifier
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-
-          {/* ✅ PROFESSIONAL PAGINATION */}
-          {getTotalPages() >= 0 && (
-            <div className="d-flex justify-content-between align-items-center p-3 border-top bg-light">
-              <div className="d-flex align-items-center">
-                <span className="me-2 text-muted" style={{ fontSize: '14px' }}>
-                  Oeuvres par page:
-                </span>
-                <select
-                  className="form-select form-select-sm"
-                  style={{ width: 'auto' }}
-                  value={itemsPerPage}
-                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                >
-                  {pageSizeOptions.map((size) => (
-                    <option key={size} value={size}>
-                      {size}
-                    </option>
+                      </td>
+                    </tr>
                   ))}
-                </select>
-              </div>
-
-              <div className="text-muted" style={{ fontSize: '14px' }}>
-                {getStartIndex()}-{getEndIndex()} sur {getTotalItems()}
-              </div>
-
-              <div className="d-flex align-items-center">
-                <Button
-                  variant="outline-secondary"
-                  size="sm"
-                  onClick={goToFirstPage}
-                  disabled={isFirstPage()}
-                  className="me-1"
-                  style={{ border: 'none', backgroundColor: 'transparent' }}
-                >
-                  <FaAngleDoubleLeft />
-                </Button>
-                <Button
-                  variant="outline-secondary"
-                  size="sm"
-                  onClick={goToPreviousPage}
-                  disabled={isFirstPage()}
-                  className="me-3"
-                  style={{ border: 'none', backgroundColor: 'transparent' }}
-                >
-                  <FaChevronLeft />
-                </Button>
-                <span className="mx-3 text-muted" style={{ fontSize: '14px' }}>
-                  Page {currentPage + 1} sur {getTotalPages()}
-                </span>
-                <Button
-                  variant="outline-secondary"
-                  size="sm"
-                  onClick={goToNextPage}
-                  disabled={isLastPage()}
-                  className="ms-3 me-1"
-                  style={{ border: 'none', backgroundColor: 'transparent' }}
-                >
-                  <FaChevronRight />
-                </Button>
-                <Button
-                  variant="outline-secondary"
-                  size="sm"
-                  onClick={goToLastPage}
-                  disabled={isLastPage()}
-                  style={{ border: 'none', backgroundColor: 'transparent' }}
-                >
-                  <FaAngleDoubleRight />
-                </Button>
-              </div>
+                </tbody>
+              </Table>
             </div>
-          )}
+
+            {/* ✅ RESPONSIVE: Pagination */}
+            {getTotalPages() > 0 && (
+              <div className="d-flex flex-column flex-md-row justify-content-between align-items-center p-2 p-md-3 border-top bg-light gap-2">
+                <div className="d-flex align-items-center order-2 order-md-1">
+                  <span className="me-2 text-muted" style={{ fontSize: '13px' }}>
+                    <span className="d-none d-sm-inline">Œuvres par page:</span>
+                    <span className="d-sm-none">Par page:</span>
+                  </span>
+                  <select
+                    className="form-select form-select-sm"
+                    style={{ width: 'auto', fontSize: '13px' }}
+                    value={itemsPerPage}
+                    onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                  >
+                    {pageSizeOptions.map((size) => (
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="text-muted order-1 order-md-2" style={{ fontSize: '13px' }}>
+                  {getStartIndex()}-{getEndIndex()} sur {getTotalItems()}
+                </div>
+
+                <div className="d-flex align-items-center order-3">
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={goToFirstPage}
+                    disabled={isFirstPage()}
+                    className="me-1"
+                    style={{
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      color: isFirstPage() ? '#6c757d' : '#495057',
+                      padding: '4px 8px'
+                    }}
+                    title="Première page"
+                  >
+                    <FaAngleDoubleLeft size={12} />
+                  </Button>
+
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={goToPreviousPage}
+                    disabled={isFirstPage()}
+                    className="me-2 me-md-3"
+                    style={{
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      color: isFirstPage() ? '#6c757d' : '#495057',
+                      padding: '4px 8px'
+                    }}
+                    title="Page précédente"
+                  >
+                    <FaChevronLeft size={12} />
+                  </Button>
+
+                  <span className="mx-2 mx-md-3 text-muted" style={{ fontSize: '13px' }}>
+                    <span className="d-none d-sm-inline">Page </span>
+                    {currentPage + 1}
+                    <span className="d-none d-sm-inline"> sur {getTotalPages()}</span>
+                  </span>
+
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={goToNextPage}
+                    disabled={isLastPage()}
+                    className="ms-2 ms-md-3 me-1"
+                    style={{
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      color: isLastPage() ? '#6c757d' : '#495057',
+                      padding: '4px 8px'
+                    }}
+                    title="Page suivante"
+                  >
+                    <FaChevronRight size={12} />
+                  </Button>
+
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={goToLastPage}
+                    disabled={isLastPage()}
+                    style={{
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      color: isLastPage() ? '#6c757d' : '#495057',
+                      padding: '4px 8px'
+                    }}
+                    title="Dernière page"
+                  >
+                    <FaAngleDoubleRight size={12} />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
         </>
       )}
 
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>{editing ? 'Modifier une œuvre' : 'Ajouter une œuvre'}</Modal.Title>
+      {/* ✅ RESPONSIVE: Modal */}
+      <Modal show={showModal} onHide={() => setShowModal(false)} size="xl" centered>
+        <Modal.Header closeButton className="border-bottom">
+          <Modal.Title className="h5 fw-semibold">
+            <Music2 className="me-2 text-primary" />
+            <span className="d-none d-sm-inline">{editing ? 'Modifier une œuvre' : 'Ajouter une œuvre'}</span>
+            <span className="d-sm-none">{editing ? 'Modifier' : 'Ajouter'}</span>
+          </Modal.Title>
         </Modal.Header>
 
         <Formik
@@ -382,7 +446,7 @@ const ManageOeuvres = () => {
                     title: 'Modifiée',
                     text: "L'œuvre a été mise à jour.",
                     timer: 2000,
-                    showConfirmButton: false
+                    showConfirmButton: true
                   });
                 } else {
                   await createOeuvre(formData);
@@ -391,7 +455,7 @@ const ManageOeuvres = () => {
                     title: 'Créée',
                     text: "L'œuvre a été ajoutée.",
                     timer: 2000,
-                    showConfirmButton: false
+                    showConfirmButton: true
                   });
                 }
 
@@ -429,12 +493,13 @@ const ManageOeuvres = () => {
 
             save();
           }}
+          enableReinitialize
         >
           {({ handleSubmit, handleChange, handleBlur, values, touched, errors, isSubmitting, isValid, dirty, setFieldValue }) => (
             <Form noValidate onSubmit={handleSubmit}>
-              <Modal.Body className="px-3 py-2">
-                <Row className="mb-2">
-                  <Col sm={6}>
+              <Modal.Body className="p-3 p-md-4">
+                <Row className="mb-3">
+                  <Col xs={12} md={6}>
                     <Form.Group>
                       <Form.Label>Titre</Form.Label>
                       <Form.Control
@@ -447,7 +512,7 @@ const ManageOeuvres = () => {
                       <Form.Control.Feedback type="invalid">{errors.title}</Form.Control.Feedback>
                     </Form.Group>
                   </Col>
-                  <Col sm={6}>
+                  <Col xs={12} md={6}>
                     <Form.Group>
                       <Form.Label>Année</Form.Label>
                       <Form.Control
@@ -463,8 +528,8 @@ const ManageOeuvres = () => {
                   </Col>
                 </Row>
 
-                <Row className="mb-2">
-                  <Col sm={6}>
+                <Row className="mb-3">
+                  <Col xs={12} md={6}>
                     <Form.Group>
                       <Form.Label>Compositeurs (séparés par virgule)</Form.Label>
                       <Form.Control
@@ -477,7 +542,7 @@ const ManageOeuvres = () => {
                       <Form.Control.Feedback type="invalid">{errors.composers}</Form.Control.Feedback>
                     </Form.Group>
                   </Col>
-                  <Col sm={6}>
+                  <Col xs={12} md={6}>
                     <Form.Group>
                       <Form.Label>Arrangeurs (séparés par virgule)</Form.Label>
                       <Form.Control
@@ -492,8 +557,38 @@ const ManageOeuvres = () => {
                   </Col>
                 </Row>
 
-                <Row className="mb-2">
-                  <Col sm={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Genre</Form.Label>
+                  <CreatableSelect
+                    name="genre"
+                    isClearable
+                    options={genreOptions}
+                    value={
+                      genreOptions.find((o) => o.value === values.genre) ||
+                      (values.genre ? { label: values.genre, value: values.genre } : null)
+                    }
+                    placeholder="Choisir ou écrire un genre..."
+                    onChange={(option) => setFieldValue('genre', option?.value || '')}
+                    onBlur={() => handleBlur({ target: { name: 'genre' } })}
+                    className={touched.genre && errors.genre ? 'is-invalid' : ''}
+                    createOptionPosition="first"
+                    styles={{
+                      control: (provided) => ({
+                        ...provided,
+                        minHeight: '38px',
+                        fontSize: '0.9rem'
+                      }),
+                      menu: (provided) => ({
+                        ...provided,
+                        fontSize: '0.9rem'
+                      })
+                    }}
+                  />
+                  {touched.genre && errors.genre && <div className="invalid-feedback d-block">{errors.genre}</div>}
+                </Form.Group>
+
+                <Row className="mb-3">
+                  <Col xs={12} md={6}>
                     <Form.Group>
                       <Form.Label>Paroles (PDF)</Form.Label>
                       <Form.Control
@@ -513,7 +608,7 @@ const ManageOeuvres = () => {
                       <Form.Text className="text-muted">Format: PDF uniquement (max 10MB)</Form.Text>
                     </Form.Group>
                   </Col>
-                  <Col sm={6}>
+                  <Col xs={12} md={6}>
                     <Form.Group>
                       <Form.Label>Partition (PDF)</Form.Label>
                       <Form.Control
@@ -535,25 +630,6 @@ const ManageOeuvres = () => {
                   </Col>
                 </Row>
 
-                <Form.Group className="mb-2">
-                  <Form.Label>Genre</Form.Label>
-                  <CreatableSelect
-                    name="genre"
-                    isClearable
-                    options={genreOptions}
-                    value={
-                      genreOptions.find((o) => o.value === values.genre) ||
-                      (values.genre ? { label: values.genre, value: values.genre } : null)
-                    }
-                    placeholder="Choisir ou écrire un genre..."
-                    onChange={(option) => setFieldValue('genre', option?.value || '')}
-                    onBlur={() => handleBlur({ target: { name: 'genre' } })}
-                    className={touched.genre && errors.genre ? 'is-invalid' : ''}
-                    createOptionPosition="first"
-                  />
-                  {touched.genre && errors.genre && <div className="invalid-feedback d-block">{errors.genre}</div>}
-                </Form.Group>
-
                 <Form.Check
                   className="mt-3"
                   name="requiresChoir"
@@ -563,28 +639,38 @@ const ManageOeuvres = () => {
                   onChange={handleChange}
                 />
               </Modal.Body>
-              <Modal.Footer>
-                <Button variant="secondary" onClick={() => setShowModal(false)}>
-                  Annuler
-                </Button>
-                <Button type="submit" variant="primary" disabled={isSubmitting || (!editing && !isValid) || (editing && !dirty)}>
-                  {isSubmitting ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2" />
-                      {editing ? 'Mise à jour...' : 'Création...'}
-                    </>
-                  ) : editing ? (
-                    'Mettre à jour'
-                  ) : (
-                    'Créer'
-                  )}
-                </Button>
+
+              <Modal.Footer className="border-top bg-light px-3 px-md-4">
+                <div className="d-flex gap-2 w-100 flex-column flex-sm-row justify-content-sm-end">
+                  <Button variant="secondary" onClick={() => setShowModal(false)} className="order-2 order-sm-1 px-3 px-md-4">
+                    Annuler
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={isSubmitting || (!editing && !isValid) || (editing && !dirty)}
+                    className="order-1 order-sm-2 px-3 px-md-4"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Spinner size="sm" className="me-2" />
+                        <span className="d-none d-sm-inline">{editing ? 'Mise à jour...' : 'Création...'}</span>
+                        <span className="d-sm-none">...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="d-none d-sm-inline">{editing ? 'Mettre à jour' : 'Créer'}</span>
+                        <span className="d-sm-none">{editing ? 'Modifier' : 'Créer'}</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
               </Modal.Footer>
             </Form>
           )}
         </Formik>
       </Modal>
-    </div>
+    </Container>
   );
 };
 

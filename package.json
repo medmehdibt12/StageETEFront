@@ -1,5 +1,5 @@
 {
-  "name": "datta-able-react-hook-reactstrap-js",
+  "name": "plateforme-cso",
   "version": "3.0.0",
   "private": true,
   "scripts": {
@@ -49,6 +49,7 @@
     "vite": "^5.2.0",
     "vite-jsconfig-paths": "^2.0.1",
     "web-vitals": "^3.5.2",
+    "xlsx": "^0.18.5",
     "yup": "^1.4.0"
   },
   "overrides": {

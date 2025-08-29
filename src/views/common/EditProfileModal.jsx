@@ -11,6 +11,8 @@ import Select from 'react-select';
 import { BACKEND_URL } from '../../utils/axiosInstance';
 import { FiUpload, FiCamera, FiX } from 'react-icons/fi';
 import Joi from 'joi';
+import avatar1 from '../../assets/images/user/avatar-1.jpg'; // ✅ Femme default
+import avatar2 from '../../assets/images/user/avatar-2.jpg'; // ✅ Homme default
 
 const genderOptions = [
   { value: 'Homme', label: 'Homme' },
@@ -101,7 +103,7 @@ const countryOptions = [
   { value: 'Irlandaise', label: 'Irlande' },
   { value: 'Islandaise', label: 'Islande' },
   { value: 'Italienne', label: 'Italie' },
-  { value: 'Ivoirienne', label: 'Côte d\'Ivoire' },
+  { value: 'Ivoirienne', label: "Côte d'Ivoire" },
   { value: 'Jamaïcaine', label: 'Jamaïque' },
   { value: 'Japonaise', label: 'Japon' },
   { value: 'Jordanienne', label: 'Jordanie' },
@@ -298,11 +300,18 @@ const customSelectStyles = {
 const EditProfileModal = ({ show, onHide }) => {
   const { user, refreshUser } = useAuth();
   const [form, setForm] = useState({});
-  const [originalForm, setOriginalForm] = useState({}); // ✅ TRACK ORIGINAL VALUES
+  const [originalForm, setOriginalForm] = useState({});
   const [preview, setPreview] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+
+  // ✅ GENDER-BASED AVATAR LOGIC
+  const getDefaultAvatar = (gender = user?.gender) => {
+    if (gender === 'Homme') return avatar2;
+    if (gender === 'Femme') return avatar1;
+    return avatar1; // Default fallback
+  };
 
   useEffect(() => {
     if (user) {
@@ -316,28 +325,44 @@ const EditProfileModal = ({ show, onHide }) => {
       };
 
       setForm(initialForm);
-      setOriginalForm(initialForm); // ✅ STORE ORIGINAL VALUES
+      setOriginalForm(initialForm);
       setErrors({});
       setTouched({});
 
+      // ✅ FIXED: Use gender-based default avatar
       if (user.avatar) {
         setPreview(user.avatar.startsWith('/uploads') ? `${BACKEND_URL}${user.avatar}` : `${BACKEND_URL}/uploads/avatars/${user.avatar}`);
       } else {
-        setPreview(null);
+        setPreview(getDefaultAvatar());
       }
     }
   }, [user, show]);
 
+  // ✅ UPDATE AVATAR WHEN GENDER CHANGES
+  const handleGenderChange = (selected) => {
+    const newGender = selected?.value || '';
+    setForm((prev) => ({ ...prev, gender: newGender }));
+
+    // ✅ If no custom avatar uploaded, update preview based on new gender
+    if (!form.avatar && !user?.avatar) {
+      setPreview(getDefaultAvatar(newGender));
+    }
+
+    if (touched.gender) {
+      const fieldError = validateField('gender', newGender);
+      setErrors((prev) => ({
+        ...prev,
+        gender: fieldError
+      }));
+    }
+  };
+
   // ✅ CHECK IF FORM HAS CHANGED
   const hasFormChanged = () => {
-    // Check if text fields have changed
     const textFieldsChanged = Object.keys(originalForm).some((key) => {
       return form[key] !== originalForm[key];
     });
-
-    // Check if avatar has changed (new file uploaded)
     const avatarChanged = form.avatar instanceof File;
-
     return textFieldsChanged || avatarChanged;
   };
 
@@ -351,17 +376,15 @@ const EditProfileModal = ({ show, onHide }) => {
     return error ? error.details[0].message : null;
   };
 
-  // ✅ VALIDATE ALL FIELDS - ONLY CHECK REQUIRED FIELDS FOR USER'S ROLE
+  // ✅ VALIDATE ALL FIELDS
   const validateForm = () => {
     const schema = getValidationSchema(user?.role);
 
-    // ✅ CREATE VALIDATION DATA BASED ON USER ROLE
     const validationData = {
       firstName: form.firstName,
       lastName: form.lastName
     };
 
-    // Add role-specific fields
     if (user?.role === 'manager' || user?.role === 'choriste') {
       validationData.phone = form.phone;
     }
@@ -387,7 +410,6 @@ const EditProfileModal = ({ show, onHide }) => {
     return true;
   };
 
-  // ✅ CHECK IF FORM IS READY FOR SUBMISSION
   const isFormValid = () => {
     const requiredFields = ['firstName', 'lastName'];
 
@@ -405,7 +427,6 @@ const EditProfileModal = ({ show, onHide }) => {
     });
   };
 
-  // ✅ CHECK IF SUBMIT BUTTON SHOULD BE ENABLED
   const canSubmit = () => {
     return isFormValid() && hasFormChanged() && !isLoading;
   };
@@ -414,7 +435,6 @@ const EditProfileModal = ({ show, onHide }) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
 
-    // Real-time validation ONLY if field was touched
     if (touched[name]) {
       const fieldError = validateField(name, value);
       setErrors((prev) => ({
@@ -450,7 +470,7 @@ const EditProfileModal = ({ show, onHide }) => {
     const file = e.target.files[0];
     if (file) {
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-      const maxSize = 5 * 1024 * 1024; // 5MB
+      const maxSize = 5 * 1024 * 1024;
 
       if (!allowedTypes.includes(file.type)) {
         Swal.fire({
@@ -482,9 +502,7 @@ const EditProfileModal = ({ show, onHide }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ✅ VALIDATE ALL FIELDS ONLY ON SUBMIT
     if (!validateForm()) {
-      // Mark all required fields as touched to show errors
       const requiredFields = ['firstName', 'lastName'];
       if (user?.role === 'manager' || user?.role === 'choriste') {
         requiredFields.push('phone');
@@ -508,7 +526,6 @@ const EditProfileModal = ({ show, onHide }) => {
       return;
     }
 
-    // ✅ CHECK IF ANYTHING CHANGED
     if (!hasFormChanged()) {
       Swal.fire({
         icon: 'info',
@@ -561,8 +578,6 @@ const EditProfileModal = ({ show, onHide }) => {
   };
 
   const isManagerOrChoriste = user?.role === 'manager' || user?.role === 'choriste';
-
-  // ✅ ONLY SHOW ERRORS FOR TOUCHED FIELDS
   const visibleErrors = Object.keys(errors).filter((key) => touched[key] && errors[key]);
   const hasVisibleErrors = visibleErrors.length > 0;
 
@@ -571,7 +586,6 @@ const EditProfileModal = ({ show, onHide }) => {
       <Modal show={show} onHide={onHide} centered size="lg" backdrop="static">
         <div style={{ borderRadius: '20px', overflow: 'hidden' }}>
           <Form onSubmit={handleSubmit}>
-            {/* ✅ HEADER WITH WHITE CLOSE BUTTON */}
             <Modal.Header
               className="border-0 position-relative"
               style={{
@@ -582,7 +596,6 @@ const EditProfileModal = ({ show, onHide }) => {
             >
               <Modal.Title className="fw-bold fs-4">Modifier le Profil</Modal.Title>
 
-              {/* ✅ CUSTOM WHITE CLOSE BUTTON */}
               <button
                 type="button"
                 className="position-absolute edit-modal-close-btn"
@@ -615,7 +628,6 @@ const EditProfileModal = ({ show, onHide }) => {
               </button>
             </Modal.Header>
 
-            {/* Body */}
             <Modal.Body className="p-4" style={{ background: '#f8f9fa' }}>
               {/* Avatar Section */}
               <div className="text-center mb-5">
@@ -633,7 +645,7 @@ const EditProfileModal = ({ show, onHide }) => {
                     }}
                   >
                     <Image
-                      src={preview || '/default-avatar.jpg'}
+                      src={preview || getDefaultAvatar()}
                       alt="Avatar"
                       roundedCircle
                       style={{
@@ -816,7 +828,7 @@ const EditProfileModal = ({ show, onHide }) => {
                           <Select
                             options={genderOptions}
                             value={genderOptions.find((o) => o.value === form.gender) || null}
-                            onChange={(opt) => handleSelectChange('gender', opt)}
+                            onChange={handleGenderChange}
                             onBlur={() => handleBlur('gender')}
                             placeholder="Sélectionner"
                             styles={customSelectStyles}
@@ -886,27 +898,8 @@ const EditProfileModal = ({ show, onHide }) => {
                   )}
                 </Row>
               </div>
-
-              {/* ✅ CHANGE INDICATOR */}
-              {/* {hasFormChanged() && (
-                <div className="alert alert-info mb-4 d-flex align-items-center change-indicator">
-                  <div className="me-2">
-                    <div 
-                      className="pulse-dot"
-                      style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        backgroundColor: '#1e3a5f'
-                      }}
-                    />
-                  </div>
-                  <span className="fw-medium">Des modifications ont été détectées</span>
-                </div>
-              )} */}
             </Modal.Body>
 
-            {/* Footer */}
             <Modal.Footer className="border-0 px-4 pb-4" style={{ background: '#f8f9fa' }}>
               <Button
                 variant="outline-secondary"
@@ -964,7 +957,6 @@ const EditProfileModal = ({ show, onHide }) => {
         </div>
       </Modal>
 
-      {/* ✅ REGULAR CSS STYLES */}
       <style>{`
         .edit-modal-close-btn:hover {
           background-color: rgba(255,255,255,0.1) !important;
@@ -977,28 +969,6 @@ const EditProfileModal = ({ show, onHide }) => {
         .submit-btn:hover {
           transform: translateY(-1px);
           box-shadow: 0 6px 20px rgba(30, 58, 95, 0.4);
-        }
-
-        .pulse-dot {
-          animation: editModalPulse 2s infinite;
-        }
-
-        @keyframes editModalPulse {
-          0% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.5;
-          }
-          100% {
-            opacity: 1;
-          }
-        }
-
-        .change-indicator {
-          border-left: 4px solid #1e3a5f;
-          background-color: rgba(30, 58, 95, 0.05);
-          border-color: rgba(30, 58, 95, 0.2);
         }
 
         @media (max-width: 768px) {

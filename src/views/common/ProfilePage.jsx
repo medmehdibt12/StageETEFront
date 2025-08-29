@@ -5,6 +5,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import EditProfileModal from './EditProfileModal';
 import { BACKEND_URL } from '../../utils/axiosInstance';
 import { FiMail, FiPhone, FiUser, FiGlobe, FiCalendar, FiMusic, FiMapPin, FiEdit3 } from 'react-icons/fi';
+import avatar1 from '../../assets/images/user/avatar-1.jpg'; // ✅ Femme default
+import avatar2 from '../../assets/images/user/avatar-2.jpg'; // ✅ Homme default
 
 const iconColor = { color: '#1e3a5f' };
 
@@ -14,7 +16,15 @@ const ProfilePage = () => {
 
   const isChoriste = user?.role === 'choriste';
   const isManager = user?.role === 'manager';
-  const avatarUrl = user?.avatar ? `${BACKEND_URL}${user.avatar}` : '/default-avatar.jpg';
+
+  // ✅ GENDER-BASED AVATAR LOGIC
+  const getDefaultAvatar = () => {
+    if (user?.gender === 'Homme') return avatar2;
+    if (user?.gender === 'Femme') return avatar1;
+    return avatar1; // Default fallback for undefined gender
+  };
+
+  const avatarUrl = user?.avatar ? `${BACKEND_URL}${user.avatar}` : getDefaultAvatar();
 
   useEffect(() => {
     refreshUser();

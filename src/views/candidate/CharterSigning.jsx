@@ -401,6 +401,47 @@ const ButtonSpinner = styled(motion.div)`
   border-radius: 50%;
 `;
 
+const CharterContent = styled(motion.div)`
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 16px;
+  border: 2px solid rgba(226, 232, 240, 0.5);
+  margin-bottom: 2rem;
+  font-family: 'Georgia', serif;
+  font-size: 16px;
+  line-height: 1.7;
+  color: #2c3e50;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #5a67d8, #553c9a);
+  }
+`;
+
+const CharterText = styled.pre`
+  font-family: 'Georgia', serif;
+  font-size: 16px;
+  line-height: 1.8;
+  color: #2c3e50;
+  white-space: pre-wrap;
+  margin: 0;
+`;
+
 const CheckboxContainer = styled(motion.div)`
   padding: 2rem;
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.06));
@@ -498,6 +539,14 @@ const MailIcon = () => (
   </svg>
 );
 
+// const MusicIcon = () => (
+//   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+//     <path d="M9 18V5l12-2v13" />
+//     <circle cx="6" cy="18" r="3" />
+//     <circle cx="18" cy="16" r="3" />
+//   </svg>
+// );
+
 const StarIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
@@ -519,24 +568,26 @@ const SignInIcon = () => (
   </svg>
 );
 
-// const HomeIcon = () => (
-//   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-//     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-//     <polyline points="9 22 9 12 15 12 15 22" />
-//   </svg>
-// );
+const HomeIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    <polyline points="9 22 9 12 15 12 15 22" />
+  </svg>
+);
 
 // 🎯 **MAIN COMPONENT**
 const CharterSigning = () => {
   const { token } = useParams();
   const navigate = useNavigate();
 
-  // ✅ UPDATED: Simplified state management - removed hasReadCharter
+  // Main state
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [candidate, setCandidate] = useState(null);
+  const [charter, setCharter] = useState(null); // ✅ NEW: Charter state
   const [error, setError] = useState('');
   const [agreed, setAgreed] = useState(false);
+  const [hasReadCharter, setHasReadCharter] = useState(false);
 
   // Success state
   const [showSuccess, setShowSuccess] = useState(false);
@@ -557,7 +608,9 @@ const CharterSigning = () => {
 
       if (data.success) {
         setCandidate(data.candidate);
-        document.title = `Charte - ${data.candidate.firstName} ${data.candidate.lastName} | CSO Plateforme`;
+        setCharter(data.charter); // ✅ NEW: Set charter data
+        // document.title = `${data.charter.title} - ${data.candidate.firstName} ${data.candidate.lastName}`;
+        document.title = `${data.charter.title} | CSO Plateform`;
       } else {
         setError(data.message);
       }
@@ -568,13 +621,12 @@ const CharterSigning = () => {
     }
   };
 
-  // ✅ UPDATED: Simplified validation - only check agreed
   const handleSignCharter = async () => {
-    if (!agreed) {
+    if (!agreed || !hasReadCharter) {
       Swal.fire({
         icon: 'warning',
         title: 'Attention',
-        text: 'Veuillez confirmer votre engagement avant de signer.',
+        text: 'Veuillez lire la charte et confirmer votre accord avant de signer.',
         confirmButtonColor: '#ffc107'
       });
       return;
@@ -588,9 +640,10 @@ const CharterSigning = () => {
       if (data.success) {
         setSuccessData({
           candidateName: data.candidateName || `${candidate.firstName} ${candidate.lastName}`,
-          email: candidate.email
+          email: candidate.email,
+          charter: data.charter // ✅ NEW: Include charter info in success
         });
-        document.title = 'Félicitations - Orchestre Symphonique de Carthage';
+        document.title = 'Félicitations - Carthage Symphony Orchestra';
         setShowSuccess(true);
 
         // Scroll to top smoothly
@@ -610,7 +663,7 @@ const CharterSigning = () => {
     }
   };
 
-  // ✅ Loading State
+  // Loading State (keep existing code)
   if (loading) {
     return (
       <PageContainer fluid>
@@ -629,7 +682,7 @@ const CharterSigning = () => {
     );
   }
 
-  // ✅ Error State
+  // Error State (keep existing code)
   if (error) {
     return (
       <PageContainer fluid>
@@ -654,7 +707,7 @@ const CharterSigning = () => {
               {error}
             </Subtitle>
           </Header>
-          {/* 
+
           <ButtonGroup>
             <ActionButton
               variant="primary"
@@ -665,13 +718,13 @@ const CharterSigning = () => {
               <HomeIcon />
               Retour à l'accueil
             </ActionButton>
-          </ButtonGroup> */}
+          </ButtonGroup>
         </Card>
       </PageContainer>
     );
   }
 
-  // ✅ Success State
+  // Success State - ✅ UPDATED with charter info
   if (showSuccess) {
     return (
       <PageContainer fluid>
@@ -690,7 +743,40 @@ const CharterSigning = () => {
               <CheckIcon />
             </StatusIcon>
             <SuccessTitle>Félicitations !</SuccessTitle>
-            <SuccessMessage>Bienvenue officiellement dans la famille de l'Orchestre Symphonique de Carthage !</SuccessMessage>
+            <SuccessMessage>Bienvenue officiellement dans la CSO Family !</SuccessMessage>
+
+            {/* ✅ UPDATED: Charter info in success */}
+            {/* <InfoCard
+              bgColor="rgba(236, 253, 245, 0.8)"
+              border="1px solid rgba(16, 185, 129, 0.3)"
+              accent="linear-gradient(180deg, #10b981, #059669)"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <SectionTitle color="#065f46">
+                <IconWrapper bgColor="rgba(16, 185, 129, 0.1)" color="#059669">
+                  <FileIcon />
+                </IconWrapper>
+                Charte signée
+              </SectionTitle>
+              <DetailGrid>
+                <DetailRow>
+                  <DetailLabel color="#065f46">
+                    <FileIcon />
+                    Titre
+                  </DetailLabel>
+                  <DetailValue>{successData?.charter?.title}</DetailValue>
+                </DetailRow>
+                <DetailRow>
+                  <DetailLabel color="#065f46">
+                    <CheckIcon />
+                    Année
+                  </DetailLabel>
+                  <DetailValue>{successData?.charter?.year}</DetailValue>
+                </DetailRow>
+              </DetailGrid>
+            </InfoCard> */}
 
             {/* Status Cards */}
             <InfoCard
@@ -762,10 +848,6 @@ const CharterSigning = () => {
                 <SignInIcon />
                 Se connecter maintenant
               </ActionButton>
-              {/* <ActionButton variant="secondary" onClick={() => navigate('/')} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <HomeIcon />
-                Retour à l'accueil
-              </ActionButton> */}
             </ButtonGroup>
           </SuccessDisplay>
         </Card>
@@ -773,7 +855,7 @@ const CharterSigning = () => {
     );
   }
 
-  // ✅ Main Charter Signing Interface
+  // Main Charter Signing Interface - ✅ UPDATED with dynamic charter
   return (
     <PageContainer fluid>
       <Card
@@ -781,7 +863,7 @@ const CharterSigning = () => {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
       >
-        {/* Header */}
+        {/* Header - ✅ UPDATED with dynamic charter title */}
         <Header>
           <StatusIcon
             variant="primary"
@@ -792,11 +874,17 @@ const CharterSigning = () => {
             <FileIcon />
           </StatusIcon>
           <Title initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.5 }}>
+            {charter?.title || 'Signature de la Charte'}
+          </Title>
+          <Subtitle initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.6 }}>
+            Carthage Symphony Orchestra - Année {charter?.year}
+          </Subtitle>
+          {/* <Title initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.5 }}>
             Signature de la Charte
           </Title>
           <Subtitle initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.6 }}>
-            Orchestre Symphonique de Carthage
-          </Subtitle>
+            Carthage Symphony Orchestra
+          </Subtitle> */}
         </Header>
 
         {/* Error Alert */}
@@ -855,24 +943,55 @@ const CharterSigning = () => {
             </InfoCard>
           )}
 
-          {/* ✅ UPDATED: Simplified Signature Section - no charter reading required */}
+          {/* ✅ UPDATED: Dynamic Charter Content */}
+          <InfoCard
+            bgColor="rgba(254, 243, 199, 0.8)"
+            border="1px solid rgba(245, 158, 11, 0.3)"
+            accent="linear-gradient(180deg, #f59e0b, #d97706)"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <SectionTitle color="#92400e">
+              <IconWrapper bgColor="rgba(245, 158, 11, 0.1)" color="#92400e">
+                <FileIcon />
+              </IconWrapper>
+              {charter?.title || "Charte d'engagement"}
+            </SectionTitle>
+
+            <CharterContent
+              onScroll={(e) => {
+                const element = e.target;
+                if (element.scrollTop + element.clientHeight >= element.scrollHeight - 20) {
+                  setHasReadCharter(true);
+                }
+              }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.5 }}
+            >
+              <CharterText>{charter?.content || 'Chargement du contenu de la charte...'}</CharterText>
+            </CharterContent>
+          </InfoCard>
+
+          {/* Signature Section */}
           <CheckboxContainer initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }}>
             <CheckboxLabel>
-              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
+              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} disabled={!hasReadCharter} />
               <span>
-                <strong>Je m'engage à contribuer positivement à la vie de l'Orchestre Symphonique de Carthage.</strong>
+                <strong>Je confirme avoir lu la charte du choriste et je m’engage à respecter son contenu</strong>
               </span>
             </CheckboxLabel>
           </CheckboxContainer>
 
-          {/* ✅ UPDATED: Fixed Action Button - only depends on agreed state */}
+          {/* Action Button */}
           <ButtonGroup>
             <ActionButton
               variant="success"
               onClick={handleSignCharter}
-              disabled={!agreed || submitting}
-              whileHover={!agreed || submitting ? {} : { scale: 1.02 }}
-              whileTap={!agreed || submitting ? {} : { scale: 0.98 }}
+              disabled={!agreed || !hasReadCharter || submitting}
+              whileHover={!agreed || !hasReadCharter || submitting ? {} : { scale: 1.02 }}
+              whileTap={!agreed || !hasReadCharter || submitting ? {} : { scale: 0.98 }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.8 }}

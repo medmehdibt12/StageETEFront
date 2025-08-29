@@ -19,20 +19,22 @@ import {
   FaAngleDoubleLeft,
   FaAngleDoubleRight,
   FaFilter,
-  FaBan
+  FaBan,
+  FaUsers,
+  FaUserTie
 } from 'react-icons/fa';
 import Joi from 'joi';
 import Swal from 'sweetalert2';
-import { getRepetitionsForChef, modifyRepetitionForMyPupitre } from '../../../services/repetition.service';
+import { getRepetitionsForManager, modifyRepetitionForAllChoristes } from '../../../services/repetition.service';
 
-const ChefPupitreNotifications = () => {
+const ManagerNotifications = () => {
   // State management
   const [repetitions, setRepetitions] = useState([]);
-  const [chefInfo, setChefInfo] = useState({ pupitre: '', name: '' });
+  const [managerInfo, setManagerInfo] = useState({ name: '' });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // ✅ FILTER STATE
+  // FILTER STATE
   const [selectedFilter, setSelectedFilter] = useState({ value: 'a-venir', label: 'À venir' });
 
   // Pagination state
@@ -56,14 +58,14 @@ const ChefPupitreNotifications = () => {
   // Validation state
   const [validationErrors, setValidationErrors] = useState({});
 
-  // ✅ FILTER OPTIONS (without icons)
+  // FILTER OPTIONS
   const filterOptions = [
     { value: 'a-venir', label: 'À venir' },
     { value: 'passee', label: 'Passées' },
     { value: 'toutes', label: 'Toutes' }
   ];
 
-  // ✅ SIMPLIFIED JOI VALIDATION SCHEMA
+  // JOI VALIDATION SCHEMA
   const validationSchema = Joi.object({
     newStartTime: Joi.string()
       .pattern(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
@@ -99,7 +101,7 @@ const ChefPupitreNotifications = () => {
     loadRepetitions();
   }, []);
 
-  // ✅ RESET PAGINATION WHEN FILTER CHANGES
+  // RESET PAGINATION WHEN FILTER CHANGES
   useEffect(() => {
     setCurrentPage(0);
   }, [selectedFilter]);
@@ -107,9 +109,9 @@ const ChefPupitreNotifications = () => {
   const loadRepetitions = async () => {
     try {
       setLoading(true);
-      const data = await getRepetitionsForChef();
+      const data = await getRepetitionsForManager();
       setRepetitions(data.repetitions);
-      setChefInfo(data.chefInfo);
+      setManagerInfo(data.managerInfo);
     } catch (error) {
       console.error('Error loading repetitions:', error);
       Swal.fire('Erreur', 'Erreur lors du chargement des répétitions.', 'error');
@@ -118,7 +120,7 @@ const ChefPupitreNotifications = () => {
     }
   };
 
-  // ✅ SMART TIME-BASED FILTERING WITH BUSINESS HOURS LOGIC
+  // SMART TIME-BASED FILTERING WITH BUSINESS HOURS LOGIC
   const getFilteredRepetitions = () => {
     const now = new Date();
     const currentHour = now.getHours();
@@ -185,7 +187,7 @@ const ChefPupitreNotifications = () => {
     }
   };
 
-  // ✅ CHECK IF REPETITION IS MODIFIABLE (Enhanced Logic)
+  // CHECK IF REPETITION IS MODIFIABLE (Enhanced Logic)
   const isRepetitionModifiable = (repetitionDate) => {
     const now = new Date();
     const currentHour = now.getHours();
@@ -209,12 +211,12 @@ const ChefPupitreNotifications = () => {
     return true;
   };
 
-  // ✅ CHECK IF REPETITION IS CONSIDERED PAST
+  // CHECK IF REPETITION IS CONSIDERED PAST
   const isRepetitionPast = (repetitionDate) => {
     return !isRepetitionModifiable(repetitionDate);
   };
 
-  // ✅ SIMPLIFIED VALIDATION FUNCTION
+  // ✅ UPDATED: Enhanced validation with time comparison
   const validateForm = () => {
     const errors = {};
 
@@ -226,7 +228,7 @@ const ChefPupitreNotifications = () => {
       });
     }
 
-    // ✅ BUSINESS HOURS VALIDATION (8:00 - 18:00)
+    // BUSINESS HOURS VALIDATION (8:00 - 18:00)
     if (formData.newStartTime) {
       const startHour = parseInt(formData.newStartTime.split(':')[0]);
       if (startHour < 8 || startHour > 16) {
@@ -241,6 +243,19 @@ const ChefPupitreNotifications = () => {
       }
     }
 
+    // ✅ NEW: Time comparison validation
+    if (formData.newStartTime && formData.newEndTime) {
+      const [startH, startM] = formData.newStartTime.split(':').map(Number);
+      const [endH, endM] = formData.newEndTime.split(':').map(Number);
+
+      const startMinutes = startH * 60 + startM;
+      const endMinutes = endH * 60 + endM;
+
+      if (endMinutes <= startMinutes) {
+        errors.newEndTime = "L'heure de fin doit être après l'heure de début";
+      }
+    }
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -252,21 +267,28 @@ const ChefPupitreNotifications = () => {
     }
   }, [formData, showModal, selectedRepetition]);
 
-  // ✅ AUTO-CALCULATE END TIME (+2 HOURS)
+  // AUTO-CALCULATE END TIME (+2:30 HOURS)
   const calculateEndTime = (startTime) => {
     if (!startTime) return '';
 
     const [hours, minutes] = startTime.split(':').map(Number);
-    const startDate = new Date();
-    startDate.setHours(hours, minutes, 0, 0);
 
-    // Add 2 hours
-    const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
+    // Add 2 hours and 30 minutes
+    let endHours = hours + 2;
+    let endMinutes = minutes + 30;
 
-    const endHours = endDate.getHours().toString().padStart(2, '0');
-    const endMinutes = endDate.getMinutes().toString().padStart(2, '0');
+    // Handle minute overflow
+    if (endMinutes >= 60) {
+      endHours += 1;
+      endMinutes -= 60;
+    }
 
-    return `${endHours}:${endMinutes}`;
+    // Handle hour overflow (24-hour format)
+    if (endHours >= 24) {
+      endHours -= 24;
+    }
+
+    return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
   };
 
   // Open modification modal
@@ -312,7 +334,7 @@ const ChefPupitreNotifications = () => {
     });
   };
 
-  // ✅ ENHANCED HANDLE INPUT CHANGE WITH AUTO END TIME
+  // ✅ UPDATED: Handle input change with auto end time (but allow manual override)
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
@@ -332,7 +354,7 @@ const ChefPupitreNotifications = () => {
     }
   };
 
-  // ✅ DETECT MEANINGFUL CHANGES
+  // DETECT MEANINGFUL CHANGES
   const hasChanges = () => {
     if (!selectedRepetition) return false;
 
@@ -384,12 +406,12 @@ const ChefPupitreNotifications = () => {
         modificationData.reason = formData.reason.trim();
       }
 
-      const result = await modifyRepetitionForMyPupitre(selectedRepetition._id, modificationData);
+      const result = await modifyRepetitionForAllChoristes(selectedRepetition._id, modificationData);
 
       // Success
       Swal.fire({
         title: `${result.message}`,
-        text: `Les choristes de votre pupitre ${result.pupitre} ont été notifiés.`,
+        text: `Tous les choristes concernés de cette répétition ont été notifiés de cette modification.`,
         icon: 'success',
         timer: 4000
       });
@@ -404,7 +426,7 @@ const ChefPupitreNotifications = () => {
     }
   };
 
-  // ✅ PAGINATION FUNCTIONS (UPDATED FOR FILTERED DATA)
+  // PAGINATION FUNCTIONS (UPDATED FOR FILTERED DATA)
   const filteredRepetitions = getFilteredRepetitions();
   const getTotalItems = () => filteredRepetitions.length;
   const getTotalPages = () => Math.ceil(getTotalItems() / itemsPerPage);
@@ -443,7 +465,7 @@ const ChefPupitreNotifications = () => {
     return new Date(dateString).toLocaleDateString('fr-FR');
   };
 
-  // ✅ GET MODIFIED SCHEDULE FOR DISPLAY
+  // GET MODIFIED SCHEDULE FOR DISPLAY
   const getModifiedSchedule = (repetition) => {
     if (!repetition.hasMyModification) return null;
 
@@ -474,15 +496,18 @@ const ChefPupitreNotifications = () => {
             <Col>
               <h4 className="mb-1 fw-bold text-dark">
                 <FaBell className="me-3 text-primary" />
-                Notifications Urgentes - Chef de Pupitre {chefInfo.pupitre}
+                Notifications urgentes - Manager
               </h4>
-              <p className="text-muted mb-0">Informez rapidement les choristes de votre pupitre des changements importants</p>
+              <p className="text-muted mb-0">
+                <FaUsers className="me-2" />
+                Informez rapidement tous les choristes des changements importants
+              </p>
             </Col>
           </Row>
         </Card.Header>
 
         <Card.Body>
-          {/* ✅ CLEAN FILTER SECTION */}
+          {/* FILTER SECTION */}
           <div style={{ maxWidth: 240, marginBottom: '1rem' }}>
             <Select
               options={filterOptions}
@@ -530,7 +555,11 @@ const ChefPupitreNotifications = () => {
                   <FaExclamationTriangle className="me-2" />
                   <div>
                     <strong>Important :</strong> Utilisez cette fonction uniquement pour des informations urgentes (changement d'horaire, de
-                    lieu, etc.). Les choristes recevront un email immédiatement.
+                    lieu, etc.).
+                    <span className="text-primary ms-2">
+                      <FaUsers className="me-1" />
+                      <strong>Tous les choristes</strong> recevront un email immédiatement.
+                    </span>
                     {selectedFilter.value === 'passee' && (
                       <span className="text-danger ms-2">
                         <FaBan className="me-1" />
@@ -541,7 +570,7 @@ const ChefPupitreNotifications = () => {
                 </Alert>
               </div>
 
-              <Table hover responsive>
+              <Table bordered hover responsive>
                 <thead className="table-light">
                   <tr>
                     <th>Répétition</th>
@@ -672,16 +701,17 @@ const ChefPupitreNotifications = () => {
                 </tbody>
               </Table>
 
-              {/* ✅ PAGINATION */}
-              {getTotalPages() >= 0 && (
-                <div className="d-flex justify-content-between align-items-center p-3 border-top bg-light">
-                  <div className="d-flex align-items-center">
-                    <span className="me-2 text-muted" style={{ fontSize: '14px' }}>
-                      Répétitions par page:
+              {/* Responsive Pagination Only */}
+              {getTotalPages() > 0 && (
+                <div className="d-flex flex-column flex-md-row justify-content-between align-items-center p-2 p-md-3 border-top bg-light gap-2">
+                  <div className="d-flex align-items-center order-2 order-md-1">
+                    <span className="me-2 text-muted" style={{ fontSize: '13px' }}>
+                      <span className="d-none d-sm-inline">Comptes par page:</span>
+                      <span className="d-sm-none">Par page:</span>
                     </span>
                     <select
                       className="form-select form-select-sm"
-                      style={{ width: 'auto' }}
+                      style={{ width: 'auto', fontSize: '13px' }}
                       value={itemsPerPage}
                       onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                     >
@@ -693,52 +723,82 @@ const ChefPupitreNotifications = () => {
                     </select>
                   </div>
 
-                  <div className="text-muted" style={{ fontSize: '14px' }}>
+                  <div className="text-muted order-1 order-md-2" style={{ fontSize: '13px' }}>
                     {getStartIndex()}-{getEndIndex()} sur {getTotalItems()}
                   </div>
 
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center order-3">
                     <Button
                       variant="outline-secondary"
                       size="sm"
                       onClick={goToFirstPage}
                       disabled={isFirstPage()}
                       className="me-1"
-                      style={{ border: 'none', backgroundColor: 'transparent' }}
+                      style={{
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        color: isFirstPage() ? '#6c757d' : '#495057',
+                        padding: '4px 8px'
+                      }}
+                      title="Première page"
                     >
-                      <FaAngleDoubleLeft />
+                      <FaAngleDoubleLeft size={12} />
                     </Button>
+
                     <Button
                       variant="outline-secondary"
                       size="sm"
                       onClick={goToPreviousPage}
                       disabled={isFirstPage()}
-                      className="me-3"
-                      style={{ border: 'none', backgroundColor: 'transparent' }}
+                      className="me-2 me-md-3"
+                      style={{
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        color: isFirstPage() ? '#6c757d' : '#495057',
+                        padding: '4px 8px'
+                      }}
+                      title="Page précédente"
                     >
-                      <FaChevronLeft />
+                      <FaChevronLeft size={12} />
                     </Button>
-                    <span className="mx-3 text-muted" style={{ fontSize: '14px' }}>
-                      Page {currentPage + 1} sur {getTotalPages()}
+
+                    <span className="mx-2 mx-md-3 text-muted" style={{ fontSize: '13px' }}>
+                      <span className="d-none d-sm-inline">Page </span>
+                      {currentPage + 1}
+                      <span className="d-none d-sm-inline"> sur {getTotalPages()}</span>
                     </span>
+
                     <Button
                       variant="outline-secondary"
                       size="sm"
                       onClick={goToNextPage}
                       disabled={isLastPage()}
-                      className="ms-3 me-1"
-                      style={{ border: 'none', backgroundColor: 'transparent' }}
+                      className="ms-2 ms-md-3 me-1"
+                      style={{
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        color: isLastPage() ? '#6c757d' : '#495057',
+                        padding: '4px 8px'
+                      }}
+                      title="Page suivante"
                     >
-                      <FaChevronRight />
+                      <FaChevronRight size={12} />
                     </Button>
+
                     <Button
                       variant="outline-secondary"
                       size="sm"
                       onClick={goToLastPage}
                       disabled={isLastPage()}
-                      style={{ border: 'none', backgroundColor: 'transparent' }}
+                      style={{
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        color: isLastPage() ? '#6c757d' : '#495057',
+                        padding: '4px 8px'
+                      }}
+                      title="Dernière page"
                     >
-                      <FaAngleDoubleRight />
+                      <FaAngleDoubleRight size={12} />
                     </Button>
                   </div>
                 </div>
@@ -748,12 +808,12 @@ const ChefPupitreNotifications = () => {
         </Card.Body>
       </Card>
 
-      {/* ✅ MODAL (unchanged) */}
+      {/* MODAL */}
       <Modal show={showModal} onHide={handleCloseModal} size="lg">
         <Modal.Header closeButton>
           <Modal.Title>
             <FaBell className="me-2 text-primary" />
-            Modifier Répétition - {chefInfo.pupitre}
+            Modifier Répétition - Manager
           </Modal.Title>
         </Modal.Header>
 
@@ -765,7 +825,8 @@ const ChefPupitreNotifications = () => {
                   <strong>Répétition du {formatDate(selectedRepetition.date)}</strong>
                   <br />
                   <small>
-                    Les choristes de votre pupitre <strong>{chefInfo.pupitre}</strong> recevront un email avec les modifications.
+                    <FaUsers className="me-2" />
+                    <strong>Tous les choristes</strong> recevront un email avec les modifications.
                   </small>
                 </Alert>
 
@@ -791,7 +852,7 @@ const ChefPupitreNotifications = () => {
                     <Form.Group className="mb-3">
                       <Form.Label className="fw-semibold">
                         <FaClock className="me-2" />
-                        Nouvelle heure de fin (automatique +2h)
+                        Nouvelle heure de fin
                       </Form.Label>
                       <Form.Control
                         type="time"
@@ -799,7 +860,7 @@ const ChefPupitreNotifications = () => {
                         value={formData.newEndTime}
                         onChange={handleInputChange}
                         isInvalid={!!validationErrors.newEndTime}
-                        readOnly
+                        // ✅ REMOVED: readOnly prop - now end time can be modified
                       />
                       <Form.Control.Feedback type="invalid">{validationErrors.newEndTime}</Form.Control.Feedback>
                     </Form.Group>
@@ -840,7 +901,7 @@ const ChefPupitreNotifications = () => {
                   />
                   <Form.Control.Feedback type="invalid">{validationErrors.urgentMessage}</Form.Control.Feedback>
                   <Form.Text className="text-muted">
-                    Ce message sera envoyé à tous les choristes de votre pupitre ({formData.urgentMessage.length}/500 caractères)
+                    Ce message sera envoyé à tous les choristes ({formData.urgentMessage.length}/500 caractères)
                   </Form.Text>
                 </Form.Group>
 
@@ -866,7 +927,7 @@ const ChefPupitreNotifications = () => {
                   </Alert>
                 )}
 
-                {/* ✅ PREVIEW CHANGES */}
+                {/* PREVIEW CHANGES */}
                 {hasChanges() && (
                   <Alert variant="success">
                     <h6>Aperçu des modifications :</h6>
@@ -881,12 +942,6 @@ const ChefPupitreNotifications = () => {
                           Heure de fin: {selectedRepetition.endTime} → {formData.newEndTime}
                         </li>
                       )}
-                      {formData.newLocation.trim() !== selectedRepetition.location.trim() && (
-                        <li>
-                          Lieu: {selectedRepetition.location} → {formData.newLocation}
-                        </li>
-                      )}
-                      {formData.urgentMessage.trim() && <li>Message urgent inclus</li>}
                     </ul>
                   </Alert>
                 )}
@@ -917,7 +972,7 @@ const ChefPupitreNotifications = () => {
               ) : (
                 <>
                   <FaBell className="me-2" />
-                  Envoyer Notification
+                  Notifier Tous les Choristes
                 </>
               )}
             </Button>
@@ -928,4 +983,4 @@ const ChefPupitreNotifications = () => {
   );
 };
 
-export default ChefPupitreNotifications;
+export default ManagerNotifications;

@@ -186,7 +186,7 @@ const ManageChefPupitre = () => {
 
   if (loading) {
     return (
-      <Container style={{ marginTop: '2rem' }}>
+      <Container fluid className="px-3 px-md-4" style={{ marginTop: '2rem' }}>
         <div className="text-center py-5">
           <Spinner animation="border" variant="primary" size="lg" />
           <p className="mt-3 text-muted">Chargement des chefs de pupitre...</p>
@@ -199,18 +199,23 @@ const ManageChefPupitre = () => {
   const maxChefs = Object.keys(pupitresData).length * 2;
 
   return (
-    <Container style={{ marginTop: '2rem', maxWidth: '1200px' }}>
-      {/* Professional Header */}
-      <div className="mb-4">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <div>
-            <h3 className="mb-1 fw-bold text-dark">
-              <FaMusic className="me-3 text-primary" />
-              Gestion des Chefs de Pupitre
+    <Container fluid className="px-3 px-md-4" style={{ marginTop: '2rem', maxWidth: '1200px' }}>
+      {/* ✅ RESPONSIVE: Professional Header */}
+      {/* <div className="mb-4"> */}
+      {/* <div className="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center mb-3 gap-3">
+          <div className="flex-grow-1">
+            <h3 className="mb-1 fw-bold text-dark d-flex align-items-center flex-wrap">
+              <FaMusic className="me-2 me-md-3 text-primary" />
+              <span className="d-none d-sm-inline">Gestion des Chefs de Pupitre</span>
+              <span className="d-sm-none">Chefs de Pupitre</span>
             </h3>
-            <p className="text-muted mb-0">Assignez et gérez les chefs de pupitre pour chaque section du chœur</p>
-          </div>
-          <div className="text-end">
+            <p className="text-muted mb-0 d-none d-sm-block">Assignez et gérez les chefs de pupitre pour chaque section du chœur</p>
+            <p className="text-muted mb-0 d-sm-none" style={{ fontSize: '0.9rem' }}>
+              Gérez les chefs de pupitre
+            </p>
+          </div> */}
+      {/* ✅ KEEP STATS IN PLACE - No responsive changes */}
+      {/* <div className="text-end">
             <div className="d-flex align-items-center gap-3">
               <div className="text-center">
                 <div className="h4 mb-0 text-primary fw-bold">{totalChefs}</div>
@@ -221,17 +226,33 @@ const ManageChefPupitre = () => {
                 <small className="text-muted">Postes libres</small>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
+          </div> */}
+      {/* </div> */}
+      {/* </div> */}
 
-      {/* Professional Table Layout */}
+      {/* ✅ RESPONSIVE: Professional Table Layout */}
       <Card className="shadow-sm border-0">
-        <Card.Header className="bg-white border-bottom">
-          <h5 className="mb-0 text-dark fw-semibold">
-            <FaUserTie className="me-2 text-primary" />
-            Chefs de Pupitre par Section
-          </h5>
+        <Card.Header className="bg-white border-bottom px-3 px-md-4">
+          <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 className="mb-0 text-dark fw-semibold d-flex align-items-center">
+              <FaUserTie className="me-2 text-primary" />
+              <span className="d-none d-sm-inline">Chefs de pupitre par section</span>
+              <span className="d-sm-none">Par Section</span>
+            </h5>
+
+            <div className="d-flex align-items-center gap-2 gap-md-3">
+              <div className="text-center">
+                <div className="h5 h4-md mb-0 text-primary fw-bold">{totalChefs}</div>
+                <small className="text-muted d-none d-sm-block">Chefs actifs</small>
+                <small className="text-muted d-sm-none">Actifs</small>
+              </div>
+              <div className="text-center">
+                <div className="h5 h4-md mb-0 text-secondary fw-bold">{maxChefs - totalChefs}</div>
+                <small className="text-muted d-none d-sm-block">Postes libres</small>
+                <small className="text-muted d-sm-none">Libres</small>
+              </div>
+            </div>
+          </div>
         </Card.Header>
         <Card.Body className="p-0">
           {Object.entries(pupitreConfig).map(([pupitre, config]) => {
@@ -239,52 +260,55 @@ const ManageChefPupitre = () => {
 
             return (
               <div key={pupitre} className="border-bottom last-child-no-border">
-                {/* Pupitre Header */}
-                <div className="px-4 py-3 bg-light d-flex justify-content-between align-items-center">
-                  <div className="d-flex align-items-center">
-                    <div
-                      className="rounded-circle me-3 d-flex align-items-center justify-content-center"
-                      style={{
-                        width: '12px',
-                        height: '12px',
-                        backgroundColor: config.color
-                      }}
-                    />
-                    <h6 className="mb-0 fw-semibold text-dark">{config.label}</h6>
-                    <Badge bg={pupitreData.isFull ? 'success' : 'warning'} className="ms-3" style={{ fontSize: '0.75rem' }}>
-                      {pupitreData.chefs.length}/2 chefs
-                    </Badge>
+                {/* ✅ RESPONSIVE: Pupitre Header */}
+                <div className="px-3 px-md-4 py-3 bg-light">
+                  <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 gap-sm-0">
+                    <div className="d-flex align-items-center flex-wrap">
+                      <div
+                        className="rounded-circle me-2 me-md-3 d-flex align-items-center justify-content-center"
+                        style={{
+                          width: '12px',
+                          height: '12px',
+                          backgroundColor: config.color
+                        }}
+                      />
+                      <h6 className="mb-0 fw-semibold text-dark me-2 me-md-3">{config.label}</h6>
+                      <Badge bg={pupitreData.isFull ? 'success' : 'warning'} style={{ fontSize: '0.75rem' }}>
+                        {pupitreData.chefs.length}/2 chefs
+                      </Badge>
+                    </div>
+                    <Button
+                      variant={pupitreData.isFull ? 'outline-secondary' : 'outline-primary'}
+                      size="sm"
+                      disabled={pupitreData.isFull}
+                      onClick={() => openAssignModal(pupitre)}
+                      className="d-flex align-items-center"
+                    >
+                      <FaPlus className="me-1 me-sm-2" style={{ fontSize: '0.8rem' }} />
+                      <span className="d-none d-sm-inline">{pupitreData.isFull ? 'Complet' : 'Assigner Chef'}</span>
+                      <span className="d-sm-none">{pupitreData.isFull ? 'Complet' : 'Assigner'}</span>
+                    </Button>
                   </div>
-                  <Button
-                    variant={pupitreData.isFull ? 'outline-secondary' : 'outline-primary'}
-                    size="sm"
-                    disabled={pupitreData.isFull}
-                    onClick={() => openAssignModal(pupitre)}
-                    className="d-flex align-items-center"
-                  >
-                    <FaPlus className="me-2" style={{ fontSize: '0.8rem' }} />
-                    {pupitreData.isFull ? 'Complet' : 'Assigner Chef'}
-                  </Button>
                 </div>
 
-                {/* Chefs List */}
-                <div className="px-4 py-3">
+                {/* ✅ RESPONSIVE: Chefs List */}
+                <div className="px-3 px-md-4 py-3">
                   {pupitreData.chefs.length > 0 ? (
-                    <div className="row g-3">
+                    <div className="row g-2 g-md-3">
                       {pupitreData.chefs.map((chef) => (
-                        <div key={chef._id} className="col-md-6">
-                          <div className="d-flex justify-content-between align-items-center p-3 bg-light rounded border">
-                            <div className="flex-grow-1">
-                              <div className="d-flex align-items-center mb-1">
-                                <FaCrown className="me-2 text-warning" style={{ fontSize: '0.9rem' }} />
-                                <span className="fw-semibold text-dark">
+                        <div key={chef._id} className="col-12 col-lg-6">
+                          <div className="d-flex justify-content-between align-items-start align-items-sm-center p-2 p-md-3 bg-light rounded border">
+                            <div className="flex-grow-1 me-2">
+                              <div className="d-flex align-items-center mb-1 flex-wrap">
+                                <FaCrown className="me-2 text-warning" style={{ fontSize: '0.8rem' }} />
+                                <span className="fw-semibold text-dark" style={{ fontSize: '0.9rem' }}>
                                   {chef.firstName} {chef.lastName}
                                 </span>
                               </div>
-                              <div className="text-muted" style={{ fontSize: '0.85rem' }}>
+                              <div className="text-muted" style={{ fontSize: '0.8rem' }}>
                                 {chef.email}
                               </div>
-                              <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                              <div className="text-muted d-none d-sm-block" style={{ fontSize: '0.7rem' }}>
                                 Nommé le {formatDate(chef.assignedAt)}
                               </div>
                             </div>
@@ -292,32 +316,32 @@ const ManageChefPupitre = () => {
                               variant="outline-danger"
                               size="sm"
                               onClick={() => handleRemoveChef(chef._id, `${chef.firstName} ${chef.lastName}`, config.label)}
-                              className="ms-2"
                               title="Retirer ce chef de pupitre"
+                              className="flex-shrink-0"
                             >
-                              <FaTimes style={{ fontSize: '0.8rem' }} />
+                              <FaTimes style={{ fontSize: '0.7rem' }} />
                             </Button>
                           </div>
                         </div>
                       ))}
 
-                      {/* Empty slots */}
+                      {/* ✅ RESPONSIVE: Empty slots */}
                       {Array.from({ length: 2 - pupitreData.chefs.length }).map((_, index) => (
-                        <div key={`empty-${index}`} className="col-md-6">
-                          <div className="p-3 border border-dashed rounded text-center text-muted">
-                            <FaUsers className="mb-2" style={{ fontSize: '1.5rem', opacity: 0.3 }} />
-                            <div style={{ fontSize: '0.9rem' }}>Poste libre</div>
+                        <div key={`empty-${index}`} className="col-12 col-lg-6">
+                          <div className="p-2 p-md-3 border border-dashed rounded text-center text-muted">
+                            <FaUsers className="mb-1 mb-md-2" style={{ fontSize: '1.2rem', opacity: 0.3 }} />
+                            <div style={{ fontSize: '0.8rem' }}>Poste libre</div>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="row g-3">
+                    <div className="row g-2 g-md-3">
                       {Array.from({ length: 2 }).map((_, index) => (
-                        <div key={`empty-${index}`} className="col-md-6">
-                          <div className="p-3 border border-dashed rounded text-center text-muted">
-                            <FaUsers className="mb-2" style={{ fontSize: '1.5rem', opacity: 0.3 }} />
-                            <div style={{ fontSize: '0.9rem' }}>Poste libre</div>
+                        <div key={`empty-${index}`} className="col-12 col-lg-6">
+                          <div className="p-2 p-md-3 border border-dashed rounded text-center text-muted">
+                            <FaUsers className="mb-1 mb-md-2" style={{ fontSize: '1.2rem', opacity: 0.3 }} />
+                            <div style={{ fontSize: '0.8rem' }}>Poste libre</div>
                           </div>
                         </div>
                       ))}
@@ -330,15 +354,16 @@ const ManageChefPupitre = () => {
         </Card.Body>
       </Card>
 
-      {/* Professional Assignment Modal */}
+      {/* ✅ RESPONSIVE: Professional Assignment Modal */}
       <Modal show={showAssignModal} onHide={handleCloseModal} size="lg" centered>
         <Modal.Header closeButton className="border-bottom">
           <Modal.Title className="h5 fw-semibold text-dark">
             <FaUserTie className="me-2 text-primary" />
-            Assigner Chef de Pupitre - {pupitreConfig[selectedPupitre]?.label}
+            <span className="d-none d-sm-inline">Assigner Chef de Pupitre - {pupitreConfig[selectedPupitre]?.label}</span>
+            <span className="d-sm-none">Assigner - {pupitreConfig[selectedPupitre]?.label}</span>
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body className="p-4">
+        <Modal.Body className="p-3 p-md-4">
           {loadingChoristes ? (
             <div className="text-center py-4">
               <Spinner animation="border" variant="primary" />
@@ -349,7 +374,7 @@ const ManageChefPupitre = () => {
               <div className="mb-4 p-3 bg-light rounded border">
                 <div className="d-flex align-items-center mb-2">
                   <div
-                    className="rounded-circle me-3 d-flex align-items-center justify-content-center"
+                    className="rounded-circle me-2 me-md-3 d-flex align-items-center justify-content-center"
                     style={{
                       width: '12px',
                       height: '12px',
@@ -358,8 +383,9 @@ const ManageChefPupitre = () => {
                   />
                   <h6 className="mb-0 fw-semibold">Pupitre {pupitreConfig[selectedPupitre]?.label}</h6>
                 </div>
-                <p className="mb-0 text-muted" style={{ fontSize: '0.9rem' }}>
-                  Sélectionnez un choriste de ce pupitre pour le nommer chef de pupitre.
+                <p className="mb-0 text-muted" style={{ fontSize: '0.85rem' }}>
+                  <span className="d-none d-sm-inline">Sélectionnez un choriste de ce pupitre pour le nommer chef de pupitre.</span>
+                  <span className="d-sm-none">Sélectionnez un choriste à nommer chef.</span>
                 </p>
               </div>
 
@@ -377,6 +403,7 @@ const ManageChefPupitre = () => {
                       ...base,
                       borderColor: '#e5e7eb',
                       boxShadow: 'none',
+                      fontSize: '0.9rem',
                       '&:hover': {
                         borderColor: '#d1d5db'
                       }
@@ -384,12 +411,14 @@ const ManageChefPupitre = () => {
                   }}
                   formatOptionLabel={(option) => (
                     <div className="py-1">
-                      <div className="fw-semibold text-dark">{option.label}</div>
-                      <small className="text-muted">{option.email}</small>
+                      <div className="fw-semibold text-dark" style={{ fontSize: '0.9rem' }}>
+                        {option.label}
+                      </div>
+                      <small className="text-muted d-none d-sm-block">{option.email}</small>
                     </div>
                   )}
                 />
-                <Form.Text className="text-muted mt-2">
+                <Form.Text className="text-muted mt-2" style={{ fontSize: '0.8rem' }}>
                   {choristesOptions.length} choriste{choristesOptions.length > 1 ? 's' : ''} disponible
                   {choristesOptions.length > 1 ? 's' : ''}
                 </Form.Text>
@@ -406,36 +435,54 @@ const ManageChefPupitre = () => {
             </div>
           )}
         </Modal.Body>
-        <Modal.Footer className="border-top bg-light">
-          <Button variant="outline-secondary" onClick={handleCloseModal} disabled={submitting} className="px-4">
-            Annuler
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleAssignChef}
-            disabled={!selectedChoriste || submitting || loadingChoristes}
-            className="px-4"
-          >
-            {submitting ? (
-              <>
-                <Spinner size="sm" className="me-2" />
-                Nomination...
-              </>
-            ) : (
-              <>
-                <FaCrown className="me-2" />
-                Nommer Chef
-              </>
-            )}
-          </Button>
+        <Modal.Footer className="border-top bg-light px-3 px-md-4">
+          <div className="d-flex gap-2 w-100 flex-column flex-sm-row justify-content-sm-end">
+            <Button
+              variant="outline-secondary"
+              onClick={handleCloseModal}
+              disabled={submitting}
+              className="px-3 px-md-4 order-2 order-sm-1"
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleAssignChef}
+              disabled={!selectedChoriste || submitting || loadingChoristes}
+              className="px-3 px-md-4 order-1 order-sm-2"
+            >
+              {submitting ? (
+                <>
+                  <Spinner size="sm" className="me-2" />
+                  <span className="d-none d-sm-inline">Nomination...</span>
+                  <span className="d-sm-none">...</span>
+                </>
+              ) : (
+                <>
+                  <FaCrown className="me-1 me-sm-2" />
+                  <span className="d-none d-sm-inline">Nommer Chef</span>
+                  <span className="d-sm-none">Nommer</span>
+                </>
+              )}
+            </Button>
+          </div>
         </Modal.Footer>
       </Modal>
 
-      {/* <style jsx>{`
-        .last-child-no-border > div:last-child {
-          border-bottom: none !important;
-        }
-      `}</style> */}
+      <style>
+        {`
+    .last-child-no-border > div:last-child {
+      border-bottom: none !important;
+    }
+    
+    @media (max-width: 576px) {
+      .container-fluid {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+      }
+    }
+  `}
+      </style>
     </Container>
   );
 };

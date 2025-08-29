@@ -133,11 +133,11 @@ const DeclareLeave = () => {
       <div className="mb-4">
         <Row className="align-items-center">
           <Col>
-            <h2 className="fw-bold text-dark mb-1">
+            {/* <h2 className="fw-bold text-dark mb-1">
               <FaCalendarPlus className="me-3 text-primary" />
               Déclarer un Congé
             </h2>
-            <p className="text-muted mb-0">Soumettez votre demande de congé à l'administration</p>
+            <p className="text-muted mb-0">Soumettez votre demande de congé à l'administration</p> */}
           </Col>
           <Col xs="auto">
             {/* <Badge bg="info" className="px-3 py-2">

@@ -24,7 +24,7 @@ const RescheduleCandidate = () => {
 
   // Angular Material style pagination
   const [currentPage, setCurrentPage] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const pageSizeOptions = [5, 10, 25, 50];
 
   // Load data
@@ -309,16 +309,17 @@ const RescheduleCandidate = () => {
                 </tbody>
               </Table>
 
-              {/* Pagination */}
-              {getTotalItems() > 0 && (
-                <div className="d-flex justify-content-between align-items-center p-3 border-top bg-light">
-                  <div className="d-flex align-items-center">
-                    <span className="me-2 text-muted" style={{ fontSize: '14px' }}>
-                      Demandes par page:
+              {/* Responsive Pagination Only */}
+              {getTotalPages() > 0 && (
+                <div className="d-flex flex-column flex-md-row justify-content-between align-items-center p-2 p-md-3 border-top bg-light gap-2">
+                  <div className="d-flex align-items-center order-2 order-md-1">
+                    <span className="me-2 text-muted" style={{ fontSize: '13px' }}>
+                      <span className="d-none d-sm-inline">Demandes par page:</span>
+                      <span className="d-sm-none">Par page:</span>
                     </span>
                     <select
                       className="form-select form-select-sm"
-                      style={{ width: 'auto' }}
+                      style={{ width: 'auto', fontSize: '13px' }}
                       value={itemsPerPage}
                       onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                     >
@@ -330,11 +331,11 @@ const RescheduleCandidate = () => {
                     </select>
                   </div>
 
-                  <div className="text-muted" style={{ fontSize: '14px' }}>
+                  <div className="text-muted order-1 order-md-2" style={{ fontSize: '13px' }}>
                     {getStartIndex()}-{getEndIndex()} sur {getTotalItems()}
                   </div>
 
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center order-3">
                     <Button
                       variant="outline-secondary"
                       size="sm"
@@ -344,11 +345,12 @@ const RescheduleCandidate = () => {
                       style={{
                         border: 'none',
                         backgroundColor: 'transparent',
-                        color: isFirstPage() ? '#6c757d' : '#495057'
+                        color: isFirstPage() ? '#6c757d' : '#495057',
+                        padding: '4px 8px'
                       }}
                       title="Première page"
                     >
-                      <FaAngleDoubleLeft />
+                      <FaAngleDoubleLeft size={12} />
                     </Button>
 
                     <Button
@@ -356,19 +358,22 @@ const RescheduleCandidate = () => {
                       size="sm"
                       onClick={goToPreviousPage}
                       disabled={isFirstPage()}
-                      className="me-3"
+                      className="me-2 me-md-3"
                       style={{
                         border: 'none',
                         backgroundColor: 'transparent',
-                        color: isFirstPage() ? '#6c757d' : '#495057'
+                        color: isFirstPage() ? '#6c757d' : '#495057',
+                        padding: '4px 8px'
                       }}
                       title="Page précédente"
                     >
-                      <FaChevronLeft />
+                      <FaChevronLeft size={12} />
                     </Button>
 
-                    <span className="mx-3 text-muted" style={{ fontSize: '14px' }}>
-                      Page {currentPage + 1} sur {getTotalPages()}
+                    <span className="mx-2 mx-md-3 text-muted" style={{ fontSize: '13px' }}>
+                      <span className="d-none d-sm-inline">Page </span>
+                      {currentPage + 1}
+                      <span className="d-none d-sm-inline"> sur {getTotalPages()}</span>
                     </span>
 
                     <Button
@@ -376,15 +381,16 @@ const RescheduleCandidate = () => {
                       size="sm"
                       onClick={goToNextPage}
                       disabled={isLastPage()}
-                      className="ms-3 me-1"
+                      className="ms-2 ms-md-3 me-1"
                       style={{
                         border: 'none',
                         backgroundColor: 'transparent',
-                        color: isLastPage() ? '#6c757d' : '#495057'
+                        color: isLastPage() ? '#6c757d' : '#495057',
+                        padding: '4px 8px'
                       }}
                       title="Page suivante"
                     >
-                      <FaChevronRight />
+                      <FaChevronRight size={12} />
                     </Button>
 
                     <Button
@@ -395,11 +401,12 @@ const RescheduleCandidate = () => {
                       style={{
                         border: 'none',
                         backgroundColor: 'transparent',
-                        color: isLastPage() ? '#6c757d' : '#495057'
+                        color: isLastPage() ? '#6c757d' : '#495057',
+                        padding: '4px 8px'
                       }}
                       title="Dernière page"
                     >
-                      <FaAngleDoubleRight />
+                      <FaAngleDoubleRight size={12} />
                     </Button>
                   </div>
                 </div>

@@ -5,38 +5,36 @@ import { BASE_TITLE } from '../../../config/constant';
 // 📌 Static path-title mapping
 const titleMap = {
   '/dashboard': 'Dashboard',
-  '/admin/manage-accounts': 'Gérer les Comptes',
-  '/admin/manage-oeuvres': 'Gérer les Œuvres',
-  '/admin/manage-concerts': 'Gérer les Concerts',
-  '/admin/manage-rehearsals': 'Gérer les Répétitions',
-  '/admin/manage-eliminations': 'Gérer les Éliminations',
-  '/admin/final-participants': 'Participants Finaux aux Concerts',
+  '/admin/manage-accounts': 'Gérer les comptes',
+  '/admin/manage-oeuvres': 'Gérer les œuvres',
+  '/admin/manage-concerts': 'Gérer les concerts',
+  '/admin/manage-rehearsals': 'Gérer les répétitions',
+  '/admin/manage-eliminations': 'Gérer les éliminations',
+  '/admin/final-participants': 'Participants finaux aux concerts',
 
-  // "/admin/manage-choriste": "Liste des Choristes",
+  '/user/profile': 'Mon profil',
 
-  '/user/profile': 'Mon Profil',
+  '/choriste/season-programme': 'Programme de la saison',
+  '/choriste/repetitions': 'Liste des répétitions',
+  '/choriste/concerts': 'Disponibilité aux concerts',
+  '/choriste/declare-conge': 'Déclarer un congé',
 
-  '/choriste/season-programme': 'Programme de la Saison',
-  '/choriste/repetitions': 'Liste des Répétitions',
-  '/choriste/concerts': 'Disponibilité aux Concerts',
-  '/choriste/declare-conge': 'Déclarer un Congé',
-
-  '/manager/manage-chef': 'Gérer les Chefs de pupitre',
-  '/manager/manage-duty': 'Liste Declaration des Congés',
+  '/manager/manage-chef': 'Gérer les chefs de pupitre',
+  '/manager/manage-duty': 'Liste déclaration des congés',
   '/manager/modify-tessiture': 'Modification des tessitures',
-  '/manager/reschedule-requests': 'Gérer les Demandes de Reprogrammation',
-  '/manager/manage-auditions': 'Gérer les Auditions',
+  '/manager/reschedule-requests': 'Gérer les demandes de reprogrammation',
+  '/manager/manage-auditions': 'Gérer les auditions',
   '/manager/manage-membership': 'Listes des candidats',
-  '/manager/absence-list': 'État des Absences',
+  '/manager/absence-list': 'État des absences',
+  '/manager/manage-rep-forpupitre': 'Gérer les répétitions',
+  '/manager/manage-chart': 'Gérer les chartes',
 
-  '/chef/list-choriste': 'Liste des Choristes',
+  '/chef/list-choriste': 'Liste des choristes',
 
   '/chefpupitre/choriste-list-presence': 'Gérer les présences',
-  '/chefpupitre/manage-rep-forpupitre': 'Gérer les Répétitions',
-  // "/program/season-programme": "Liste des Concerts",
-  //
+  '/chefpupitre/final-participants': 'Participants finaux aux concerts',
 
-  // Add other protected paths here
+  '/program/season-programme': 'Programme de la saison',
 };
 
 const Breadcrumb = () => {

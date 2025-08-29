@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import api from '../utils/axiosInstance';
 
 // 📥 Get all active repetitions
@@ -66,28 +65,34 @@ export const removeManualPresence = async (repetitionId, choristeId) => {
   return res.data;
 };
 
-// ✅ NEW: Get manager absence report
+// ✅ EXISTING: Get manager absence report
 export const getManagerAbsenceReport = async (params) => {
   const queryString = new URLSearchParams(params).toString();
   const res = await api.get(`/repetition/manager/absence-report?${queryString}`);
   return res.data;
 };
 
+// ✅ NEW: Get comprehensive absence report (repetitions + concerts)
+export const getComprehensiveAbsenceReport = async (params) => {
+  const queryString = new URLSearchParams(params).toString();
+  const res = await api.get(`/repetition/comprehensive-absence-report?${queryString}`);
+  return res.data;
+};
 
-export const getRepetitionsForChef = async () => {
+export const getRepetitionsForManager = async () => {
   try {
-    const response = await api.get('/repetition/chef-pupitre/my-repetitions');
+    const response = await api.get('/repetition/manager/repetitions');
     return response.data;
   } catch (error) {
-    console.error('Error fetching repetitions for chef:', error);
+    console.error('Error fetching repetitions for manager:', error);
     throw error;
   }
 };
 
-// Modify repetition for chef's pupitre
-export const modifyRepetitionForMyPupitre = async (repetitionId, modificationData) => {
+// Modify repetition for manager's pupitre
+export const modifyRepetitionForAllChoristes = async (repetitionId, modificationData) => {
   try {
-    const response = await api.post(`/repetition/${repetitionId}/chef-pupitre/modify`, modificationData);
+    const response = await api.post(`/repetition/${repetitionId}/manager/modify`, modificationData);
     return response.data;
   } catch (error) {
     console.error('Error modifying repetition:', error);

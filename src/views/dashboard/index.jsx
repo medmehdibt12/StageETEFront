@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
@@ -9,8 +10,6 @@ import { getAdminDashboard, getManagerDashboard, getChoristeDashboard, getChefDe
 import { getParticipationThreshold, updateParticipationThreshold } from '../../services/config.service';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
-import { Formik, Form as FormikForm, Field, ErrorMessage } from 'formik';
-import * as Yup from 'yup';
 import {
   FaCalendarCheck,
   FaCalendarAlt,
@@ -134,17 +133,37 @@ const SummaryCard = ({ icon, title, value, variant, subtitle }) => (
   </Card>
 );
 
+// ✅ UPDATED PARTICIPATION THRESHOLD CARD WITH REACT-SELECT
 const ParticipationThresholdCard = () => {
-  const [threshold, setThreshold] = useState(null);
-  const [savedValue, setSavedValue] = useState(null);
+  const [threshold, setThreshold] = useState(80);
+  const [savedValue, setSavedValue] = useState(80);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
 
+  // ✅ SIMPLIFIED THRESHOLD OPTIONS
+  const thresholdOptions = [
+    { value: 0, label: '0%' },
+    { value: 10, label: '10%' },
+    { value: 20, label: '20%' },
+    { value: 30, label: '30%' },
+    { value: 40, label: '40%' },
+    { value: 50, label: '50%' },
+    { value: 60, label: '60%' },
+    { value: 70, label: '70%' },
+    { value: 80, label: '80%' },
+    { value: 90, label: '90%' },
+    { value: 100, label: '100%' }
+  ];
+
+  // ✅ LOAD THRESHOLD ON MOUNT
   useEffect(() => {
     getParticipationThreshold()
-      .then((value) => {
-        setThreshold(value);
-        setSavedValue(String(value));
+      .then((response) => {
+        // ✅ HANDLE BOTH RESPONSE FORMATS
+        const currentThreshold = response.participationThreshold || response || 80;
+        setThreshold(currentThreshold);
+        setSavedValue(currentThreshold);
       })
       .catch(() => {
         Toast.fire({ icon: 'error', title: 'Erreur de chargement du seuil.' });
@@ -152,27 +171,87 @@ const ParticipationThresholdCard = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const validationSchema = Yup.object().shape({
-    seuil: Yup.string()
-      .required('Le seuil est requis')
-      .test('is-number', 'Le seuil doit être un nombre valide', (value) => !isNaN(value))
-      .test('is-in-range', 'Le seuil doit être entre 0 et 100', (value) => {
-        const number = Number(value);
-        return number >= 0 && number <= 100;
-      })
-  });
+  // ✅ HANDLE THRESHOLD UPDATE
+const handleSubmit = async () => {
+  setSaving(true);
+  setMessage('');
+  
+  try {
+    // ✅ CHANGE THIS LINE - Pass just the threshold value
+    await updateParticipationThreshold(threshold); // Instead of { participationThreshold: threshold }
+    setSavedValue(threshold);
+    setMessage('Seuil mis à jour avec succès!');
+    Toast.fire({ icon: 'success', title: 'Seuil mis à jour !' });
+    
+    setTimeout(() => setMessage(''), 3000);
+  } catch (error) {
+    console.error('Error updating threshold:', error);
+    setMessage('Erreur lors de la mise à jour.');
+    Toast.fire({ icon: 'error', title: 'Erreur lors de la mise à jour.' });
+  } finally {
+    setSaving(false);
+  }
+};
 
-  const handleSubmit = async (values) => {
-    setSaving(true);
-    try {
-      await updateParticipationThreshold(Number(values.seuil));
-      setSavedValue(values.seuil);
-      Toast.fire({ icon: 'success', title: 'Seuil mis à jour !' });
-    } catch {
-      Toast.fire({ icon: 'error', title: 'Erreur lors de la mise à jour.' });
-    } finally {
-      setSaving(false);
-    }
+  // ✅ CALCULATE EXAMPLES FOR CURRENT THRESHOLD
+  const getExamples = (threshold) => {
+    const examples = [
+      { total: 3, attended: 2 },
+      { total: 4, attended: 3 },
+      { total: 5, attended: 4 },
+      { total: 6, attended: 5 },
+      { total: 10, attended: 8 }
+    ];
+
+    return examples.map(({ total, attended }) => {
+      const exactRequired = (threshold / 100) * total;
+      const requiredAttendance = Math.ceil(exactRequired);
+      const isEligible = attended >= requiredAttendance;
+      const percentage = Math.round((attended / total) * 100);
+
+      return {
+        ...{ total, attended },
+        exactRequired: exactRequired.toFixed(1),
+        requiredAttendance,
+        isEligible,
+        percentage,
+        status: isEligible ? 'Admissible' : 'À risque'
+      };
+    });
+  };
+
+  const examples = getExamples(threshold);
+  const hasChanged = threshold !== savedValue;
+
+  // ✅ CUSTOM STYLES FOR REACT-SELECT
+  const selectStyles = {
+    control: (provided, state) => ({
+      ...provided,
+      borderRadius: '8px',
+      borderColor: state.isFocused ? '#0d6efd' : '#ced4da',
+      boxShadow: state.isFocused ? '0 0 0 0.2rem rgba(13, 110, 253, 0.25)' : 'none',
+      '&:hover': {
+        borderColor: '#0d6efd'
+      },
+      minHeight: '42px'
+    }),
+    option: (provided, state) => ({
+      ...provided,
+      backgroundColor: state.isSelected ? '#0d6efd' : state.isFocused ? '#f8f9fa' : 'white',
+      color: state.isSelected ? 'white' : '#212529',
+      fontSize: '14px',
+      padding: '8px 12px'
+    }),
+    singleValue: (provided) => ({
+      ...provided,
+      fontSize: '14px',
+      fontWeight: '500'
+    }),
+    placeholder: (provided) => ({
+      ...provided,
+      color: '#6c757d',
+      fontSize: '14px'
+    })
   };
 
   if (loading) {
@@ -188,51 +267,80 @@ const ParticipationThresholdCard = () => {
 
   return (
     <Card className="mt-4 border-0 shadow-sm" style={{ borderRadius: '12px' }}>
-      <Card.Header className="bg-white border-0 fw-semibold">Seuil de participation requis (%)</Card.Header>
-      <Card.Body>
-        <Formik
-          initialValues={{ seuil: String(threshold) }}
-          validationSchema={validationSchema}
-          onSubmit={handleSubmit}
-          validateOnChange={true}
-          validateOnBlur={true}
-          enableReinitialize
-        >
-          {({ isSubmitting, errors, isValid, values }) => {
-            const hasChangedSinceLastSave = values.seuil !== savedValue;
-            const canSubmit = isValid && hasChangedSinceLastSave && !saving && !isSubmitting;
+      <Card.Header className="bg-white border-0 d-flex justify-content-between align-items-center">
+        <span className="fw-semibold">Seuil de Participation Requis</span>
+        <span className="badge bg-primary">{threshold}%</span>
+      </Card.Header>
 
-            return (
-              <FormikForm>
-                <Field name="seuil">
-                  {({ field, form }) => (
-                    <input
-                      {...field}
-                      type="text"
-                      className={`form-control ${form.errors.seuil ? 'is-invalid' : ''}`}
-                      inputMode="numeric"
-                      style={{ borderRadius: '8px' }}
-                      onChange={(e) => {
-                        form.setFieldValue('seuil', e.target.value);
-                        form.setFieldTouched('seuil', true, true);
-                      }}
-                    />
-                  )}
-                </Field>
-                <ErrorMessage name="seuil" component="div" className="text-danger mt-1" />
-                <Button type="submit" className="mt-2" disabled={!canSubmit} style={{ borderRadius: '8px' }}>
-                  {saving ? 'Mise à jour…' : 'Mettre à jour'}
-                </Button>
-              </FormikForm>
-            );
-          }}
-        </Formik>
+      <Card.Body>
+        {/* ✅ REACT-SELECT DROPDOWN */}
+        <div className="mb-3">
+          <label className="form-label mb-2 fw-semibold">Pourcentage de présence minimum requis</label>
+          <Select
+            value={thresholdOptions.find((option) => option.value === threshold)}
+            onChange={(selectedOption) => setThreshold(selectedOption.value)}
+            options={thresholdOptions}
+            styles={selectStyles}
+            placeholder="Sélectionner un seuil..."
+            isSearchable={false}
+            menuPlacement="auto"
+          />
+          <div className="form-text text-muted mt-1">Les choristes doivent atteindre ce pourcentage pour être éligibles au concert.</div>
+        </div>
+
+        {/* ✅ SAVE BUTTON */}
+        <Button onClick={handleSubmit} disabled={!hasChanged || saving} className="mb-3" style={{ borderRadius: '8px' }} size="sm">
+          {saving ? (
+            <>
+              <Spinner animation="border" size="sm" className="me-2" />
+              Mise à jour...
+            </>
+          ) : (
+            'Mettre à jour le seuil'
+          )}
+        </Button>
+
+        {/* ✅ SUCCESS/ERROR MESSAGE */}
+        {/* {message && (
+          <div
+            className={`alert ${message.includes('succès') ? 'alert-success' : 'alert-danger'} mb-3`}
+            style={{ borderRadius: '8px', fontSize: '14px' }}
+          >
+            {message}
+          </div>
+        )} */}
+
+        {/* ✅ PROFESSIONAL EXAMPLES PREVIEW */}
+        {/* <div className="mt-4 p-3 bg-light rounded" style={{ borderRadius: '8px' }}>
+          <h6 className="mb-3 text-primary">📊 Aperçu avec {threshold}% de seuil</h6>
+          <div className="row g-2">
+            {examples.map((example, index) => (
+              <div key={index} className="col-md-4 col-6">
+                <div
+                  className={`text-center p-2 rounded border ${
+                    example.isEligible ? 'border-success bg-success' : 'border-danger bg-danger'
+                  } bg-opacity-10`}
+                  style={{ fontSize: '12px' }}
+                >
+                  <div className="fw-bold">
+                    {example.attended}/{example.total}
+                  </div>
+                  <div className="text-muted">{example.percentage}%</div>
+                  <div className={`badge ${example.isEligible ? 'bg-success' : 'bg-danger'}`}>{example.status}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 text-muted text-center" style={{ fontSize: '11px' }}>
+            Les calculs utilisent l'arrondi supérieur (Math.ceil) pour plus d'équité
+          </div>
+        </div> */}
       </Card.Body>
     </Card>
   );
 };
 
-// ✅ PROFESSIONAL PAGINATION COMPONENT WITH REACT-SELECT
+// ✅ RESPONSIVE PAGINATION COMPONENT WITH REACT-SELECT
 const PaginationControls = ({ currentPage, itemsPerPage, totalItems, pageSizeOptions, onPageChange, onPageSizeChange }) => {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = totalItems === 0 ? 0 : currentPage * itemsPerPage + 1;
@@ -257,10 +365,11 @@ const PaginationControls = ({ currentPage, itemsPerPage, totalItems, pageSizeOpt
   const selectedPageSize = { value: itemsPerPage, label: itemsPerPage.toString() };
 
   return (
-    <div className="d-flex justify-content-between align-items-center p-3 mt-3 border-top bg-light rounded">
-      <div className="d-flex align-items-center">
-        <span className="me-2 text-muted" style={{ fontSize: '14px' }}>
-          Éléments par page:
+    <div className="d-flex flex-column flex-md-row justify-content-between align-items-center p-2 p-md-3 border-top bg-light gap-2">
+      <div className="d-flex align-items-center order-2 order-md-1">
+        <span className="me-2 text-muted" style={{ fontSize: '13px' }}>
+          <span className="d-none d-sm-inline">Éléments par page:</span>
+          <span className="d-sm-none">Par page:</span>
         </span>
         <div style={{ minWidth: '80px' }}>
           <Select
@@ -287,52 +396,78 @@ const PaginationControls = ({ currentPage, itemsPerPage, totalItems, pageSizeOpt
         </div>
       </div>
 
-      <div className="text-muted" style={{ fontSize: '14px' }}>
+      <div className="text-muted order-1 order-md-2" style={{ fontSize: '13px' }}>
         {startIndex}-{endIndex} sur {totalItems}
       </div>
 
-      <div className="d-flex align-items-center">
+      <div className="d-flex align-items-center order-3">
         <Button
           variant="outline-secondary"
           size="sm"
           onClick={goToFirstPage}
           disabled={isFirstPage}
           className="me-1"
-          style={{ border: 'none', backgroundColor: 'transparent' }}
+          style={{
+            border: 'none',
+            backgroundColor: 'transparent',
+            color: isFirstPage ? '#6c757d' : '#495057',
+            padding: '4px 8px'
+          }}
+          title="Première page"
         >
-          <FaAngleDoubleLeft />
+          <FaAngleDoubleLeft size={12} />
         </Button>
         <Button
           variant="outline-secondary"
           size="sm"
           onClick={goToPreviousPage}
           disabled={isFirstPage}
-          className="me-3"
-          style={{ border: 'none', backgroundColor: 'transparent' }}
+          className="me-2 me-md-3"
+          style={{
+            border: 'none',
+            backgroundColor: 'transparent',
+            color: isFirstPage ? '#6c757d' : '#495057',
+            padding: '4px 8px'
+          }}
+          title="Page précédente"
         >
-          <FaChevronLeft />
+          <FaChevronLeft size={12} />
         </Button>
-        <span className="mx-3 text-muted" style={{ fontSize: '14px' }}>
-          Page {currentPage + 1} sur {totalPages}
+        <span className="mx-2 mx-md-3 text-muted" style={{ fontSize: '13px' }}>
+          <span className="d-none d-sm-inline">Page </span>
+          {currentPage + 1}
+          <span className="d-none d-sm-inline"> sur {totalPages}</span>
         </span>
         <Button
           variant="outline-secondary"
           size="sm"
           onClick={goToNextPage}
           disabled={isLastPage}
-          className="ms-3 me-1"
-          style={{ border: 'none', backgroundColor: 'transparent' }}
+          className="ms-2 ms-md-3 me-1"
+          style={{
+            border: 'none',
+            backgroundColor: 'transparent',
+            color: isLastPage ? '#6c757d' : '#495057',
+            padding: '4px 8px'
+          }}
+          title="Page suivante"
         >
-          <FaChevronRight />
+          <FaChevronRight size={12} />
         </Button>
         <Button
           variant="outline-secondary"
           size="sm"
           onClick={goToLastPage}
           disabled={isLastPage}
-          style={{ border: 'none', backgroundColor: 'transparent' }}
+          style={{
+            border: 'none',
+            backgroundColor: 'transparent',
+            color: isLastPage ? '#6c757d' : '#495057',
+            padding: '4px 8px'
+          }}
+          title="Dernière page"
         >
-          <FaAngleDoubleRight />
+          <FaAngleDoubleRight size={12} />
         </Button>
       </div>
     </div>
@@ -458,13 +593,13 @@ const ChoristeDashboard = () => {
   return (
     <Container fluid className="py-4" style={{ maxWidth: '1400px' }}>
       {/* ✅ HEADER */}
-      <div className="mb-4">
+      {/* <div className="mb-4">
         <h2 className="fw-bold text-dark mb-1">
           <FaHistory className="me-3 text-primary" />
           Mon Historique d'Activité
         </h2>
         <p className="text-muted mb-0">Consultez votre participation aux concerts et répétitions</p>
-      </div>
+      </div> */}
 
       {/* ✅ SIMPLIFIED STATISTICS */}
       <Row className="mb-4 g-4">
@@ -974,13 +1109,13 @@ const ChefDeChoeurDashboard = ({ data }) => {
   return (
     <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
       {/* ✅ HEADER SECTION */}
-      <div className="mb-4">
+      {/* <div className="mb-4">
         <h2 className="fw-bold text-dark mb-1">
           <FaMusic className="me-3 text-primary" />
           Tableau de Bord - Chef de Chœur
         </h2>
         <p className="text-muted mb-0">Vue d'ensemble des activités du chœur</p>
-      </div>
+      </div> */}
 
       {/* ✅ OPTIMAL CARD LAYOUT: 5 cards in 2 rows with proper spacing */}
       <Row className="g-4 mb-5">

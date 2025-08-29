@@ -5,12 +5,13 @@ import React, { useEffect, useState } from 'react';
 import { ListGroup, Dropdown, Form, Badge } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import ChatList from './ChatList';
-import avatar1 from '../../../../assets/images/user/avatar-1.jpg';
+import avatar1 from '../../../../assets/images/user/avatar-1.jpg'; // ✅ Femme default
+import avatar2 from '../../../../assets/images/user/avatar-2.jpg'; // ✅ Homme default
 import { logout } from '../../../../services/auth.service';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { BACKEND_URL } from '../../../../utils/axiosInstance';
 import { getConfig, updateSignupActive } from '../../../../services/config.service';
-import { FiCopy } from 'react-icons/fi'; // ✅ Copy icon
+import { FiCopy } from 'react-icons/fi';
 
 const NavRight = () => {
   const [listOpen, setListOpen] = useState(false);
@@ -18,7 +19,16 @@ const NavRight = () => {
   const navigate = useNavigate();
   const [isSignupActive, setIsSignupActive] = useState(false);
 
-  const FORM_LINK = `${window.location.origin}/candidature/formulaire`; // ✅ Copyable link
+  const FORM_LINK = `${window.location.origin}/candidature/formulaire`;
+
+  // ✅ GENDER-BASED AVATAR LOGIC
+  const getDefaultAvatar = () => {
+    if (user?.gender === 'Homme') return avatar2;
+    if (user?.gender === 'Femme') return avatar1;
+    return avatar1; // Default fallback for undefined gender
+  };
+
+  const avatarUrl = user?.avatar ? `${BACKEND_URL}${user.avatar}` : getDefaultAvatar();
 
   useEffect(() => {
     refreshUser();
@@ -136,7 +146,7 @@ const NavRight = () => {
             <Dropdown.Menu align="end" style={styles.menu}>
               {/* Header */}
               <div style={styles.header}>
-                <img src={user?.avatar ? `${BACKEND_URL}${user.avatar}` : avatar1} alt="avatar" style={styles.avatar} />
+                <img src={avatarUrl} alt="avatar" style={styles.avatar} />
                 <div style={styles.userInfo}>
                   <div style={styles.name}>
                     {user?.firstName} {user?.lastName}

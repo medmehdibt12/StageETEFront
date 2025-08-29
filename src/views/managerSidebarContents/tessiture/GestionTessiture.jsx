@@ -6,13 +6,7 @@ import { Container, Spinner, Badge, Tabs, Tab, Table, Form, InputGroup, Button }
 import Swal from 'sweetalert2';
 import Select from 'react-select';
 import withReactContent from 'sweetalert2-react-content';
-import { 
-  FaUserAlt, 
-  FaChevronLeft, 
-  FaChevronRight, 
-  FaAngleDoubleLeft, 
-  FaAngleDoubleRight 
-} from 'react-icons/fa';
+import { FaUserAlt, FaChevronLeft, FaChevronRight, FaAngleDoubleLeft, FaAngleDoubleRight } from 'react-icons/fa';
 
 const MySwal = withReactContent(Swal);
 
@@ -315,9 +309,7 @@ function GestionTessiture() {
                   <div className="text-center py-5">
                     <div className="text-muted">
                       <FaUserAlt size={50} className="mb-3 opacity-25" />
-                      <p>
-                        {searchTerm ? `Aucun choriste trouvé pour "${searchTerm}"` : 'Aucun choriste trouvé pour cette tessiture'}
-                      </p>
+                      <p>{searchTerm ? `Aucun choriste trouvé pour "${searchTerm}"` : 'Aucun choriste trouvé pour cette tessiture'}</p>
                     </div>
                   </div>
                 ) : (
@@ -412,16 +404,17 @@ function GestionTessiture() {
                       </Table>
                     </div>
 
-                    {/* ✅ RescheduleCandidate Style Pagination */}
+                    {/* ✅ RESPONSIVE: Pagination */}
                     {getTotalItems(tabKey) > 0 && (
-                      <div className="d-flex justify-content-between align-items-center p-3 border-top bg-light">
-                        <div className="d-flex align-items-center">
-                          <span className="me-2 text-muted" style={{ fontSize: '14px' }}>
-                            Choristes par page:
+                      <div className="d-flex flex-column flex-md-row justify-content-between align-items-center p-2 p-md-3 border-top bg-light gap-2">
+                        <div className="d-flex align-items-center order-2 order-md-1">
+                          <span className="me-2 text-muted" style={{ fontSize: '13px' }}>
+                            <span className="d-none d-sm-inline">Choristes par page:</span>
+                            <span className="d-sm-none">Par page:</span>
                           </span>
                           <select
                             className="form-select form-select-sm"
-                            style={{ width: 'auto' }}
+                            style={{ width: 'auto', fontSize: '13px' }}
                             value={itemsPerPage}
                             onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                           >
@@ -433,12 +426,12 @@ function GestionTessiture() {
                           </select>
                         </div>
 
-                        <div className="text-muted" style={{ fontSize: '14px' }}>
+                        <div className="text-muted order-1 order-md-2" style={{ fontSize: '13px' }}>
                           {getStartIndex(tabKey)}-{getEndIndex(tabKey)} sur {getTotalItems(tabKey)}
                           {searchTerm && ` (${getChoristesForTab(tabKey).length} total)`}
                         </div>
 
-                        <div className="d-flex align-items-center">
+                        <div className="d-flex align-items-center order-3">
                           <Button
                             variant="outline-secondary"
                             size="sm"
@@ -448,11 +441,12 @@ function GestionTessiture() {
                             style={{
                               border: 'none',
                               backgroundColor: 'transparent',
-                              color: isFirstPage() ? '#6c757d' : '#495057'
+                              color: isFirstPage() ? '#6c757d' : '#495057',
+                              padding: '4px 8px'
                             }}
                             title="Première page"
                           >
-                            <FaAngleDoubleLeft />
+                            <FaAngleDoubleLeft size={12} />
                           </Button>
 
                           <Button
@@ -460,19 +454,22 @@ function GestionTessiture() {
                             size="sm"
                             onClick={goToPreviousPage}
                             disabled={isFirstPage()}
-                            className="me-3"
+                            className="me-2 me-md-3"
                             style={{
                               border: 'none',
                               backgroundColor: 'transparent',
-                              color: isFirstPage() ? '#6c757d' : '#495057'
+                              color: isFirstPage() ? '#6c757d' : '#495057',
+                              padding: '4px 8px'
                             }}
                             title="Page précédente"
                           >
-                            <FaChevronLeft />
+                            <FaChevronLeft size={12} />
                           </Button>
 
-                          <span className="mx-3 text-muted" style={{ fontSize: '14px' }}>
-                            Page {currentPage + 1} sur {getTotalPages(tabKey)}
+                          <span className="mx-2 mx-md-3 text-muted" style={{ fontSize: '13px' }}>
+                            <span className="d-none d-sm-inline">Page </span>
+                            {currentPage + 1}
+                            <span className="d-none d-sm-inline"> sur {getTotalPages(tabKey)}</span>
                           </span>
 
                           <Button
@@ -480,15 +477,16 @@ function GestionTessiture() {
                             size="sm"
                             onClick={() => goToNextPage(tabKey)}
                             disabled={isLastPage(tabKey)}
-                            className="ms-3 me-1"
+                            className="ms-2 ms-md-3 me-1"
                             style={{
                               border: 'none',
                               backgroundColor: 'transparent',
-                              color: isLastPage(tabKey) ? '#6c757d' : '#495057'
+                              color: isLastPage(tabKey) ? '#6c757d' : '#495057',
+                              padding: '4px 8px'
                             }}
                             title="Page suivante"
                           >
-                            <FaChevronRight />
+                            <FaChevronRight size={12} />
                           </Button>
 
                           <Button
@@ -499,11 +497,12 @@ function GestionTessiture() {
                             style={{
                               border: 'none',
                               backgroundColor: 'transparent',
-                              color: isLastPage(tabKey) ? '#6c757d' : '#495057'
+                              color: isLastPage(tabKey) ? '#6c757d' : '#495057',
+                              padding: '4px 8px'
                             }}
                             title="Dernière page"
                           >
-                            <FaAngleDoubleRight />
+                            <FaAngleDoubleRight size={12} />
                           </Button>
                         </div>
                       </div>

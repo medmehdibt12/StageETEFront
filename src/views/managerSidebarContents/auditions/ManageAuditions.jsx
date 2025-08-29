@@ -113,7 +113,7 @@ const ManageAuditions = () => {
     }
   });
 
-  // Form for evaluation with enhanced functionality
+  // ✅ UPDATED: Form for evaluation with enhanced functionality (removed ordrePassage)
   const {
     register: registerEval,
     handleSubmit: handleSubmitEval,
@@ -130,7 +130,6 @@ const ManageAuditions = () => {
       oeuvreChante: '',
       remarque: '',
       note: '',
-      ordrePassage: '',
       decision: ''
     }
   });
@@ -178,7 +177,7 @@ const ManageAuditions = () => {
     { value: 'basse', label: 'Basse' }
   ];
 
-  // Validation rules for evaluation
+  // ✅ UPDATED: Validation rules for evaluation (removed ordrePassage)
   const validationRules = {
     tessiture: { required: 'Tessiture requise' },
     note: { required: 'Note requise' },
@@ -198,10 +197,9 @@ const ManageAuditions = () => {
       const startDate = new Date(param.startDate).toLocaleDateString('fr-FR').toLowerCase();
       const endDate = new Date(param.endDate).toLocaleDateString('fr-FR').toLowerCase();
 
-      return saison.includes(searchText) || 
-             candidateCount.includes(searchText) || 
-             startDate.includes(searchText) || 
-             endDate.includes(searchText);
+      return (
+        saison.includes(searchText) || candidateCount.includes(searchText) || startDate.includes(searchText) || endDate.includes(searchText)
+      );
     });
   };
 
@@ -469,7 +467,7 @@ const ManageAuditions = () => {
     }
   };
 
-  // Open evaluation modal
+  // ✅ UPDATED: Open evaluation modal (removed ordrePassage from form handling)
   const openEvaluationModal = async (slot) => {
     setSelectedSlot(slot);
     setEditingEvaluation(null);
@@ -520,7 +518,6 @@ const ManageAuditions = () => {
         tessiture: existingEvaluation.tessiture || '',
         note: existingEvaluation.note || '',
         oeuvreChante: existingEvaluation.oeuvreChante || '',
-        ordrePassage: existingEvaluation.ordrePassage || '',
         remarque: existingEvaluation.remarque || '',
         decision: existingEvaluation.decision || ''
       };
@@ -532,7 +529,6 @@ const ManageAuditions = () => {
         tessiture: '',
         note: '',
         oeuvreChante: '',
-        ordrePassage: '',
         remarque: '',
         decision: ''
       };
@@ -544,7 +540,7 @@ const ManageAuditions = () => {
     setShowEvaluationModal(true);
   };
 
-  // Handle evaluation form submission
+  // ✅ UPDATED: Handle evaluation form submission (removed ordrePassage)
   const onSubmitEvaluation = async (data) => {
     if (!selectedSlot) return;
 
@@ -568,7 +564,6 @@ const ManageAuditions = () => {
         oeuvreChante: data.oeuvreChante,
         remarque: data.remarque || '',
         note: data.note,
-        ordrePassage: data.ordrePassage ? parseInt(data.ordrePassage) : null,
         decision: data.decision,
         evaluatedBy: 'aziizhasnaoui',
         evaluatedAt: new Date().toISOString()
@@ -1004,7 +999,7 @@ const ManageAuditions = () => {
                   <tr>
                     <th>Période</th>
                     <th>Saison</th>
-                    <th>Nb candidats</th>
+                    <th>Nb candidats/heure</th>
                     <th>Horaires</th>
                     <th>Pause</th>
                     <th>Créé le</th>
@@ -1017,8 +1012,12 @@ const ManageAuditions = () => {
                     const isGenerated = planningStatus[p._id] || false;
                     const periode = `${new Date(p.startDate).toLocaleDateString('fr-FR')} → ${new Date(p.endDate).toLocaleDateString('fr-FR')}`;
                     const highlightedPeriode = mainSearchQuery ? highlightSearchTerm(periode, mainSearchQuery) : periode;
-                    const highlightedSaison = mainSearchQuery ? highlightSearchTerm(p.saison?.toString() || '', mainSearchQuery) : (p.saison || currentYear);
-                    const highlightedCandidateCount = mainSearchQuery ? highlightSearchTerm(p.candidateCount?.toString() || '', mainSearchQuery) : p.candidateCount;
+                    const highlightedSaison = mainSearchQuery
+                      ? highlightSearchTerm(p.saison?.toString() || '', mainSearchQuery)
+                      : p.saison || currentYear;
+                    const highlightedCandidateCount = mainSearchQuery
+                      ? highlightSearchTerm(p.candidateCount?.toString() || '', mainSearchQuery)
+                      : p.candidateCount;
 
                     return (
                       <tr key={p._id}>
@@ -1077,14 +1076,19 @@ const ManageAuditions = () => {
                                 {loadingCounts ? <Spinner size="sm" /> : <FaEye />}
                               </Button>
                             ) : (
-                              <Button size="sm" variant="outline-success" onClick={() => openGeneratePreview(p)} title="Générer le planning">
+                              <Button
+                                size="sm"
+                                variant="outline-success"
+                                onClick={() => openGeneratePreview(p)}
+                                title="Générer le planning"
+                              >
                                 <FaCalendarAlt />
                               </Button>
                             )}
 
-                            <Button size="sm" variant="outline-danger" onClick={() => handleDelete(p._id)} title="Supprimer">
+                            {/* <Button size="sm" variant="outline-danger" onClick={() => handleDelete(p._id)} title="Supprimer">
                               <FaTrash />
-                            </Button>
+                            </Button> */}
                           </div>
                         </td>
                       </tr>
@@ -1100,16 +1104,17 @@ const ManageAuditions = () => {
                 </tbody>
               </Table>
 
-              {/* ✅ NEW: RescheduleCandidate Style Pagination */}
+              {/* ✅ RESPONSIVE: Main Table Pagination */}
               {getMainTotalItems() > 0 && (
-                <div className="d-flex justify-content-between align-items-center p-3 border-top bg-light">
-                  <div className="d-flex align-items-center">
-                    <span className="me-2 text-muted" style={{ fontSize: '14px' }}>
-                      Auditions par page:
+                <div className="d-flex flex-column flex-md-row justify-content-between align-items-center p-2 p-md-3 border-top bg-light gap-2">
+                  <div className="d-flex align-items-center order-2 order-md-1">
+                    <span className="me-2 text-muted" style={{ fontSize: '13px' }}>
+                      <span className="d-none d-sm-inline">Auditions par page:</span>
+                      <span className="d-sm-none">Par page:</span>
                     </span>
                     <select
                       className="form-select form-select-sm"
-                      style={{ width: 'auto' }}
+                      style={{ width: 'auto', fontSize: '13px' }}
                       value={mainItemsPerPage}
                       onChange={(e) => handleMainPageSizeChange(Number(e.target.value))}
                     >
@@ -1121,11 +1126,11 @@ const ManageAuditions = () => {
                     </select>
                   </div>
 
-                  <div className="text-muted" style={{ fontSize: '14px' }}>
+                  <div className="text-muted order-1 order-md-2" style={{ fontSize: '13px' }}>
                     {getMainStartIndex()}-{getMainEndIndex()} sur {getMainTotalItems()}
                   </div>
 
-                  <div className="d-flex align-items-center">
+                  <div className="d-flex align-items-center order-3">
                     <Button
                       variant="outline-secondary"
                       size="sm"
@@ -1135,11 +1140,12 @@ const ManageAuditions = () => {
                       style={{
                         border: 'none',
                         backgroundColor: 'transparent',
-                        color: isMainFirstPage() ? '#6c757d' : '#495057'
+                        color: isMainFirstPage() ? '#6c757d' : '#495057',
+                        padding: '4px 8px'
                       }}
                       title="Première page"
                     >
-                      <FaAngleDoubleLeft />
+                      <FaAngleDoubleLeft size={12} />
                     </Button>
 
                     <Button
@@ -1147,19 +1153,22 @@ const ManageAuditions = () => {
                       size="sm"
                       onClick={goToMainPreviousPage}
                       disabled={isMainFirstPage()}
-                      className="me-3"
+                      className="me-2 me-md-3"
                       style={{
                         border: 'none',
                         backgroundColor: 'transparent',
-                        color: isMainFirstPage() ? '#6c757d' : '#495057'
+                        color: isMainFirstPage() ? '#6c757d' : '#495057',
+                        padding: '4px 8px'
                       }}
                       title="Page précédente"
                     >
-                      <FaChevronLeft />
+                      <FaChevronLeft size={12} />
                     </Button>
 
-                    <span className="mx-3 text-muted" style={{ fontSize: '14px' }}>
-                      Page {mainCurrentPage + 1} sur {getMainTotalPages()}
+                    <span className="mx-2 mx-md-3 text-muted" style={{ fontSize: '13px' }}>
+                      <span className="d-none d-sm-inline">Page </span>
+                      {mainCurrentPage + 1}
+                      <span className="d-none d-sm-inline"> sur {getMainTotalPages()}</span>
                     </span>
 
                     <Button
@@ -1167,15 +1176,16 @@ const ManageAuditions = () => {
                       size="sm"
                       onClick={goToMainNextPage}
                       disabled={isMainLastPage()}
-                      className="ms-3 me-1"
+                      className="ms-2 ms-md-3 me-1"
                       style={{
                         border: 'none',
                         backgroundColor: 'transparent',
-                        color: isMainLastPage() ? '#6c757d' : '#495057'
+                        color: isMainLastPage() ? '#6c757d' : '#495057',
+                        padding: '4px 8px'
                       }}
                       title="Page suivante"
                     >
-                      <FaChevronRight />
+                      <FaChevronRight size={12} />
                     </Button>
 
                     <Button
@@ -1186,11 +1196,12 @@ const ManageAuditions = () => {
                       style={{
                         border: 'none',
                         backgroundColor: 'transparent',
-                        color: isMainLastPage() ? '#6c757d' : '#495057'
+                        color: isMainLastPage() ? '#6c757d' : '#495057',
+                        padding: '4px 8px'
                       }}
                       title="Dernière page"
                     >
-                      <FaAngleDoubleRight />
+                      <FaAngleDoubleRight size={12} />
                     </Button>
                   </div>
                 </div>
@@ -1280,7 +1291,7 @@ const ManageAuditions = () => {
             <Row className="mb-3">
               <Col md={4}>
                 <Form.Group controlId="candidateCount">
-                  <Form.Label>Nombre de candidats</Form.Label>
+                  <Form.Label>Nombre de candidats par heure</Form.Label>
                   <Form.Control
                     type="number"
                     min={1}
@@ -1548,7 +1559,8 @@ const ManageAuditions = () => {
                               Toutes les heures
                             </Dropdown.Item>
                             <Dropdown.Divider />
-                            {getHourFilterOptions().map((option) => (                              <Dropdown.Item
+                            {getHourFilterOptions().map((option) => (
+                              <Dropdown.Item
                                 key={option.value}
                                 onClick={() => handleHourFilterChange(option.value)}
                                 active={selectedHourFilter === option.value}
@@ -1877,16 +1889,17 @@ const ManageAuditions = () => {
                   </Table>
                 </div>
 
-                {/* Enhanced Responsive Pagination */}
+                {/* ✅ RESPONSIVE: Enhanced Responsive Pagination */}
                 {getTotalItems() > 0 && (
-                  <div className="d-flex justify-content-between align-items-center p-3 border-top bg-light">
-                    <div className="d-flex align-items-center">
-                      <span className="me-2 text-muted" style={{ fontSize: '14px' }}>
-                        Candidats par page:
+                  <div className="d-flex flex-column flex-md-row justify-content-between align-items-center p-2 p-md-3 border-top bg-light gap-2">
+                    <div className="d-flex align-items-center order-2 order-md-1">
+                      <span className="me-2 text-muted" style={{ fontSize: '13px' }}>
+                        <span className="d-none d-sm-inline">Candidats par page:</span>
+                        <span className="d-sm-none">Par page:</span>
                       </span>
                       <select
                         className="form-select form-select-sm"
-                        style={{ width: 'auto' }}
+                        style={{ width: 'auto', fontSize: '13px' }}
                         value={itemsPerPage}
                         onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                       >
@@ -1898,11 +1911,11 @@ const ManageAuditions = () => {
                       </select>
                     </div>
 
-                    <div className="text-muted" style={{ fontSize: '14px' }}>
+                    <div className="text-muted order-1 order-md-2" style={{ fontSize: '13px' }}>
                       {getStartIndex()}-{getEndIndex()} sur {getTotalItems()}
                     </div>
 
-                    <div className="d-flex align-items-center">
+                    <div className="d-flex align-items-center order-3">
                       <Button
                         variant="outline-secondary"
                         size="sm"
@@ -1912,11 +1925,12 @@ const ManageAuditions = () => {
                         style={{
                           border: 'none',
                           backgroundColor: 'transparent',
-                          color: isFirstPage() ? '#6c757d' : '#495057'
+                          color: isFirstPage() ? '#6c757d' : '#495057',
+                          padding: '4px 8px'
                         }}
                         title="Première page"
                       >
-                        <FaAngleDoubleLeft />
+                        <FaAngleDoubleLeft size={12} />
                       </Button>
 
                       <Button
@@ -1924,19 +1938,22 @@ const ManageAuditions = () => {
                         size="sm"
                         onClick={goToPreviousPage}
                         disabled={isFirstPage()}
-                        className="me-3"
+                        className="me-2 me-md-3"
                         style={{
                           border: 'none',
                           backgroundColor: 'transparent',
-                          color: isFirstPage() ? '#6c757d' : '#495057'
+                          color: isFirstPage() ? '#6c757d' : '#495057',
+                          padding: '4px 8px'
                         }}
                         title="Page précédente"
                       >
-                        <FaChevronLeft />
+                        <FaChevronLeft size={12} />
                       </Button>
 
-                      <span className="mx-3 text-muted" style={{ fontSize: '14px' }}>
-                        Page {currentPage + 1} sur {getTotalPages()}
+                      <span className="mx-2 mx-md-3 text-muted" style={{ fontSize: '13px' }}>
+                        <span className="d-none d-sm-inline">Page </span>
+                        {currentPage + 1}
+                        <span className="d-none d-sm-inline"> sur {getTotalPages()}</span>
                       </span>
 
                       <Button
@@ -1944,15 +1961,16 @@ const ManageAuditions = () => {
                         size="sm"
                         onClick={goToNextPage}
                         disabled={isLastPage()}
-                        className="ms-3 me-1"
+                        className="ms-2 ms-md-3 me-1"
                         style={{
                           border: 'none',
                           backgroundColor: 'transparent',
-                          color: isLastPage() ? '#6c757d' : '#495057'
+                          color: isLastPage() ? '#6c757d' : '#495057',
+                          padding: '4px 8px'
                         }}
                         title="Page suivante"
                       >
-                        <FaChevronRight />
+                        <FaChevronRight size={12} />
                       </Button>
 
                       <Button
@@ -1963,11 +1981,12 @@ const ManageAuditions = () => {
                         style={{
                           border: 'none',
                           backgroundColor: 'transparent',
-                          color: isLastPage() ? '#6c757d' : '#495057'
+                          color: isLastPage() ? '#6c757d' : '#495057',
+                          padding: '4px 8px'
                         }}
                         title="Dernière page"
                       >
-                        <FaAngleDoubleRight />
+                        <FaAngleDoubleRight size={12} />
                       </Button>
                     </div>
                   </div>
@@ -1991,7 +2010,7 @@ const ManageAuditions = () => {
         </Modal.Footer>
       </Modal>
 
-      {/* Enhanced Evaluation Modal */}
+      {/* ✅ UPDATED: Enhanced Evaluation Modal with Auto-Increment Ordre de Passage */}
       <Modal show={showEvaluationModal} onHide={handleCloseEvaluationModal} size="lg" backdrop="static" keyboard={false}>
         <Modal.Header closeButton>
           <Modal.Title>
@@ -2083,7 +2102,7 @@ const ManageAuditions = () => {
               </Col>
             </Row>
 
-            {/* Œuvre Chantée and Ordre de Passage */}
+            {/* ✅ UPDATED: Œuvre Chantée and Auto-Increment Ordre de Passage */}
             <Row className="mb-3">
               <Col md={8}>
                 <Form.Group>
@@ -2103,14 +2122,20 @@ const ManageAuditions = () => {
                 <Form.Group>
                   <Form.Label>Ordre de Passage</Form.Label>
                   <Form.Control
-                    type="number"
-                    min="1"
-                    max="999"
-                    placeholder="Optionnel"
-                    disabled={isSubmitting}
-                    {...registerEval('ordrePassage')}
+                    type="text"
+                    value={editingEvaluation?.ordrePassage || 'Auto-assigné'}
+                    readOnly
+                    className="bg-light"
+                    style={{
+                      backgroundColor: '#f8f9fa',
+                      cursor: 'not-allowed'
+                    }}
                   />
-                  <Form.Text className="text-muted">Champ optionnel</Form.Text>
+                  <Form.Text className="text-muted">
+                    {editingEvaluation
+                      ? `Assigné automatiquement (#${editingEvaluation.ordrePassage})`
+                      : 'Sera assigné automatiquement à la création'}
+                  </Form.Text>
                 </Form.Group>
               </Col>
             </Row>

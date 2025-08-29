@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
@@ -8,9 +9,9 @@ import {
   updateConcert
   // deleteConcertPermanent,
 } from '../../../services/concert.service';
-import { Eye } from 'lucide-react';
+import { Eye, Calendar, Music } from 'lucide-react';
 import { getOeuvres } from '../../../services/oeuvre.service';
-import { Button, Form, Modal, Table, Col, Row, Spinner, InputGroup } from 'react-bootstrap';
+import { Button, Form, Modal, Table, Col, Row, Spinner, InputGroup, Container, Card } from 'react-bootstrap';
 import CreatableSelect from 'react-select/creatable';
 import Select from 'react-select';
 import { Formik } from 'formik';
@@ -172,7 +173,7 @@ const ManageConcerts = () => {
           title: 'Mis à jour',
           text: 'Le concert a été modifié.',
           timer: 2000,
-          showConfirmButton: false
+          showConfirmButton: true
         });
       } else {
         await createConcert(formData);
@@ -181,7 +182,7 @@ const ManageConcerts = () => {
           title: 'Créé',
           text: 'Le concert a été ajouté.',
           timer: 2000,
-          showConfirmButton: false
+          showConfirmButton: true
         });
       }
 
@@ -383,7 +384,7 @@ const ManageConcerts = () => {
           <!-- Header -->
           <div class="prog-header">
             <span class="icon"></span>
-            <h1>Orchestre Symphonique de Carthage</h1>
+            <h1>Carthage Symphony Orchestra</h1>
             <span class="icon"></span>
           </div>
   
@@ -407,7 +408,7 @@ const ManageConcerts = () => {
           <!-- Footer -->
 <div class="prog-footer" >
   
-  <span class="arrangers-list">Orchestre Symphonique de Carthage</span>
+  <span class="arrangers-list">Carthage Symphony Orchestra</span>
 </div>
 
 
@@ -426,204 +427,268 @@ const ManageConcerts = () => {
   };
 
   return (
-    <div className="p-4">
-      <div className="d-flex justify-content-between mb-3">
-        <InputGroup style={{ maxWidth: '300px' }}>
-          <InputGroup.Text style={{ backgroundColor: '#f8f9fa', borderColor: '#e5e7eb' }}>
-            <Search size={16} className="text-muted" />
-          </InputGroup.Text>
-          <Form.Control
-            placeholder="Rechercher par lieu"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              borderColor: '#e5e7eb',
-              fontSize: '14px'
-            }}
-          />
-        </InputGroup>
-        <Button
-          variant="success"
-          onClick={() => {
-            setEditing(null);
-            setShowModal(true);
-          }}
-        >
-          + Ajouter un concert
-        </Button>
-      </div>
+    <Container fluid className="px-3 px-md-4" style={{ marginTop: '2rem', maxWidth: '1400px' }}>
+      {/* ✅ RESPONSIVE: Header Section */}
+      {/* <div className="mb-4">
+        <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3">
+          <div>
+            <h2 className="fw-bold text-dark mb-1 d-flex align-items-center">
+              <Music className="me-2 me-md-3 text-primary" />
+              <span className="d-none d-sm-inline">Gestion des Concerts</span>
+              <span className="d-sm-none">Concerts</span>
+            </h2>
+            <p className="text-muted mb-0 d-none d-sm-block">Organisez et gérez vos concerts et programmes musicaux</p>
+          </div>
+        </div>
+      </div> */}
+
+      {/* ✅ RESPONSIVE: Controls Section */}
+      <Card className="shadow-sm border-0 mb-4">
+        <Card.Body className="p-3 p-md-4">
+          <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <InputGroup style={{ maxWidth: '400px' }} className="flex-grow-1 flex-md-grow-0">
+              <InputGroup.Text style={{ backgroundColor: '#f8f9fa', borderColor: '#e5e7eb' }}>
+                <Search size={16} className="text-muted" />
+              </InputGroup.Text>
+              <Form.Control
+                placeholder="Rechercher par lieu"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  borderColor: '#e5e7eb',
+                  fontSize: '14px'
+                }}
+              />
+            </InputGroup>
+            <Button
+              variant="success"
+              onClick={() => {
+                setEditing(null);
+                setShowModal(true);
+              }}
+              className="d-flex align-items-center px-3 py-2"
+            >
+              <Calendar className="me-1 me-sm-2" size={14} />
+              <span className="d-none d-sm-inline">Ajouter un concert</span>
+              <span className="d-sm-none">Ajouter</span>
+            </Button>
+          </div>
+        </Card.Body>
+      </Card>
 
       {loading ? (
         <div className="text-center py-5">
-          <Spinner animation="border" />
+          <Spinner animation="border" variant="primary" size="lg" />
+          <p className="mt-3 text-muted">Chargement des concerts...</p>
         </div>
       ) : (
         <>
-          <Table bordered hover responsive>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Titre</th>
-                <th>Date &amp; Heure</th>
-                <th>Lieu</th>
-                <th>Programme</th>
-                <th>Affiche</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {getPaginatedData().map((concert, idx) => (
-                <tr key={concert._id}>
-                  <td>{getStartIndex() + idx}</td>
-                  <td>{concert.title}</td>
-                  <td>{formatDateTime(concert.dateHeure)}</td>
-                  <td>{concert.location}</td>
-                  <td className="text-center align-middle">
-                    <div className="d-flex justify-content-center align-items-center" style={{ height: '100%' }}>
-                      <Button
-                        className="p-0 text-primary"
-                        variant="link"
-                        onClick={() => handleViewProgramme(concert.programme, concert.dateHeure)}
-                      >
-                        <Eye size={20} />
-                      </Button>
-                    </div>
-                  </td>
+          {/* ✅ RESPONSIVE: Table */}
+          <Card className="shadow-sm border-0">
+            <div className="table-responsive">
+              <Table bordered hover responsive className="mb-0">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Titre</th>
+                    <th>Date &amp; Heure</th>
+                    <th>Lieu</th>
+                    <th>Programme</th>
+                    <th>Affiche</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {getPaginatedData().map((concert, idx) => (
+                    <tr key={concert._id}>
+                      <td>{getStartIndex() + idx}</td>
+                      <td>{concert.title}</td>
+                      <td>{formatDateTime(concert.dateHeure)}</td>
+                      <td>{concert.location}</td>
+                      <td className="text-center align-middle">
+                        <div className="d-flex justify-content-center align-items-center" style={{ height: '100%' }}>
+                          <Button
+                            className="p-0 text-primary"
+                            variant="link"
+                            onClick={() => handleViewProgramme(concert.programme, concert.dateHeure)}
+                          >
+                            <Eye size={20} />
+                          </Button>
+                        </div>
+                      </td>
 
-                  <td>
-                    {concert.poster ? (
-                      <img
-                        src={`${BACKEND_URL}/uploads/posters/${concert.poster}`}
-                        alt="Affiche"
-                        style={{
-                          width: 50,
-                          cursor: 'zoom-in',
-                          borderRadius: 4
-                        }}
-                        onClick={() =>
-                          Swal.fire({
-                            imageUrl: `${BACKEND_URL}/uploads/posters/${concert.poster}`,
-                            imageAlt: 'Zoom affiche',
-                            showCloseButton: true,
-                            showConfirmButton: false,
-                            background: '#fff'
-                          })
-                        }
-                      />
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                  <td>
-                    <Button
-                      size="sm"
-                      className="me-2"
-                      variant="warning"
-                      onClick={() => {
-                        const d = new Date(concert.dateHeure);
-                        setEditing({
-                          ...concert,
-                          date: d.toISOString().substring(0, 10),
-                          time: d.toTimeString().substring(0, 5),
-                          location: {
-                            label: concert.location,
-                            value: concert.location
-                          },
-                          programme: concert.programme.map((o) => ({
-                            value: o._id,
-                            label: o.title
-                          })),
-                          previewPoster: concert.poster ? `${BACKEND_URL}/uploads/posters/${concert.poster}` : '',
-                          poster: concert.poster || ''
-                        });
-                        setShowModal(true);
-                      }}
-                    >
-                      Modifier
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-
-          {/* ✅ PROFESSIONAL PAGINATION */}
-          {getTotalPages() >= 0 && (
-            <div className="d-flex justify-content-between align-items-center p-3 border-top bg-light">
-              <div className="d-flex align-items-center">
-                <span className="me-2 text-muted" style={{ fontSize: '14px' }}>
-                  Concerts par page:
-                </span>
-                <select
-                  className="form-select form-select-sm"
-                  style={{ width: 'auto' }}
-                  value={itemsPerPage}
-                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                >
-                  {pageSizeOptions.map((size) => (
-                    <option key={size} value={size}>
-                      {size}
-                    </option>
+                      <td>
+                        {concert.poster ? (
+                          <img
+                            src={`${BACKEND_URL}/uploads/posters/${concert.poster}`}
+                            alt="Affiche"
+                            style={{
+                              width: 50,
+                              cursor: 'zoom-in',
+                              borderRadius: 4
+                            }}
+                            onClick={() =>
+                              Swal.fire({
+                                imageUrl: `${BACKEND_URL}/uploads/posters/${concert.poster}`,
+                                imageAlt: 'Zoom affiche',
+                                showCloseButton: true,
+                                showConfirmButton: false,
+                                background: '#fff'
+                              })
+                            }
+                          />
+                        ) : (
+                          '-'
+                        )}
+                      </td>
+                      <td>
+                        <Button
+                          size="sm"
+                          className="me-2"
+                          variant="warning"
+                          onClick={() => {
+                            const d = new Date(concert.dateHeure);
+                            setEditing({
+                              ...concert,
+                              date: d.toISOString().substring(0, 10),
+                              time: d.toTimeString().substring(0, 5),
+                              location: {
+                                label: concert.location,
+                                value: concert.location
+                              },
+                              programme: concert.programme.map((o) => ({
+                                value: o._id,
+                                label: o.title
+                              })),
+                              previewPoster: concert.poster ? `${BACKEND_URL}/uploads/posters/${concert.poster}` : '',
+                              poster: concert.poster || ''
+                            });
+                            setShowModal(true);
+                          }}
+                        >
+                          Modifier
+                        </Button>
+                      </td>
+                    </tr>
                   ))}
-                </select>
-              </div>
-
-              <div className="text-muted" style={{ fontSize: '14px' }}>
-                {getStartIndex()}-{getEndIndex()} sur {getTotalItems()}
-              </div>
-
-              <div className="d-flex align-items-center">
-                <Button
-                  variant="outline-secondary"
-                  size="sm"
-                  onClick={goToFirstPage}
-                  disabled={isFirstPage()}
-                  className="me-1"
-                  style={{ border: 'none', backgroundColor: 'transparent' }}
-                >
-                  <FaAngleDoubleLeft />
-                </Button>
-                <Button
-                  variant="outline-secondary"
-                  size="sm"
-                  onClick={goToPreviousPage}
-                  disabled={isFirstPage()}
-                  className="me-3"
-                  style={{ border: 'none', backgroundColor: 'transparent' }}
-                >
-                  <FaChevronLeft />
-                </Button>
-                <span className="mx-3 text-muted" style={{ fontSize: '14px' }}>
-                  Page {currentPage + 1} sur {getTotalPages()}
-                </span>
-                <Button
-                  variant="outline-secondary"
-                  size="sm"
-                  onClick={goToNextPage}
-                  disabled={isLastPage()}
-                  className="ms-3 me-1"
-                  style={{ border: 'none', backgroundColor: 'transparent' }}
-                >
-                  <FaChevronRight />
-                </Button>
-                <Button
-                  variant="outline-secondary"
-                  size="sm"
-                  onClick={goToLastPage}
-                  disabled={isLastPage()}
-                  style={{ border: 'none', backgroundColor: 'transparent' }}
-                >
-                  <FaAngleDoubleRight />
-                </Button>
-              </div>
+                </tbody>
+              </Table>
             </div>
-          )}
+
+            {/* ✅ RESPONSIVE: Pagination */}
+            {getTotalPages() > 0 && (
+              <div className="d-flex flex-column flex-md-row justify-content-between align-items-center p-2 p-md-3 border-top bg-light gap-2">
+                <div className="d-flex align-items-center order-2 order-md-1">
+                  <span className="me-2 text-muted" style={{ fontSize: '13px' }}>
+                    <span className="d-none d-sm-inline">Concerts par page:</span>
+                    <span className="d-sm-none">Par page:</span>
+                  </span>
+                  <select
+                    className="form-select form-select-sm"
+                    style={{ width: 'auto', fontSize: '13px' }}
+                    value={itemsPerPage}
+                    onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                  >
+                    {pageSizeOptions.map((size) => (
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="text-muted order-1 order-md-2" style={{ fontSize: '13px' }}>
+                  {getStartIndex()}-{getEndIndex()} sur {getTotalItems()}
+                </div>
+
+                <div className="d-flex align-items-center order-3">
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={goToFirstPage}
+                    disabled={isFirstPage()}
+                    className="me-1"
+                    style={{
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      color: isFirstPage() ? '#6c757d' : '#495057',
+                      padding: '4px 8px'
+                    }}
+                    title="Première page"
+                  >
+                    <FaAngleDoubleLeft size={12} />
+                  </Button>
+
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={goToPreviousPage}
+                    disabled={isFirstPage()}
+                    className="me-2 me-md-3"
+                    style={{
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      color: isFirstPage() ? '#6c757d' : '#495057',
+                      padding: '4px 8px'
+                    }}
+                    title="Page précédente"
+                  >
+                    <FaChevronLeft size={12} />
+                  </Button>
+
+                  <span className="mx-2 mx-md-3 text-muted" style={{ fontSize: '13px' }}>
+                    <span className="d-none d-sm-inline">Page </span>
+                    {currentPage + 1}
+                    <span className="d-none d-sm-inline"> sur {getTotalPages()}</span>
+                  </span>
+
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={goToNextPage}
+                    disabled={isLastPage()}
+                    className="ms-2 ms-md-3 me-1"
+                    style={{
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      color: isLastPage() ? '#6c757d' : '#495057',
+                      padding: '4px 8px'
+                    }}
+                    title="Page suivante"
+                  >
+                    <FaChevronRight size={12} />
+                  </Button>
+
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={goToLastPage}
+                    disabled={isLastPage()}
+                    style={{
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      color: isLastPage() ? '#6c757d' : '#495057',
+                      padding: '4px 8px'
+                    }}
+                    title="Dernière page"
+                  >
+                    <FaAngleDoubleRight size={12} />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
         </>
       )}
 
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>{editing ? 'Modifier un concert' : 'Ajouter un concert'}</Modal.Title>
+      {/* ✅ RESPONSIVE: Modal */}
+      <Modal show={showModal} onHide={() => setShowModal(false)} size="xl" centered>
+        <Modal.Header closeButton className="border-bottom">
+          <Modal.Title className="h5 fw-semibold">
+            <Calendar className="me-2 text-primary" />
+            <span className="d-none d-sm-inline">{editing ? 'Modifier un concert' : 'Ajouter un concert'}</span>
+            <span className="d-sm-none">{editing ? 'Modifier' : 'Ajouter'}</span>
+          </Modal.Title>
         </Modal.Header>
 
         <Formik
@@ -644,12 +709,13 @@ const ManageConcerts = () => {
             programme: Yup.array().min(1, 'Au moins une œuvre est requise')
           })}
           onSubmit={handleSubmit}
+          enableReinitialize
         >
           {({ handleSubmit, handleChange, setFieldValue, values, errors, touched, handleBlur, isValid, dirty, isSubmitting }) => (
             <Form noValidate onSubmit={handleSubmit}>
-              <Modal.Body>
+              <Modal.Body className="p-3 p-md-4">
                 <Row className="mb-3">
-                  <Col>
+                  <Col xs={12}>
                     <Form.Group className="mb-3">
                       <Form.Label>Titre du concert</Form.Label>
                       <Form.Control
@@ -664,7 +730,10 @@ const ManageConcerts = () => {
                       <Form.Control.Feedback type="invalid">{errors.title}</Form.Control.Feedback>
                     </Form.Group>
                   </Col>
-                  <Col>
+                </Row>
+
+                <Row className="mb-3">
+                  <Col xs={12} md={6}>
                     <Form.Group>
                       <Form.Label>Date</Form.Label>
                       <Form.Control
@@ -679,7 +748,7 @@ const ManageConcerts = () => {
                       <Form.Control.Feedback type="invalid">{errors.date}</Form.Control.Feedback>
                     </Form.Group>
                   </Col>
-                  <Col>
+                  <Col xs={12} md={6}>
                     <Form.Group>
                       <Form.Label>Heure</Form.Label>
                       <Form.Control
@@ -709,8 +778,46 @@ const ManageConcerts = () => {
                     onChange={(val) => setFieldValue('location', val)}
                     onBlur={() => handleBlur({ target: { name: 'location' } })}
                     className={touched.location && errors.location ? 'is-invalid' : ''}
+                    styles={{
+                      control: (provided) => ({
+                        ...provided,
+                        minHeight: '38px',
+                        fontSize: '0.9rem'
+                      }),
+                      menu: (provided) => ({
+                        ...provided,
+                        fontSize: '0.9rem'
+                      })
+                    }}
                   />
                   {touched.location && errors.location && <div className="invalid-feedback d-block">{errors.location}</div>}
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Programme</Form.Label>
+                  <Select
+                    isMulti
+                    options={oeuvres.map((o) => ({
+                      label: o.title,
+                      value: o._id
+                    }))}
+                    value={values.programme}
+                    onChange={(val) => setFieldValue('programme', val)}
+                    onBlur={() => handleBlur({ target: { name: 'programme' } })}
+                    className={touched.programme && errors.programme ? 'is-invalid' : ''}
+                    styles={{
+                      control: (provided) => ({
+                        ...provided,
+                        minHeight: '38px',
+                        fontSize: '0.9rem'
+                      }),
+                      menu: (provided) => ({
+                        ...provided,
+                        fontSize: '0.9rem'
+                      })
+                    }}
+                  />
+                  {touched.programme && errors.programme && <div className="invalid-feedback d-block">{errors.programme}</div>}
                 </Form.Group>
 
                 {/* ✅ ENHANCED POSTER UPLOAD WITH VALIDATION */}
@@ -764,51 +871,45 @@ const ManageConcerts = () => {
                           setFieldValue('previewPoster', '');
                         }}
                       >
-                        Supprimer l'affiche
+                        <span className="d-none d-sm-inline">Supprimer l'affiche</span>
+                        <span className="d-sm-none">Supprimer</span>
                       </Button>
                     </div>
                   )}
                 </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Programme</Form.Label>
-                  <Select
-                    isMulti
-                    options={oeuvres.map((o) => ({
-                      label: o.title,
-                      value: o._id
-                    }))}
-                    value={values.programme}
-                    onChange={(val) => setFieldValue('programme', val)}
-                    onBlur={() => handleBlur({ target: { name: 'programme' } })}
-                    className={touched.programme && errors.programme ? 'is-invalid' : ''}
-                  />
-                  {touched.programme && errors.programme && <div className="invalid-feedback d-block">{errors.programme}</div>}
-                </Form.Group>
               </Modal.Body>
 
-              <Modal.Footer>
-                <Button variant="secondary" onClick={() => setShowModal(false)}>
-                  Annuler
-                </Button>
-                <Button type="submit" variant="primary" disabled={isSubmitting || !isValid || (editing && !dirty)}>
-                  {isSubmitting ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2" />
-                      {editing ? 'Mise à jour...' : 'Création...'}
-                    </>
-                  ) : editing ? (
-                    'Mettre à jour'
-                  ) : (
-                    'Créer'
-                  )}
-                </Button>
+              <Modal.Footer className="border-top bg-light px-3 px-md-4">
+                <div className="d-flex gap-2 w-100 flex-column flex-sm-row justify-content-sm-end">
+                  <Button variant="secondary" onClick={() => setShowModal(false)} className="order-2 order-sm-1 px-3 px-md-4">
+                    Annuler
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={isSubmitting || !isValid || (editing && !dirty)}
+                    className="order-1 order-sm-2 px-3 px-md-4"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Spinner size="sm" className="me-2" />
+                        <span className="d-none d-sm-inline">{editing ? 'Mise à jour...' : 'Création...'}</span>
+                        <span className="d-sm-none">...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="d-none d-sm-inline">{editing ? 'Mettre à jour' : 'Créer'}</span>
+                        <span className="d-sm-none">{editing ? 'Modifier' : 'Créer'}</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
               </Modal.Footer>
             </Form>
           )}
         </Formik>
       </Modal>
-    </div>
+    </Container>
   );
 };
 

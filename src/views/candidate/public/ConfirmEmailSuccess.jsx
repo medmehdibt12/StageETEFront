@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Container } from 'react-bootstrap';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
-import { confirmEmailToken } from '../../services/auth.service';
+import { confirmEmailToken } from '../../../services/auth.service';
 
 // Styled Components
 const PageContainer = styled(Container)`
