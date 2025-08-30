@@ -59,36 +59,25 @@ const FormContent = styled.div`
   padding: 2rem;
 `;
 
-// ✅ FIXED: Professional Step Indicator with Proper Spacing
 const StepIndicator = styled.div`
   display: flex;
   justify-content: space-between;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
   position: relative;
-  padding: 0 1rem;
+  padding: 0 2rem;
 
   &::before {
     content: '';
     position: absolute;
-    top: 20px;
-    left: 15%;
-    right: 15%;
+    top: 50%;
+    left: 0;
+    right: 0;
     height: 2px;
     background: #e2e8f0;
     z-index: 1;
   }
-
-  @media (max-width: 768px) {
-    margin-bottom: 2rem;
-
-    &::before {
-      left: 20%;
-      right: 20%;
-    }
-  }
 `;
 
-// ✅ FIXED: Professional Step Component with No Overlapping
 const Step = styled.div`
   width: 40px;
   height: 40px;
@@ -103,48 +92,22 @@ const Step = styled.div`
   transition: all 0.3s ease;
   box-shadow: ${(props) => (props.active ? '0 0 0 4px rgba(52, 152, 219, 0.2)' : 'none')};
   font-weight: 600;
-  flex-shrink: 0;
 
   &::after {
     content: '${(props) => props.title}';
     position: absolute;
-    top: 120%;
+    top: 100%;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
     color: ${(props) => (props.active ? '#3498db' : '#718096')};
     white-space: nowrap;
     font-weight: 500;
-    text-align: center;
-    min-width: 90px;
-    line-height: 1.3;
-  }
 
-  @media (max-width: 992px) {
-    &::after {
-      font-size: 0.75rem;
-      min-width: 80px;
-    }
-  }
-
-  @media (max-width: 768px) {
-    width: 35px;
-    height: 35px;
-    font-size: 0.9rem;
-
-    &::after {
-      font-size: 0.7rem;
-      top: 125%;
-      min-width: 70px;
-    }
-  }
-
-  @media (max-width: 480px) {
-    &::after {
-      font-size: 0.65rem;
-      min-width: 60px;
-      white-space: normal;
-      max-width: 80px;
+    /* Mobile: Show only "Informations" */
+    @media (max-width: 768px) {
+      content: '${(props) => (props.title === 'Informations personnelles' ? 'Informations' : props.title)}';
     }
   }
 `;
@@ -940,9 +903,8 @@ const Formulaire = () => {
         </FormHeader>
 
         <FormContent>
-          {/* ✅ FIXED: Updated Step Indicator with Professional Labels */}
           <StepIndicator>
-            <Step active={step === 0 ? 'true' : undefined} completed={step > 0 ? 'true' : undefined} title="Informations Personnelles">
+            <Step active={step === 0 ? 'true' : undefined} completed={step > 0 ? 'true' : undefined} title="Informations personnelles">
               {step > 0 ? '✓' : '1'}
             </Step>
 
@@ -1318,7 +1280,7 @@ const Formulaire = () => {
                       <Form.Label>Situation professionnelle</Form.Label>
                       <Form.Control
                         type="text"
-                        placeholder="Décrivez votre situation professionnelle"
+                        placeholder="Votre situation professionnelle"
                         {...register('professionalSituation', {
                           required: 'Situation professionnelle requise',
                           pattern: {

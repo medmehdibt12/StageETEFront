@@ -46,7 +46,7 @@ const routes = [
   },
   {
     path: '/candidature/formulaire', // New route for Formulaire
-    element: lazy(() => import('./views/choristeSidebarContents/formulaire/Formulaire'))
+    element: lazy(() => import('./views/candidate/formulaire/Formulaire'))
   },
   {
     path: '/confirm-email',
