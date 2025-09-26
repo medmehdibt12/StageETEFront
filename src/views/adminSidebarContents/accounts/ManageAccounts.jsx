@@ -51,6 +51,12 @@ const ManageAccounts = () => {
     { value: 'Femme', label: 'Femme' }
   ];
 
+  const statusOptions = [
+    { value: 'Junior', label: 'Junior' },
+    { value: 'Sénior', label: 'Sénior' },
+    { value: 'Vétéran', label: 'Vétéran' }
+  ];
+
   // ✅ Identity Type Options
   const identityTypeOptions = [
     { value: 'CIN', label: 'CIN' },
@@ -368,9 +374,9 @@ const ManageAccounts = () => {
         }
 
         Swal.fire(
-          'Succès',
+          'Utilisateur modifié avec succès',
           emailChanged || identityChanged
-            ? "L'utilisateur a été modifié avec succès. Les identifiants ont été renvoyés à la nouvelle adresse email."
+            ? 'Les identifiants ont été renvoyés à la nouvelle adresse email.'
             : "L'utilisateur a été modifié avec succès.",
           'success'
         );
@@ -385,7 +391,7 @@ const ManageAccounts = () => {
         });
         await createUser(values);
         Swal.close();
-        Swal.fire('Succès', "L'utilisateur a été créé avec succès. Les identifiants ont été envoyés par email.", 'success');
+        Swal.fire('Utilisateur créé avec succès', 'Les identifiants ont été envoyés par email.', 'success');
       }
 
       fetchUsers();
@@ -689,7 +695,8 @@ const ManageAccounts = () => {
             musicalExperience: editingUser?.musicalExperience || '',
             isActiveInOtherChoir: editingUser?.isActiveInOtherChoir !== undefined ? editingUser.isActiveInOtherChoir : null,
             otherChoir: editingUser?.otherChoir || '',
-            pupitre: editingUser?.pupitre || ''
+            pupitre: editingUser?.pupitre || '',
+            status: editingUser?.status || ''
           }}
           validationSchema={Yup.lazy((values) => {
             let shape = {
@@ -724,6 +731,7 @@ const ManageAccounts = () => {
                 }),
                 height: Yup.number().positive('La taille doit être positive').required('Taille requise'),
                 pupitre: Yup.string().required('Pupitre requis'),
+                status: Yup.string().oneOf(['Junior', 'Sénior', 'Vétéran'], 'Statut invalide').required('Statut requis'),
 
                 // ✅ PERFECT VALIDATION - RADIO BUTTONS REQUIRED, CONDITIONAL FIELDS ONLY WHEN OUI
                 hasMusicalKnowledge: Yup.boolean().nullable().required('Veuillez répondre à cette question'),
@@ -1061,6 +1069,21 @@ const ManageAccounts = () => {
                       {touched.pupitre && errors.pupitre && <div className="invalid-feedback d-block">{errors.pupitre}</div>}
                     </Form.Group>
 
+                    <Form.Group className="mb-2">
+                      <Form.Label>
+                        Statut <span className="text-danger">*</span>
+                      </Form.Label>
+                      <Select
+                        options={statusOptions}
+                        name="status"
+                        value={statusOptions.find((o) => o.value === values.status)}
+                        onChange={(o) => setFieldValue('status', o?.value || 'Junior')}
+                        onBlur={() => handleBlur({ target: { name: 'status' } })}
+                        className={touched.status && errors.status ? 'is-invalid' : ''}
+                        placeholder="Sélectionner le statut"
+                      />
+                      {touched.status && errors.status && <div className="invalid-feedback d-block">{errors.status}</div>}
+                    </Form.Group>
                     {/* ✅ PERFECT MUSICAL KNOWLEDGE - REQUIRED RADIO + CONDITIONAL INPUT */}
                     <Form.Group className="mb-2">
                       <Form.Label>
