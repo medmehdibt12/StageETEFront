@@ -1,26 +1,32 @@
-# ---- build (Vite or CRA) ----
+# ---------- build ----------
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Install build tools for native deps (safe even if you don't need them)
+# Tools for native deps (safe even if unused)
 RUN apk add --no-cache python3 make g++ libc6-compat
 
-# Copy lockfile + manifest first for better caching
-COPY package*.json ./
+# Enable Corepack (manages Yarn 4)
+RUN corepack enable
 
-# If you use npm: keep npm ci, but make it verbose for debugging
-# (If you use pnpm/yarn, replace the next two lines accordingly)
-ENV NPM_CONFIG_LOGLEVEL=verbose
-RUN npm ci --no-audit --no-fund
+# Copy Yarn 4 metadata first for better caching
+# Make sure these files are committed to your repo:
+#  - yarn.lock
+#  - .yarnrc.yml
+#  - .yarn/**  (if you use zero-installs; contains plugins/releases/cache)
+COPY package.json yarn.lock .yarnrc.yml ./
+COPY .yarn/ ./.yarn/
 
-# Now copy the rest and build
+# Install deps (immutable = fail if lockfile would change)
+RUN yarn install --immutable
+
+# App source & build
 COPY . .
-RUN npm run build
+RUN yarn build   # Vite: builds to /app/dist
 
-# ---- serve with Caddy ----
+# ---------- serve with Caddy ----------
 FROM caddy:2-alpine
-# SPA Caddyfile inside the image
+# SPA config inside the image
 COPY Caddyfile /etc/caddy/Caddyfile
-# Vite outputs to /dist; CRA to /build (change if CRA)
+# Serve the built assets
 COPY --from=build /app/dist /usr/share/caddy
 EXPOSE 80
