@@ -1,0 +1,35 @@
+# Dependencies
+node_modules
+# Keep lockfile!
+
+# Build outputs
+dist
+build
+
+# Tool caches
+.cache
+.vite
+.parcel-cache
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env & secrets (runtime vars shouldn’t be baked)
+.env
+.env.*
+!.env.example
+
+# VCS & IDE
+.git
+.gitignore
+.gitattributes
+.vscode
+.idea
+.DS_Store
+
+# Misc
+*.swp
+*.swo
