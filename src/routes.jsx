@@ -168,7 +168,7 @@ const routes = [
       // 🔽 Chef Choeur Pages
       {
         path: '/chef/list-choriste',
-        element: lazy(() => import('./views/chefSideBarContents/choriste/ListChoriste'))
+        element: lazy(() => import('./views/chefSidebarContents/choriste/ListChoriste'))
       },
       // 🔽 Chef Pupitre Pages
       {
