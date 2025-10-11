@@ -168,16 +168,16 @@ const routes = [
       // 🔽 Chef Choeur Pages
       {
         path: '/chef/list-choriste',
-        element: lazy(() => import('./views/chefSidebarContents/choriste/ListChoriste'))
+        element: lazy(() => import('./views/chefSideBarContents/choriste/ListChoriste'))
       },
       // 🔽 Chef Pupitre Pages
       {
         path: '/chefpupitre/choriste-list-presence',
-        element: lazy(() => import('./views/chefpupitreSidebarContents/presence/PresenceList'))
+        element: lazy(() => import('./views/chefpupitreSideBarContents/presence/PresenceList'))
       },
       {
         path: '/chefpupitre/final-participants',
-        element: lazy(() => import('./views/chefpupitreSidebarContents/participants/PupitreFinalParticipants'))
+        element: lazy(() => import('./views/chefpupitreSideBarContents/participants/PupitreFinalParticipants'))
       },
 
       {
