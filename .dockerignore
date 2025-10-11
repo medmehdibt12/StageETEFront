@@ -3,10 +3,9 @@ dist
 build
 .vite
 .cache
-.parcel-cache
 *.log
 .env
 .git
-# KEEP these:
+# keep these:
 !yarn.lock
 !.yarnrc.yml
