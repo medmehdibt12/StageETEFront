@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { logout } from '../services/auth.service';
 
-export const BACKEND_URL = import.meta.env.VITE_APP_BACKEND_URL || 'http://localhost:5000';
+export const BACKEND_URL = import.meta.env.VITE_APP_BACKEND_URL || 'http://91.134.242.89/api';
 
 const api = axios.create({
   baseURL: BACKEND_URL
