@@ -12,7 +12,7 @@ const titleMap = {
   '/admin/manage-eliminations': 'Gérer les éliminations',
   '/admin/final-participants': 'Participants finaux aux concerts',
 
-  '/user/profile': 'Mon profile',
+  '/user/profile': 'Mon profil',
 
   '/choriste/season-programme': 'Programme de la saison',
   '/choriste/repetitions': 'Liste des répétitions',
