@@ -4,28 +4,29 @@
 import React, { useEffect, useState } from 'react';
 import { ListGroup, Dropdown, Form, Badge } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { FiCopy, FiCheck } from 'react-icons/fi';
 import ChatList from './ChatList';
-import avatar1 from '../../../../assets/images/user/avatar-1.jpg'; // ✅ Femme default
-import avatar2 from '../../../../assets/images/user/avatar-2.jpg'; // ✅ Homme default
+import avatar1 from '../../../../assets/images/user/avatar-1.jpg';
+import avatar2 from '../../../../assets/images/user/avatar-2.jpg';
 import { logout } from '../../../../services/auth.service';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { BACKEND_URL } from '../../../../utils/axiosInstance';
 import { getConfig, updateSignupActive } from '../../../../services/config.service';
-import { FiCopy } from 'react-icons/fi';
 
 const NavRight = () => {
   const [listOpen, setListOpen] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const { user, setUser, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [isSignupActive, setIsSignupActive] = useState(false);
 
   const FORM_LINK = `${window.location.origin}/candidature/formulaire`;
 
-  // ✅ GENDER-BASED AVATAR LOGIC
   const getDefaultAvatar = () => {
     if (user?.gender === 'Homme') return avatar2;
     if (user?.gender === 'Femme') return avatar1;
-    return avatar1; // Default fallback for undefined gender
+    return avatar1;
   };
 
   const avatarUrl = user?.avatar ? `${BACKEND_URL}${user.avatar}` : getDefaultAvatar();
@@ -43,6 +44,7 @@ const NavRight = () => {
       setIsSignupActive((prev) => !prev);
     } catch (err) {
       console.error('Failed to update config:', err);
+      toast.error('Erreur lors de la mise à jour');
     }
   };
 
@@ -55,10 +57,57 @@ const NavRight = () => {
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(FORM_LINK);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(FORM_LINK);
+        showCopySuccess();
+        return;
+      }
+      throw new Error('Using fallback method');
     } catch (err) {
-      console.error('Échec de la copie:', err);
+      copyToClipboardFallback();
     }
+  };
+
+  const copyToClipboardFallback = () => {
+    const textArea = document.createElement('textarea');
+    textArea.value = FORM_LINK;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    textArea.setAttribute('readonly', '');
+    document.body.appendChild(textArea);
+
+    try {
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+
+      if (successful) {
+        showCopySuccess();
+      } else {
+        showCopyError();
+      }
+    } catch (err) {
+      document.body.removeChild(textArea);
+      console.error('Copy failed:', err);
+      showCopyError();
+    }
+  };
+
+  const showCopySuccess = () => {
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
+
+  const showCopyError = () => {
+    toast.error('Impossible de copier automatiquement', {
+      position: 'top-right',
+      autoClose: 4000
+    });
+    setTimeout(() => {
+      prompt('Copiez ce lien manuellement (Ctrl+C):', FORM_LINK);
+    }, 100);
   };
 
   const styles = {
@@ -95,7 +144,8 @@ const NavRight = () => {
       cursor: 'pointer',
       color: '#dc3545',
       fontSize: '1rem',
-      marginTop: '3px'
+      marginTop: '3px',
+      transition: 'color 0.2s'
     },
     link: {
       display: 'flex',
@@ -131,6 +181,12 @@ const NavRight = () => {
       padding: '4px 8px',
       borderRadius: '8px',
       fontWeight: 500
+    },
+    copyIcon: {
+      cursor: 'pointer',
+      color: isCopied ? '#28a745' : '#495057',
+      transition: 'all 0.3s ease',
+      transform: isCopied ? 'scale(1.15)' : 'scale(1)'
     }
   };
 
@@ -144,7 +200,6 @@ const NavRight = () => {
             </Dropdown.Toggle>
 
             <Dropdown.Menu align="end" style={styles.menu}>
-              {/* Header */}
               <div style={styles.header}>
                 <img src={avatarUrl} alt="avatar" style={styles.avatar} />
                 <div style={styles.userInfo}>
@@ -156,13 +211,11 @@ const NavRight = () => {
                 <i className="feather icon-log-out" title="Déconnexion" onClick={handleLogout} style={styles.logout} />
               </div>
 
-              {/* Profile Link */}
               <Link to="/user/profile" style={styles.link}>
                 <i className="feather icon-user me-2" style={{ color: '#1e3a5f' }} />
                 Mon Profil
               </Link>
 
-              {/* Admin-only: Recrutement toggle + copy link */}
               {user?.role === 'admin' && (
                 <div style={styles.toggleContainer}>
                   <div style={styles.toggleRow}>
@@ -179,17 +232,15 @@ const NavRight = () => {
                     />
                   </div>
 
-                  {/* Badge + Copy icon inline */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 4 }}>
                     <Badge bg={isSignupActive ? 'success' : 'secondary'} style={styles.badge}>
                       {isSignupActive ? 'Actif' : 'Inactif'}
                     </Badge>
-                    <FiCopy
-                      size={16}
-                      style={{ cursor: 'pointer', color: '#495057' }}
-                      onClick={handleCopyLink}
-                      title="Copier le lien du formulaire"
-                    />
+                    {isCopied ? (
+                      <FiCheck size={16} style={styles.copyIcon} title="Copié !" />
+                    ) : (
+                      <FiCopy size={16} style={styles.copyIcon} onClick={handleCopyLink} title="Copier le lien du formulaire" />
+                    )}
                   </div>
                 </div>
               )}
