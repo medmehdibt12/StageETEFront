@@ -19,6 +19,13 @@ const useMenuItems = () => {
       icon: 'feather icon-music'
     },
     {
+      id: 'media-oeuvres',
+      title: 'Médias des Œuvres',
+      type: 'item',
+      icon: 'feather icon-play-circle',
+      url: '/common/media-oeuvres'
+    },
+    {
       id: 'manage-concerts',
       title: 'Gérer les concerts',
       type: 'item',
@@ -79,21 +86,28 @@ const useMenuItems = () => {
     },
     ...(user?.isChefDePupitre
       ? [
-          {
-            id: 'manage-presences',
-            title: 'Gérer les présences',
-            type: 'item',
-            icon: 'feather icon-check-square',
-            url: '/chefpupitre/choriste-list-presence'
-          },
-          {
-            id: 'final-participant-pupitre',
-            title: 'Participants finaux aux concerts',
-            type: 'item',
-            icon: 'feather icon-award',
-            url: '/chefpupitre/final-participants'
-          }
-        ]
+        {
+          id: 'media-oeuvres',
+          title: 'Médias des Œuvres',
+          type: 'item',
+          icon: 'feather icon-play-circle',
+          url: '/common/media-oeuvres'
+        },
+        {
+          id: 'manage-presences',
+          title: 'Gérer les présences',
+          type: 'item',
+          icon: 'feather icon-check-square',
+          url: '/chefpupitre/choriste-list-presence'
+        },
+        {
+          id: 'final-participant-pupitre',
+          title: 'Participants finaux aux concerts',
+          type: 'item',
+          icon: 'feather icon-award',
+          url: '/chefpupitre/final-participants'
+        }
+      ]
       : [])
   ];
 
@@ -104,6 +118,13 @@ const useMenuItems = () => {
       type: 'item',
       icon: 'feather icon-calendar',
       url: '/program/season-programme'
+    },
+    {
+      id: 'media-oeuvres',
+      title: 'Médias des Œuvres',
+      type: 'item',
+      icon: 'feather icon-music',
+      url: '/common/media-oeuvres'
     },
     {
       id: 'gerer-conge',
@@ -177,6 +198,13 @@ const useMenuItems = () => {
       type: 'item',
       icon: 'feather icon-calendar',
       url: '/program/season-programme'
+    },
+    {
+      id: 'media-oeuvres',
+      title: 'Médias des Œuvres',
+      type: 'item',
+      icon: 'feather icon-music',
+      url: '/common/media-oeuvres'
     },
     {
       id: 'list-choriste',

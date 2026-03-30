@@ -104,6 +104,10 @@ const routes = [
         path: '/user/profile',
         element: lazy(() => import('./views/common/ProfilePage'))
       },
+      {
+        path: '/common/media-oeuvres',
+        element: lazy(() => import('./views/common/media/OeuvreMediaManager'))
+      },
 
       // 🔽 Choriste Pages
       {
