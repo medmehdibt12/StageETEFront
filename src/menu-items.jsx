@@ -52,6 +52,13 @@ const useMenuItems = () => {
       type: 'item',
       url: '/admin/final-participants',
       icon: 'feather icon-award'
+    },
+    {
+      id: 'manage-surveys',
+      title: 'Sondages',
+      type: 'item',
+      url: '/admin/surveys',
+      icon: 'feather icon-bar-chart-2'
     }
   ];
 
@@ -62,6 +69,13 @@ const useMenuItems = () => {
       type: 'item',
       icon: 'feather icon-calendar',
       url: '/choriste/season-programme'
+    },
+    {
+      id: 'current-concert-media',
+      title: 'Carnet de Chant',
+      type: 'item',
+      icon: 'feather icon-headphones',
+      url: '/choriste/concert-actuel-medias'
     },
     {
       id: 'liste-repetitions',
@@ -83,6 +97,13 @@ const useMenuItems = () => {
       type: 'item',
       icon: 'feather icon-file-text',
       url: '/choriste/declare-conge'
+    },
+    {
+      id: 'sondages',
+      title: 'Mes Sondages',
+      type: 'item',
+      icon: 'feather icon-clipboard',
+      url: '/choriste/sondages'
     },
     ...(user?.isChefDePupitre
       ? [

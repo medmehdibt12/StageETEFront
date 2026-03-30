@@ -126,6 +126,10 @@ const routes = [
         path: '/choriste/concerts',
         element: lazy(() => import('./views/choristeSidebarContents/concert/ConcertsAvailability'))
       },
+      {
+        path: '/choriste/concert-actuel-medias',
+        element: lazy(() => import('./views/choristeSidebarContents/concert/CurrentConcertOeuvres'))
+      },
 
       // 🔽 Manager Pages
       {
@@ -182,6 +186,24 @@ const routes = [
       {
         path: '/chefpupitre/final-participants',
         element: lazy(() => import('./views/chefpupitreSideBarContents/participants/PupitreFinalParticipants'))
+      },
+
+      // 🔽 Survey Module
+      {
+        path: '/admin/surveys',
+        element: lazy(() => import('./views/adminSidebarContents/surveys/SurveyListPage'))
+      },
+      {
+        path: '/admin/surveys/:id/resultats',
+        element: lazy(() => import('./views/adminSidebarContents/surveys/SurveyResultsPage'))
+      },
+      {
+        path: '/choriste/sondages',
+        element: lazy(() => import('./views/choristeSidebarContents/surveys/ChoristerSurveyListPage'))
+      },
+      {
+        path: '/choriste/sondages/:id/repondre',
+        element: lazy(() => import('./views/choristeSidebarContents/surveys/SurveyFormPage'))
       },
 
       {
