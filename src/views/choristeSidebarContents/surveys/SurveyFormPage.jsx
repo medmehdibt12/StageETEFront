@@ -8,6 +8,7 @@ import { getSurveyById } from '../../../services/survey.service';
 import SurveyQuestionRenderer from '../../../components/surveys/SurveyQuestionRenderer';
 import SurveyStatusBadge from '../../../components/surveys/SurveyStatusBadge';
 import useSurveyReponse from '../../../hooks/useSurveyReponse';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const typeConfig = {
   disponibilite: { emoji: '📅', label: 'Disponibilité', color: '#2E6DA4' },
@@ -16,10 +17,15 @@ const typeConfig = {
   autre: { emoji: '📝', label: 'Personnalisé', color: '#4b5563' }
 };
 
-const ConfirmationScreen = ({ onBack }) => (
+const ConfirmationScreen = ({ onBack, userName }) => (
   <div style={{ textAlign: 'center', padding: '60px 20px' }}>
     <div style={{ fontSize: '4rem', marginBottom: 16, animation: 'popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>🎉</div>
     <h3 style={{ fontWeight: 800, color: '#1e293b', marginBottom: 8 }}>Merci pour votre participation !</h3>
+    {userName && (
+      <p style={{ color: '#2E6DA4', fontSize: '0.92rem', fontWeight: 600, marginBottom: 4 }}>
+        {userName}
+      </p>
+    )}
     <p style={{ color: '#6b7280', fontSize: '0.95rem', maxWidth: 400, margin: '0 auto 28px' }}>
       Vos réponses ont bien été enregistrées. L'administration vous remercie pour votre participation.
     </p>
@@ -37,6 +43,45 @@ const ConfirmationScreen = ({ onBack }) => (
     `}</style>
   </div>
 );
+
+/* Read-only identity card shown above questions */
+const IdentityCard = ({ user }) => {
+  if (!user) return null;
+  const fields = [
+    { icon: '👤', label: 'Prénom', value: user.firstName || '—' },
+    { icon: '👤', label: 'Nom', value: user.lastName || '—' },
+    { icon: '✉️', label: 'Email', value: user.email || '—' }
+  ];
+  return (
+    <div style={{
+      background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+      borderRadius: 14, border: '1.5px solid #bae6fd',
+      padding: '16px 20px', marginBottom: 20
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <span style={{ fontSize: '1rem' }}>🔒</span>
+        <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0369a1' }}>Informations du participant</span>
+        <span style={{
+          marginLeft: 'auto', fontSize: '0.72rem', padding: '2px 8px', borderRadius: 10,
+          background: '#e0f2fe', color: '#0369a1', fontWeight: 600
+        }}>Pré-rempli automatiquement</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+        {fields.map(f => (
+          <div key={f.label} style={{
+            background: '#fff', borderRadius: 10, border: '1px solid #bae6fd',
+            padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 2
+          }}>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {f.icon} {f.label}
+            </span>
+            <span style={{ fontSize: '0.9rem', color: '#0c4a6e', fontWeight: 600 }}>{f.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const ReadonlyView = ({ survey, existingReponse }) => {
   const questions = survey?.questions || [];
@@ -82,6 +127,8 @@ const ReadonlyView = ({ survey, existingReponse }) => {
 
 const SurveyFormPage = () => {
   const { id } = useParams();
+  const { user } = useAuth();
+  const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '';
   const navigate = useNavigate();
   const [survey, setSurvey] = useState(null);
   const [loadingPage, setLoadingPage] = useState(true);
@@ -110,7 +157,7 @@ const SurveyFormPage = () => {
       }
     };
     init();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const questions = survey?.questions || [];
@@ -177,9 +224,11 @@ const SurveyFormPage = () => {
         {survey.description && <p style={{ color: '#6b7280', margin: 0, fontSize: '0.88rem' }}>{survey.description}</p>}
 
         {survey.dateFin && (
-          <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 20,
+          <div style={{
+            marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 20,
             background: isExpiringSoon ? '#fee2e2' : '#f1f5f9', color: isExpiringSoon ? '#dc2626' : '#6b7280',
-            fontSize: '0.8rem', fontWeight: isExpiringSoon ? 700 : 400 }}>
+            fontSize: '0.8rem', fontWeight: isExpiringSoon ? 700 : 400
+          }}>
             {isExpiringSoon ? '⚠️' : '📅'}
             {isExpiringSoon ? 'Clôture imminente' : 'Clôture'} : {new Date(survey.dateFin).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
           </div>
@@ -188,13 +237,16 @@ const SurveyFormPage = () => {
 
       {/* Confirmed */}
       {submitted ? (
-        <ConfirmationScreen onBack={() => navigate('/choriste/sondages')} />
+        <ConfirmationScreen onBack={() => navigate('/choriste/sondages')} userName={userName} />
       ) : dejaRepondu ? (
         <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', padding: '22px 28px', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
           <ReadonlyView survey={survey} existingReponse={existingReponse} />
         </div>
       ) : (
         <>
+          {/* Identity card — auto-filled from connected user */}
+          <IdentityCard user={user} />
+
           {/* Progress bar */}
           {questions.length > 0 && (
             <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '14px 18px', marginBottom: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
