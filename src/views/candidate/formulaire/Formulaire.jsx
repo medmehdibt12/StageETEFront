@@ -5,8 +5,6 @@ import { useForm, Controller } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Form, Button, Col, Row, Spinner } from 'react-bootstrap';
 import Select from 'react-select';
-import PhoneInput from 'react-phone-input-2';
-import 'react-phone-input-2/lib/style.css';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import styled from 'styled-components';
@@ -431,6 +429,7 @@ const Formulaire = () => {
   const [emailConfirmed, setEmailConfirmed] = useState(false);
   const [emailConfirmLoading, setEmailConfirmLoading] = useState(false);
   const [heightValue, setHeightValue] = useState(1.7);
+  const [cinWarning, setCinWarning] = useState('');
   const navigate = useNavigate();
 
   const {
@@ -450,7 +449,7 @@ const Formulaire = () => {
       email: '',
       gender: null,
       birthDate: '',
-      nationality: null,
+      nationality: { value: 'Tunisie', label: '🇹🇳 Tunisie' },
       identityType: '',
       identityNumber: '',
       height: 1.7,
@@ -645,8 +644,8 @@ const Formulaire = () => {
     const cleaned = value.trim();
 
     // 1. Minimum visual width (roughly 1 full-width sentence)
-    if (cleaned.length < 100) {
-      return 'Veuillez écrire une phrase complète (au moins 100 caractères).';
+    if (cleaned.length < 50) {
+      return 'Veuillez écrire une phrase complète (au moins 50 caractères).';
     }
 
     // 2. Check for immediate repeated words (e.g., "je je", "test test")
@@ -992,72 +991,25 @@ const Formulaire = () => {
                       <Col md={6} className="mb-3">
                         <Form.Group controlId="phone">
                           <Form.Label>Téléphone</Form.Label>
-                          <Controller
-                            name="phone"
-                            control={control}
-                            rules={{
+                          <Form.Control
+                            type="tel"
+                            placeholder="🇹🇳 +216 99 999 999"
+                            {...register('phone', {
                               required: 'Téléphone requis',
-                              validate: (value) => {
-                                if (!value || value.length < 8) {
-                                  return 'Numéro de téléphone invalide';
-                                }
-                                return true;
+                              pattern: {
+                                value: /^\d{8}$/,
+                                message: 'Le numéro doit contenir exactement 8 chiffres'
                               }
+                            })}
+                            onInput={(e) => {
+                              // Ensure only digits, and max 8 characters
+                              e.target.value = e.target.value.replace(/\D/g, '').slice(0, 8);
                             }}
-                            render={({ field: { onChange, value } }) => {
-                              // Create display value for PhoneInput (country code + phone number)
-                              const phoneCountryCode = watch('phoneCountryCode') || '+216';
-                              const displayValue = value ? `${phoneCountryCode.replace('+', '')}${value}` : '';
-
-                              return (
-                                <PhoneInput
-                                  country={'tn'}
-                                  value={displayValue}
-                                  onChange={(fullPhone, country) => {
-                                    // Extract the dial code
-                                    const dialCode = country.dialCode;
-
-                                    // Save country code
-                                    setValue('phoneCountryCode', `+${dialCode}`);
-
-                                    // Extract clean phone number (remove country code)
-                                    const cleanPhone = fullPhone.replace(dialCode, '');
-
-                                    // Save only the phone number part
-                                    onChange(cleanPhone);
-                                  }}
-                                  enableSearch={true}
-                                  excludeCountries={['il']}
-                                  searchPlaceholder="Rechercher un pays"
-                                  inputStyle={{
-                                    width: '100%',
-                                    height: '42px',
-                                    borderRadius: '10px',
-                                    border: errors.phone ? '1px solid #dc3545' : '1px solid #e2e8f0',
-                                    fontSize: '0.875rem',
-                                    paddingLeft: '60px'
-                                  }}
-                                  containerStyle={{
-                                    width: '100%'
-                                  }}
-                                  buttonStyle={{
-                                    borderRadius: '10px 0 0 10px',
-                                    border: errors.phone ? '1px solid #dc3545' : '1px solid #e2e8f0',
-                                    backgroundColor: '#f8f9fa'
-                                  }}
-                                  dropdownStyle={{
-                                    borderRadius: '10px',
-                                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
-                                  }}
-                                />
-                              );
-                            }}
+                            isInvalid={!!errors.phone}
+                            size="sm"
+                            style={{ height: '40px' }}
                           />
-                          {errors.phone && (
-                            <div className="text-danger mt-1" style={{ fontSize: '0.875rem' }}>
-                              {errors.phone.message}
-                            </div>
-                          )}
+                          <Form.Control.Feedback type="invalid">{errors.phone?.message}</Form.Control.Feedback>
                         </Form.Group>
                       </Col>
                     </Row>
@@ -1182,30 +1134,74 @@ const Formulaire = () => {
                       )}
                     </Form.Group>
 
-                    {identityType && (
+                    {identityType === 'CIN' && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.2 }}
                       >
-                        <Form.Group controlId="identityNumber" className="mb-3">
-                          <Form.Label>Numéro de {identityType}</Form.Label>
+                        <Form.Group controlId="identityNumberCIN" className="mb-3">
+                          <Form.Label>Numéro de CIN</Form.Label>
                           <Form.Control
                             type="text"
-                            placeholder={`Numéro ${identityType}`}
+                            placeholder="Numéro CIN (8 chiffres)"
                             {...register('identityNumber', {
-                              required: `Numéro de ${identityType} requis`,
-                              pattern:
-                                identityType === 'CIN'
-                                  ? {
-                                      value: /^[01][0-9]{7}$/,
-                                      message: 'Le CIN doit commencer par 0 ou 1 et contenir exactement 8 chiffres'
-                                    }
-                                  : {
-                                      value: /^[A-Za-z0-9]+$/,
-                                      message: 'Le passeport ne doit contenir que des lettres et des chiffres'
-                                    }
+                              required: 'Numéro de CIN requis',
+                              pattern: {
+                                value: /^[01][0-9]{7}$/,
+                                // message: 'Le CIN doit commencer par 0 ou 1 et contenir exactement 8 chiffres'
+                              }
+                            })}
+                            onInput={(e) => {
+                              const raw = e.target.value;
+                              let val = raw.replace(/\D/g, '');
+                              
+                              if (raw !== val) {
+                                setCinWarning("Les lettres ne sont pas autorisées.");
+                              } else if (val.length > 0 && val[0] !== '0' && val[0] !== '1') {
+                                setCinWarning("Le CIN doit commencer par 0 ou 1.");
+                                val = '';
+                              } else if (raw.length > 8) {
+                                setCinWarning("Limité à 8 chiffres maximum.");
+                              } else {
+                                setCinWarning("");
+                              }
+                              
+                              e.target.value = val.slice(0, 8);
+                            }}
+                            isInvalid={!!errors.identityNumber}
+                            size="sm"
+                            style={{ height: '40px' }}
+                          />
+                          <Form.Control.Feedback type="invalid">{errors.identityNumber?.message}</Form.Control.Feedback>
+                          {cinWarning && (
+                            <div className="text-warning mt-1" style={{ fontSize: '0.85rem' }}>
+                              ⚠️ {cinWarning}
+                            </div>
+                          )}
+                        </Form.Group>
+                      </motion.div>
+                    )}
+
+                    {identityType === 'Passeport' && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Form.Group controlId="identityNumberPasseport" className="mb-3">
+                          <Form.Label>Numéro de Passeport</Form.Label>
+                          <Form.Control
+                            type="text"
+                            placeholder="Numéro Passeport"
+                            {...register('identityNumber', {
+                              required: 'Numéro de Passeport requis',
+                              pattern: {
+                                value: /^[A-Za-z0-9]+$/,
+                                message: 'Le passeport ne doit contenir que des lettres et des chiffres'
+                              }
                             })}
                             isInvalid={!!errors.identityNumber}
                             size="sm"
