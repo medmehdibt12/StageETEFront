@@ -45,6 +45,16 @@ const routes = [
     element: lazy(() => import('./views/auth/signin/SignIn1'))
   },
   {
+    path: '/forgot-password',
+    guard: RedirectIfAuth,
+    element: lazy(() => import('./views/auth/forgot-password/ForgotPassword'))
+  },
+  {
+    path: '/reset-password',
+    guard: RedirectIfAuth,
+    element: lazy(() => import('./views/auth/reset-password/ResetPassword'))
+  },
+  {
     path: '/candidature/formulaire', // New route for Formulaire
     element: lazy(() => import('./views/candidate/formulaire/Formulaire'))
   },
