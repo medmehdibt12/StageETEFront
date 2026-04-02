@@ -34,3 +34,23 @@ export const deleteOeuvrePermanent = async (id) => {
   const res = await api.delete(`/oeuvres/${id}/permanent`);
   return res.data;
 };
+
+// ==========================================
+// MEDIA MANAGEMENT (Pupitre/Tutti)
+// ==========================================
+
+// Upload media for a specific pupitre
+export const uploadOeuvreMedia = async (oeuvreId, formData) => {
+  const res = await api.post(`/oeuvres/${oeuvreId}/media`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
+};
+
+// Delete specific media for a specific pupitre
+export const deleteOeuvreMedia = async (oeuvreId, pupitre, mediaType) => {
+  const res = await api.delete(`/oeuvres/${oeuvreId}/media`, {
+    data: { pupitre, mediaType },
+  });
+  return res.data;
+};
