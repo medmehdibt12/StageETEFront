@@ -645,8 +645,8 @@ const Formulaire = () => {
     const cleaned = value.trim();
 
     // 1. Minimum visual width (roughly 1 full-width sentence)
-    if (cleaned.length < 100) {
-      return 'Veuillez écrire une phrase complète (au moins 100 caractères).';
+    if (cleaned.length < 50) {
+      return 'Veuillez écrire une phrase complète (au moins 50 caractères).';
     }
 
     // 2. Check for immediate repeated words (e.g., "je je", "test test")
@@ -1113,7 +1113,7 @@ const Formulaire = () => {
                           <Form.Control.Feedback type="invalid">{errors.birthDate?.message}</Form.Control.Feedback>
                         </Form.Group>
                       </Col>
-
+                 {/* nationality */}
                       <Col md={6} className="mb-3">
                         <Form.Group controlId="nationality">
                           <Form.Label>Nationalité</Form.Label>
