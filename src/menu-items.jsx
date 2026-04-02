@@ -209,6 +209,13 @@ const useMenuItems = () => {
       type: 'item',
       url: '/manager/reschedule-requests',
       icon: 'feather icon-refresh-cw'
+    },
+    {
+      id: 'manage-surveys',
+      title: 'Sondages',
+      type: 'item',
+      url: '/admin/surveys',
+      icon: 'feather icon-bar-chart-2'
     }
   ];
 

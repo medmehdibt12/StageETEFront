@@ -7,6 +7,7 @@ import Swal from 'sweetalert2';
 import { getSurveys, updateSurveyStatut, deleteSurvey } from '../../../services/survey.service';
 import SurveyCard from '../../../components/surveys/SurveyCard';
 import SurveyCreateModal from '../../../components/surveys/SurveyCreateModal';
+import { useAuth } from '../../../contexts/AuthContext';
 
 const FILTERS = [
   { key: 'tous', label: 'Tous' },
@@ -16,6 +17,10 @@ const FILTERS = [
 ];
 
 const SurveyListPage = () => {
+  const { user } = useAuth();
+  const role = user?.role;
+  const isManagement = role === 'admin' || role === 'manager';
+
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('tous');
@@ -118,9 +123,11 @@ const SurveyListPage = () => {
       {/* Header */}
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h2 style={{ fontWeight: 800, color: '#1e293b', margin: 0, fontSize: '1.5rem' }}>📋 Sondages</h2>
+          <h2 style={{ fontWeight: 800, color: '#1e293b', margin: 0, fontSize: '1.5rem' }}>
+            {role === 'manager' ? '📋 Gestion des Sondages' : '📋 Sondages'}
+          </h2>
           <p style={{ color: '#6b7280', margin: 0, fontSize: '0.88rem', marginTop: 2 }}>
-            Créez et gérez les sondages du chœur
+            {role === 'manager' ? 'Gérez les sondages pour votre chœur' : 'Créez et gérez les sondages du chœur'}
           </p>
         </div>
         <button
@@ -200,7 +207,7 @@ const SurveyListPage = () => {
             <Col key={s._id}>
               <SurveyCard
                 survey={s}
-                isAdmin
+                isAdmin={isManagement}
                 onPublish={handlePublish}
                 onClore={handleClore}
                 onDelete={handleDelete}

@@ -5,7 +5,8 @@ import React, { useEffect, useState } from 'react';
 import {
   getRepetitions,
   createRepetition,
-  updateRepetition
+  updateRepetition,
+  cancelRepetition
   // deleteRepetitionPermanent,
 } from '../../../services/repetition.service';
 import { getConcerts } from '../../../services/concert.service';
@@ -16,7 +17,7 @@ import * as Yup from 'yup';
 import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
 import Swal from 'sweetalert2';
-import { FaChevronLeft, FaChevronRight, FaAngleDoubleLeft, FaAngleDoubleRight, FaCheck, FaMicrophone } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaAngleDoubleLeft, FaAngleDoubleRight, FaCheck, FaMicrophone, FaBan } from 'react-icons/fa';
 
 // Fixed "Lieu" choices:
 const lieuOptions = [
@@ -251,6 +252,43 @@ const ManageRehearsals = () => {
     }
   };
 
+  const handleCancelRepetition = async (rep) => {
+    const { value: reason } = await Swal.fire({
+      title: 'Annuler la répétition',
+      text: `Êtes-vous sûr de vouloir annuler la répétition du ${formatDateTime(rep.date)} à ${rep.startTime} ?`,
+      icon: 'warning',
+      input: 'textarea',
+      inputLabel: 'Motif de l\'annulation (optionnel)',
+      inputPlaceholder: 'Saisissez le motif ici...',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Confirmer l\'annulation',
+      cancelButtonText: 'Retour',
+      allowOutsideClick: () => !Swal.isLoading()
+    });
+
+    if (reason !== undefined) {
+      try {
+        setLoading(true);
+        await cancelRepetition(rep._id, reason);
+        Swal.fire({
+          icon: 'success',
+          title: 'Répétition annulée',
+          text: 'Les choristes concernés seront notifiés par mail.',
+          timer: 3000,
+          showConfirmButton: false
+        });
+        await fetchAll();
+      } catch (error) {
+        console.error('Error cancelling rehearsal:', error);
+        Swal.fire('Erreur', 'Impossible d\'annuler la répétition.', 'error');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   useEffect(() => {
     fetchAll();
   }, []);
@@ -360,29 +398,53 @@ const ManageRehearsals = () => {
                 </thead>
                 <tbody>
                   {getPaginatedData().map((rep, idx) => (
-                    <tr key={rep._id}>
-                      <td>{getStartIndex() + idx}</td>
-                      <td>{formatDateTime(rep.date)}</td>
-                      <td>
-                        {rep.startTime} → {rep.endTime}
-                      </td>
-                      <td>{rep.location}</td>
-                      <td>{formatPupitresDisplay(rep.pupitres)}</td>
-                      <td>{rep.concert?.title || '-'}</td>
-                      <td>
-                        <Button
-                          size="sm"
-                          variant="warning"
-                          className="me-2"
-                          onClick={() => {
-                            setEditing(rep);
-                            setShowModal(true);
-                          }}
-                        >
-                          Modifier
-                        </Button>
-                      </td>
-                    </tr>
+                    <React.Fragment key={rep._id}>
+                      <tr>
+                        <td>{getStartIndex() + idx}</td>
+                        <td>{formatDateTime(rep.date)}</td>
+                        <td>
+                          {rep.startTime} → {rep.endTime}
+                        </td>
+                        <td>{rep.location}</td>
+                        <td>{formatPupitresDisplay(rep.pupitres)}</td>
+                        <td>{rep.concert?.title || '-'}</td>
+                        <td>
+                          <Button
+                            size="sm"
+                            variant="warning"
+                            className="me-2"
+                            onClick={() => {
+                              setEditing(rep);
+                              setShowModal(true);
+                            }}
+                            disabled={rep.isCancelled}
+                          >
+                            Modifier
+                          </Button>
+                          {!rep.isCancelled ? (
+                            <Button
+                              size="sm"
+                              variant="outline-danger"
+                              onClick={() => handleCancelRepetition(rep)}
+                            >
+                              <FaBan size={12} className="me-1" />
+                              Annuler
+                            </Button>
+                          ) : (
+                            <Badge bg="danger" className="p-2">
+                              ANNULÉE
+                            </Badge>
+                          )}
+                        </td>
+                      </tr>
+                      {rep.isCancelled && rep.cancellationReason && (
+                        <tr className="bg-light border-0">
+                          <td colSpan={7} className="py-1 px-4 text-danger small fst-italic">
+                            🎯 Motif d'annulation : {rep.cancellationReason}
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </Table>

@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable react/prop-types */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, Spinner, Row, Col } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import { createSurvey, updateSurveyStatut, getSurveyTemplates } from '../../services/survey.service';
@@ -47,13 +47,22 @@ const SurveyCreateModal = ({ show, onHide, onCreated }) => {
 
   // Step 3 state
   const [publishNow, setPublishNow] = useState(false);
+  const [isExpressMode, setIsExpressMode] = useState(false);
 
   const [errors, setErrors] = useState({});
+
+  // 🪄 Auto-load template when type changes
+  useEffect(() => {
+    if (type && type !== 'autre' && show) {
+      loadTemplate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type]);
 
   const resetForm = () => {
     setStep(1);
     setTitre(''); setDescription(''); setType(''); setDateDebut(''); setDateFin(''); setCiblePupitres([]);
-    setQuestions([]); setPublishNow(false); setErrors({});
+    setQuestions([]); setPublishNow(false); setIsExpressMode(false); setErrors({});
   };
 
   const handleClose = () => { resetForm(); onHide(); };
@@ -72,13 +81,38 @@ const SurveyCreateModal = ({ show, onHide, onCreated }) => {
       const templates = await getSurveyTemplates();
       const tpl = Array.isArray(templates) ? templates.find(t => t.type === type) : templates[type];
       if (tpl?.questions) {
-        setQuestions(tpl.questions.map((q, i) => ({ ...q, id: q.id || `q${i + 1}` })));
-        toast.success('Template chargé ! Vous pouvez modifier les questions.');
+        setQuestions(tpl.questions.map((q, i) => {
+          let fixedType = q.type;
+          const text = q.texte.toLowerCase();
+
+          // Auto-correct from 'texte' to specific pickers if relevant keywords are found
+          if (q.type === 'texte') {
+            const hasPluralDates = text.includes('dates');
+            const hasSingleDate = text.includes('date') && !hasPluralDates;
+
+            if (hasSingleDate || text.includes('expiration') || text.includes('naissance')) {
+              fixedType = 'date';
+            } else if (hasPluralDates || text.includes('disponibilité')) {
+              fixedType = 'checkbox';
+              q.options = [
+                { valeur: 'date_1', label: 'Proposer une date...' },
+                { valeur: 'date_2', label: 'Proposer une autre date...' }
+              ];
+            } else if (text.includes('heure') || text.includes('départ') || text.includes('arrivée') || text.includes('time')) {
+              fixedType = 'time';
+            } else if ((text.includes('choisi') || text.includes('préférence') || text.includes('menu')) && q.options?.length > 0) {
+              fixedType = 'radio';
+            }
+          }
+
+          return { ...q, type: fixedType, id: q.id || `q${i + 1}` };
+        }));
+        toast.success('Template CSO chargé et optimisé ! ✨');
       } else {
         toast.warning('Aucun template trouvé pour ce type.');
       }
-    } catch {
-      toast.error('Erreur lors du chargement du template.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erreur lors du chargement du template.');
     } finally {
       setLoadingTemplate(false);
     }
@@ -108,27 +142,37 @@ const SurveyCreateModal = ({ show, onHide, onCreated }) => {
   const goNext = () => {
     if (step === 1 && !validateStep1()) return;
     if (step === 2 && !validateStep2()) return;
-    setStep(s => s + 1);
+
+    if (step === 1 && isExpressMode) {
+      setStep(3);
+    } else {
+      setStep(s => s + 1);
+    }
   };
 
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
       const payload = {
-        titre: titre.trim(),
-        description: description.trim(),
         type,
         dateDebut: dateDebut || undefined,
         dateFin: dateFin || undefined,
         ciblePupitres,
-        questions: questions.map((q, i) => ({
+      };
+
+      // In express mode, we let the backend fill everything
+      // In standard mode, we send what the user edited
+      if (!isExpressMode) {
+        payload.titre = titre.trim();
+        payload.description = description.trim();
+        payload.questions = questions.map((q, i) => ({
           id: q.id || `q${i + 1}`,
           texte: q.texte,
           type: q.type,
           options: q.options || [],
           obligatoire: q.obligatoire || false
-        }))
-      };
+        }));
+      }
 
       const created = await createSurvey(payload);
 
@@ -201,9 +245,9 @@ const SurveyCreateModal = ({ show, onHide, onCreated }) => {
             </div>
 
             {/* Description */}
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontWeight: 600, fontSize: '0.85rem', color: '#374151', marginBottom: 6, display: 'block' }}>Description</label>
-              <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={3} placeholder="Description optionnelle du sondage..."
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ fontWeight: 600, fontSize: '0.85rem', color: '#475569', marginBottom: 6, display: 'block' }}>Description</label>
+              <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 80 }} placeholder="Description optionnelle du sondage..."
                 value={description} onChange={e => setDescription(e.target.value)} />
             </div>
 
@@ -219,9 +263,11 @@ const SurveyCreateModal = ({ show, onHide, onCreated }) => {
                   const color = typeColors[t.type];
                   return (
                     <div key={t.type} onClick={() => { setType(t.type); setErrors(p => ({ ...p, type: undefined })); }}
-                      style={{ padding: '12px 14px', borderRadius: 12, border: selected ? `2px solid ${color}` : '2px solid #e2e8f0',
+                      style={{
+                        padding: '12px 14px', borderRadius: 12, border: selected ? `2px solid ${color}` : '2px solid #e2e8f0',
                         background: selected ? `${color}11` : '#fff', cursor: 'pointer', transition: 'all 0.15s',
-                        display: 'flex', alignItems: 'center', gap: 10 }}>
+                        display: 'flex', alignItems: 'center', gap: 10
+                      }}>
                       <span style={{ fontSize: '1.4rem' }}>{t.emoji}</span>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: '0.88rem', color: selected ? color : '#374151' }}>{t.label}</div>
@@ -233,42 +279,71 @@ const SurveyCreateModal = ({ show, onHide, onCreated }) => {
               </div>
             </div>
 
-            {/* Template load button */}
+            {/* Express Mode Toggle */}
             {type && type !== 'autre' && (
-              <div style={{ marginBottom: 16 }}>
-                <button onClick={loadTemplate} disabled={loadingTemplate}
-                  style={{ padding: '8px 18px', borderRadius: 8, border: '1.5px solid #2E6DA4', background: '#eff6ff', color: '#2E6DA4', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {loadingTemplate ? <><span className="spinner-border spinner-border-sm" /> Chargement...</> : '⚡ Partir d\'un template'}
-                </button>
+              <div style={{
+                marginBottom: 20, padding: '14px 18px', borderRadius: 12, border: '1px solid #e2e8f0',
+                background: isExpressMode ? '#f0f9ff' : '#fff', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+              }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.88rem', color: isExpressMode ? '#0369a1' : '#374151' }}>✨ Mode Express</div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b' }}>Utiliser les questions standards sans passer par l'éditeur</div>
+                </div>
+                <Form.Check
+                  type="switch"
+                  id="express-mode-switch"
+                  checked={isExpressMode}
+                  onChange={(e) => setIsExpressMode(e.target.checked)}
+                  style={{ transform: 'scale(1.2)' }}
+                />
               </div>
             )}
 
-            {/* Dates */}
-            <Row style={{ marginBottom: 16 }}>
-              <Col xs={12} md={6}>
-                <label style={{ fontWeight: 600, fontSize: '0.85rem', color: '#374151', marginBottom: 6, display: 'block' }}>Date de début</label>
-                <input style={inputStyle} type="date" value={dateDebut} onChange={e => setDateDebut(e.target.value)} />
-              </Col>
-              <Col xs={12} md={6} style={{ marginTop: window.innerWidth < 768 ? 12 : 0 }}>
-                <label style={{ fontWeight: 600, fontSize: '0.85rem', color: '#374151', marginBottom: 6, display: 'block' }}>Date de clôture</label>
-                <input style={inputStyle} type="date" value={dateFin} onChange={e => setDateFin(e.target.value)} />
-              </Col>
-            </Row>
+            {/* Dates Block */}
+            <div style={{ background: '#f8fafc', borderRadius: 12, padding: '16px', border: '1px solid #e2e8f0', marginBottom: 20 }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.025em', display: 'flex', alignItems: 'center', gap: 6 }}>
+                📅 Période de validité
+              </div>
+              <Row className="g-3">
+                <Col xs={12} md={6}>
+                  <label style={{ fontWeight: 600, fontSize: '0.82rem', color: '#475569', marginBottom: 4, display: 'block' }}>Date de début</label>
+                  <input style={inputStyle} type="date" value={dateDebut} onChange={e => setDateDebut(e.target.value)} />
+                </Col>
+                <Col xs={12} md={6}>
+                  <label style={{ fontWeight: 600, fontSize: '0.82rem', color: '#475569', marginBottom: 4, display: 'block' }}>Date de clôture</label>
+                  <input style={inputStyle} type="date" value={dateFin} onChange={e => setDateFin(e.target.value)} />
+                </Col>
+              </Row>
+            </div>
 
             {/* Target pupitres */}
             <div>
-              <label style={{ fontWeight: 600, fontSize: '0.85rem', color: '#374151', marginBottom: 8, display: 'block' }}>
-                Cibler des pupitres <span style={{ fontWeight: 400, color: '#9ca3af' }}>(laisser vide = tout le monde)</span>
+              <label style={{ fontWeight: 600, fontSize: '0.85rem', color: '#475569', marginBottom: 10, display: 'block' }}>
+                Cibler des pupitres <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: '0.8rem' }}>(laisser vide = tout le monde)</span>
               </label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                 {PUPITRES.map(p => {
                   const checked = ciblePupitres.includes(p);
+                  const colors = {
+                    soprano: { border: '#fce7f3', bg: '#fdf2f8', dark: '#be185d' },
+                    alto: { border: '#e0e7ff', bg: '#eef2ff', dark: '#4338ca' },
+                    ténor: { border: '#fef3c7', bg: '#fffbeb', dark: '#b45309' },
+                    basse: { border: '#dcfce7', bg: '#f0fdf4', dark: '#15803d' }
+                  }[p] || { border: '#e2e8f0', bg: '#f8fafc', dark: '#64748b' };
+
                   return (
                     <div key={p} onClick={() => togglePupitre(p)}
-                      style={{ padding: '6px 16px', borderRadius: 20, border: checked ? '2px solid #2E6DA4' : '1.5px solid #e2e8f0',
-                        background: checked ? '#eff6ff' : '#fff', color: checked ? '#2E6DA4' : '#6b7280', cursor: 'pointer',
-                        fontSize: '0.85rem', fontWeight: checked ? 600 : 400, transition: 'all 0.15s', textTransform: 'capitalize' }}>
-                      {checked ? '✓ ' : ''}{p}
+                      style={{
+                        padding: '8px 20px', borderRadius: 24, border: '2px solid',
+                        borderColor: checked ? colors.dark : '#f1f5f9',
+                        background: checked ? colors.bg : '#fff',
+                        color: checked ? colors.dark : '#64748b',
+                        cursor: 'pointer', fontSize: '0.85rem', fontWeight: checked ? 700 : 500,
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        textTransform: 'capitalize',
+                        boxShadow: checked ? `0 2px 8px ${colors.border}` : 'none'
+                      }}>
+                      {checked ? '● ' : '○ '}{p}
                     </div>
                   );
                 })}
@@ -307,14 +382,21 @@ const SurveyCreateModal = ({ show, onHide, onCreated }) => {
 
             {/* Questions preview */}
             <div style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 20 }}>
-              {questions.map((q, i) => (
-                <div key={q.id} style={{ padding: '10px 14px', background: '#fff', borderRadius: 10, border: '1px solid #e2e8f0', marginBottom: 8 }}>
-                  <span style={{ fontWeight: 600, color: '#2E6DA4', fontSize: '0.8rem' }}>Q{i + 1}</span>
-                  {q.obligatoire && <span style={{ color: '#dc2626', marginLeft: 4, fontWeight: 700 }}>*</span>}
-                  <span style={{ fontSize: '0.87rem', color: '#374151', marginLeft: 6 }}>{q.texte}</span>
-                  <span style={{ marginLeft: 8, fontSize: '0.75rem', color: '#9ca3af', background: '#f1f5f9', padding: '2px 6px', borderRadius: 6 }}>{q.type}</span>
+              {isExpressMode ? (
+                <div style={{ padding: '20px', textAlign: 'center', background: '#fff', borderRadius: 12, border: '2px dashed #e2e8f0', color: '#64748b' }}>
+                  <span style={{ fontSize: '1.2rem', display: 'block', marginBottom: 4 }}>⚡</span>
+                  <span style={{ fontSize: '0.85rem' }}>Les questions par défaut du template seront ajoutées automatiquement.</span>
                 </div>
-              ))}
+              ) : (
+                questions.map((q, i) => (
+                  <div key={q.id} style={{ padding: '10px 14px', background: '#fff', borderRadius: 10, border: '1px solid #e2e8f0', marginBottom: 8 }}>
+                    <span style={{ fontWeight: 600, color: '#2E6DA4', fontSize: '0.8rem' }}>Q{i + 1}</span>
+                    {q.obligatoire && <span style={{ color: '#dc2626', marginLeft: 4, fontWeight: 700 }}>*</span>}
+                    <span style={{ fontSize: '0.87rem', color: '#374151', marginLeft: 6 }}>{q.texte}</span>
+                    <span style={{ marginLeft: 8, fontSize: '0.75rem', color: '#9ca3af', background: '#f1f5f9', padding: '2px 6px', borderRadius: 6 }}>{q.type}</span>
+                  </div>
+                ))
+              )}
             </div>
 
             {/* Publication choice */}

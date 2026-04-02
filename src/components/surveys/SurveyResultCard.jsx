@@ -28,11 +28,19 @@ const SurveyResultCard = ({ questionResult, index }) => {
   const isTexte = type === 'texte';
   const isDate = type === 'date';
 
+  // Robustly handle different response formats from backend
   const chartData = isChart
-    ? (reponses || []).map(r => ({ name: r.label || r.valeur, count: r.count, pct: r.pourcentage || 0 }))
+    ? (reponses || []).map(r => {
+        const name = typeof r === 'object' ? (r.label || r.valeur) : r;
+        const count = typeof r === 'object' ? (r.count || 0) : 0;
+        const pct = typeof r === 'object' ? (r.pourcentage || 0) : 0;
+        return { name, count, pct };
+      })
     : [];
 
-  const textResponses = (reponses || []).map(r => r.valeur || r.label).filter(Boolean);
+  const textResponses = (reponses || [])
+    .map(r => (typeof r === 'object' ? (r.valeur || r.label) : r))
+    .filter(Boolean);
   const visibleTexts = showAll ? textResponses : textResponses.slice(0, 5);
 
   return (
@@ -149,11 +157,15 @@ const SurveyResultCard = ({ questionResult, index }) => {
       {/* Date responses */}
       {isDate && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {(reponses || []).map((r, i) => (
-            <span key={i} style={{ padding: '5px 12px', borderRadius: 20, background: '#eff6ff', color: '#2E6DA4', fontSize: '0.83rem', border: '1px solid #bfdbfe', fontWeight: 500 }}>
-              📅 {r.valeur || r.label} {r.count > 1 && <strong>×{r.count}</strong>}
-            </span>
-          ))}
+          {(reponses || []).map((r, i) => {
+            const val = typeof r === 'object' ? (r.valeur || r.label) : r;
+            const count = typeof r === 'object' ? (r.count || 1) : 1;
+            return (
+              <span key={i} style={{ padding: '5px 12px', borderRadius: 20, background: '#eff6ff', color: '#2E6DA4', fontSize: '0.83rem', border: '1px solid #bfdbfe', fontWeight: 500 }}>
+                📅 {val} {count > 1 && <strong>×{count}</strong>}
+              </span>
+            );
+          })}
           {(!reponses || reponses.length === 0) && (
             <p style={{ color: '#9ca3af', fontSize: '0.85rem', fontStyle: 'italic' }}>Aucune réponse.</p>
           )}

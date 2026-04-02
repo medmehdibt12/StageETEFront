@@ -8,6 +8,7 @@ const QUESTION_TYPES = [
   { value: 'radio', label: '🔘 Choix unique (radio)' },
   { value: 'checkbox', label: '☑️ Choix multiple (checkbox)' },
   { value: 'date', label: '📅 Date' },
+  { value: 'time', label: '🕒 Heure' },
   { value: 'select', label: '📋 Liste déroulante' }
 ];
 
@@ -16,22 +17,31 @@ const needsOptions = (type) => ['radio', 'checkbox', 'select'].includes(type);
 const cardStyle = {
   background: '#fff',
   border: '1.5px solid #e2e8f0',
-  borderRadius: 14,
-  padding: '18px 20px',
-  marginBottom: 14,
-  boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-  transition: 'border-color 0.2s'
+  borderRadius: 16,
+  padding: '20px',
+  marginBottom: 16,
+  boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+  transition: 'all 0.2s ease-in-out'
 };
 
 const inputStyle = {
-  borderRadius: 8,
+  borderRadius: 10,
   border: '1.5px solid #e2e8f0',
   fontSize: '0.88rem',
-  padding: '8px 12px',
+  padding: '10px 14px',
   width: '100%',
   outline: 'none',
-  fontFamily: 'inherit'
+  fontFamily: 'inherit',
+  transition: 'border-color 0.20s ease'
 };
+
+const slugify = (text) => 
+  text.toLowerCase()
+    .trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '_')
+    .replace(/^-+|-+$/g, '');
 
 const SurveyQuestionEditor = ({ questions, setQuestions }) => {
   const genId = () => `q${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
@@ -94,7 +104,15 @@ const SurveyQuestionEditor = ({ questions, setQuestions }) => {
       if (i !== qIdx) return q;
       return {
         ...q,
-        options: q.options.map((o, j) => j === oIdx ? { ...o, [field]: value } : o)
+        options: q.options.map((o, j) => {
+          if (j !== oIdx) return o;
+          const updated = { ...o, [field]: value };
+          // ✨ Auto-generate 'valeur' if 'label' is updated
+          if (field === 'label') {
+            updated.valeur = slugify(value) || `opt_${oIdx + 1}`;
+          }
+          return updated;
+        })
       };
     }));
   };
@@ -179,32 +197,41 @@ const SurveyQuestionEditor = ({ questions, setQuestions }) => {
           {needsOptions(q.type) && (
             <div style={{ background: '#f8fafc', borderRadius: 10, padding: '12px 14px', border: '1px solid #e2e8f0' }}>
               <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#6b7280', marginBottom: 8 }}>Options de réponse</div>
-              {q.options.map((opt, oIdx) => (
-                <div key={oIdx} style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#9ca3af', width: 20, flexShrink: 0, textAlign: 'center', paddingTop: 2 }}>
-                    {oIdx + 1}.
-                  </span>
-                  <input
-                    style={{ ...inputStyle, flex: 1 }}
-                    placeholder="Libellé"
-                    value={opt.label}
-                    onChange={e => updateOption(idx, oIdx, 'label', e.target.value)}
-                  />
-                  <input
-                    style={{ ...inputStyle, flex: 1 }}
-                    placeholder="Valeur (clé)"
-                    value={opt.valeur}
-                    onChange={e => updateOption(idx, oIdx, 'valeur', e.target.value)}
-                  />
-                  <button
-                    onClick={() => removeOption(idx, oIdx)}
-                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.1rem', padding: '0 4px', flexShrink: 0 }}
-                    title="Supprimer"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {q.options.map((opt, oIdx) => (
+                  <div key={oIdx} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <div style={{ 
+                      width: 24, height: 24, borderRadius: '50%', background: '#e2e8f0', 
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                      fontSize: '0.7rem', fontWeight: 700, color: '#64748b' 
+                    }}>
+                      {oIdx + 1}
+                    </div>
+                    <div style={{ flex: 1, position: 'relative' }}>
+                      <input
+                        style={inputStyle}
+                        placeholder="Texte de l'option..."
+                        value={opt.label}
+                        onChange={e => updateOption(idx, oIdx, 'label', e.target.value)}
+                      />
+                    </div>
+                    <button
+                      onClick={() => removeOption(idx, oIdx)}
+                      style={{ 
+                        background: '#fef2f2', border: '1.5px solid #fee2e2', color: '#ef4444', 
+                        borderRadius: 8, width: 36, height: 36, display: 'flex', 
+                        alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#fee2e2'}
+                      onMouseLeave={e => e.currentTarget.style.background = '#fef2f2'}
+                      title="Supprimer l'option"
+                    >
+                      <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>×</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
               <button
                 onClick={() => addOption(idx)}
                 style={{ border: 'none', background: 'none', color: '#2E6DA4', fontSize: '0.83rem', fontWeight: 600, cursor: 'pointer', padding: '4px 0', display: 'flex', alignItems: 'center', gap: 4 }}

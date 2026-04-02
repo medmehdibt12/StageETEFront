@@ -3,6 +3,7 @@
 import React from 'react';
 import { Form } from 'react-bootstrap';
 
+
 /**
  * SurveyQuestionRenderer — renders the appropriate input for a question type.
  * Used in the choriste survey form.
@@ -23,7 +24,20 @@ const SurveyQuestionRenderer = ({ question, value, onChange, readOnly = false, e
     transition: 'border-color 0.2s'
   };
 
-  switch (question.type) {
+  const wrapStyle = {
+    border: '1px dashed transparent', // Make it visible if needed for debugging: '#e2e8f0'
+    padding: '4px',
+    borderRadius: 12
+  };
+
+
+  return (
+    <div style={wrapStyle}>
+      {(() => {
+        const hasOptions = question.options && question.options.length > 0;
+        
+        switch (question.type) {
+
     case 'texte':
       return (
         <div>
@@ -40,9 +54,13 @@ const SurveyQuestionRenderer = ({ question, value, onChange, readOnly = false, e
       );
 
     case 'radio':
+      if (!hasOptions) return (
+        <textarea rows={2} disabled={readOnly} value={value || ''} onChange={(e) => onChange(question.id, e.target.value)}
+          placeholder="Répondez ici..." style={{ ...inputStyle, width: '100%' }} />
+      );
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {question.options?.map((opt) => {
+          {question.options.map((opt) => {
             const selected = value === opt.valeur;
             return (
               <label
@@ -67,10 +85,15 @@ const SurveyQuestionRenderer = ({ question, value, onChange, readOnly = false, e
         </div>
       );
 
+
     case 'checkbox':
+      if (!hasOptions) return (
+        <textarea rows={2} disabled={readOnly} value={value || ''} onChange={(e) => onChange(question.id, e.target.value)}
+          placeholder="Répondez ici..." style={{ ...inputStyle, width: '100%' }} />
+      );
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {question.options?.map((opt) => {
+          {question.options.map((opt) => {
             const vals = value || [];
             const checked = vals.includes(opt.valeur);
             return (
@@ -103,11 +126,27 @@ const SurveyQuestionRenderer = ({ question, value, onChange, readOnly = false, e
         </div>
       );
 
+
     case 'date':
       return (
         <div>
           <input
             type="date"
+            disabled={readOnly}
+            value={value || ''}
+            onChange={(e) => onChange(question.id, e.target.value)}
+            style={{ ...inputStyle, width: '100%', minHeight: '42px' }}
+          />
+          {error && <div style={{ color: '#dc2626', fontSize: '0.8rem', marginTop: 4 }}>{error}</div>}
+        </div>
+      );
+
+
+    case 'time':
+      return (
+        <div>
+          <input
+            type="time"
             disabled={readOnly}
             value={value || ''}
             onChange={(e) => onChange(question.id, e.target.value)}
@@ -136,8 +175,26 @@ const SurveyQuestionRenderer = ({ question, value, onChange, readOnly = false, e
       );
 
     default:
-      return null;
-  }
+      // Safety fallback: if type is unknown (like 'voyage' or 'disponibilite'), show a text area
+      return (
+        <div>
+          <textarea
+            rows={3}
+            disabled={readOnly}
+            value={value || ''}
+            onChange={(e) => onChange(question.id, e.target.value)}
+            placeholder="Votre réponse..."
+            style={{ ...inputStyle, width: '100%', resize: 'vertical' }}
+          />
+          {error && <div style={{ color: '#dc2626', fontSize: '0.8rem', marginTop: 4 }}>{error}</div>}
+        </div>
+      );
+
+        }
+      })()}
+    </div>
+  );
 };
+
 
 export default SurveyQuestionRenderer;
