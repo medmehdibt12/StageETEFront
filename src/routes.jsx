@@ -52,6 +52,14 @@ const routes = [
     path: '/confirm-email',
     element: lazy(() => import('./views/candidate/public/ConfirmEmailSuccess'))
   },
+  {
+    path: '/email-sent',
+    element: lazy(() => import('./views/candidate/public/EmailSentSuccess'))
+  },
+  {
+    path: '/candidature/success',
+    element: lazy(() => import('./views/candidate/public/CandidatureSuccess'))
+  },
   // 🎯 NEW: Public convocation response route (no auth required)
   {
     path: '/convocation/response/:candidateId',

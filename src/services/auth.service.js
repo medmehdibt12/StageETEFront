@@ -66,6 +66,15 @@ export const confirmEmailToken = async (token) => {
   return res.data; // Return the confirmation message
 };
 
+export const verifyGoogleToken = async (credential) => {
+  try {
+    const res = await api.post('/auth/google-verify', { credential });
+    return res.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Google verification failed' };
+  }
+};
+
 export const logout = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('name'); // Clean legacy if still exists
