@@ -12,7 +12,9 @@ const MEDIA_TYPES = [
   { id: 'partition', label: 'Partition (PDF)', icon: <FileText size={18} className="me-2" />, accept: 'application/pdf' },
   { id: 'paroles', label: 'Paroles (PDF)', icon: <FileText size={18} className="me-2" />, accept: 'application/pdf' },
   { id: 'audio', label: 'Audio (MP3/WAV)', icon: <Music size={18} className="me-2" />, accept: 'audio/mp3, audio/wav, audio/mpeg' },
-  { id: 'video', label: 'Vidéo (MP4 / Lien)', icon: <Video size={18} className="me-2" />, accept: 'video/mp4' }
+  { id: 'video', label: 'Vidéo (MP4 / Lien)', icon: <Video size={18} className="me-2" />, accept: 'video/mp4' },
+  { id: 'choirRecording', label: 'Enregistrement Concert Chœur', icon: <PlayCircle size={18} className="me-2" />, accept: 'audio/mp3, audio/wav, audio/mpeg' },
+  { id: 'choirVideo', label: 'Vidéo Concert Chœur (MP4/Lien)', icon: <Video size={18} className="me-2" />, accept: 'video/mp4' }
 ];
 
 const OeuvreMediaManager = () => {
@@ -96,10 +98,10 @@ const OeuvreMediaManager = () => {
     }));
   };
 
-  const handleLinkChange = (pupitre, link) => {
+  const handleLinkChange = (pupitre, mediaType, link) => {
     setVideoLinks(prev => ({
       ...prev,
-      [pupitre]: link
+      [`${pupitre}-${mediaType}`]: link
     }));
   };
 
@@ -117,9 +119,15 @@ const OeuvreMediaManager = () => {
       }
     });
 
-    const vLink = videoLinks[pupitre];
+    const vLink = videoLinks[`${pupitre}-video`];
     if (vLink && vLink.trim() !== '') {
-      formData.append('videoLink', vLink);
+      formData.append('videoLink', vLink); // Still use videoLink for backward compatibility if possible, but maybe better to specify?
+      hasData = true;
+    }
+    
+    const cvLink = videoLinks[`${pupitre}-choirVideo`];
+    if (cvLink && cvLink.trim() !== '') {
+      formData.append('choirVideoLink', cvLink); // New field for choir video link
       hasData = true;
     }
 
@@ -256,7 +264,7 @@ const OeuvreMediaManager = () => {
                   />
                 </Form.Group>
 
-                {mediaType.id === 'video' && (
+                {(mediaType.id === 'video' || mediaType.id === 'choirVideo') && (
                   <>
                     <div className="text-center text-muted my-2 small">OU</div>
                     <Form.Group>
@@ -265,8 +273,8 @@ const OeuvreMediaManager = () => {
                         type="text"
                         placeholder="https://..."
                         disabled={!canEdit}
-                        value={videoLinks[pupitre] || ''}
-                        onChange={(e) => handleLinkChange(pupitre, e.target.value)}
+                        value={videoLinks[`${pupitre}-${mediaType.id}`] || ''}
+                        onChange={(e) => handleLinkChange(pupitre, mediaType.id, e.target.value)}
                       />
                     </Form.Group>
                   </>

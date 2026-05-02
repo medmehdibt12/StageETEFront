@@ -8,11 +8,12 @@ export const getConvocationResponse = async (candidateId) => {
 };
 
 // 🎯 POST: Handle convocation response (confirm/decline/reschedule)
-export const handleConvocationResponse = async (candidateId, action, rescheduleType = null, newStartTime = null) => {
+export const handleConvocationResponse = async (candidateId, action, rescheduleType = null, newStartTime = null, reason = null) => {
   const res = await api.post(`/convocation/response/${candidateId}`, {
     action,
     rescheduleType,
-    newStartTime
+    newStartTime,
+    reason
   });
   return res.data;
 };
@@ -40,11 +41,11 @@ export const declineConvocation = async (candidateId) => {
 };
 
 // 🆕 NEW: Helper: Request different day reschedule
-export const rescheduleConvocationDifferentDay = async (candidateId) => {
-  return await handleConvocationResponse(candidateId, 'reschedule', 'different_day');
+export const rescheduleConvocationDifferentDay = async (candidateId, reason = null) => {
+  return await handleConvocationResponse(candidateId, 'reschedule', 'different_day', null, reason);
 };
 
 // 🆕 NEW: Helper: Request same day reschedule
-export const rescheduleConvocationSameDay = async (candidateId, newStartTime) => {
-  return await handleConvocationResponse(candidateId, 'reschedule', 'same_day', newStartTime);
+export const rescheduleConvocationSameDay = async (candidateId, newStartTime, reason = null) => {
+  return await handleConvocationResponse(candidateId, 'reschedule', 'same_day', newStartTime, reason);
 };

@@ -342,6 +342,72 @@ const CurrentConcertOeuvres = () => {
                                 </motion.div>
                               </Col>
                             )}
+
+                            {/* Enregistrement Concert Chœur */}
+                            {media.choirRecording && (
+                              <Col md={12} lg={4}>
+                                <motion.div 
+                                  whileHover={{ y: -5 }}
+                                  className="media-resource-card p-4 rounded-xl border border-light bg-light h-100 shadow-xs"
+                                  style={{ borderLeft: '4px solid #8e44ad' }}
+                                >
+                                  <div className="d-flex align-items-center mb-3 text-start">
+                                    <div className="bg-white p-3 rounded-lg shadow-sm me-3 text-purple" style={{ color: '#8e44ad' }}>
+                                      <Music size={24} />
+                                    </div>
+                                    <div>
+                                      <div className="fw-bold text-dark">Enregistrement Concert</div>
+                                      <Badge bg="white" text="dark" className="border px-2 py-1 text-uppercase mt-1 shadow-sm" style={{ fontSize: '0.65rem' }}>
+                                        {media.pupitre}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                  <audio controls className="w-100 mt-2 shadow-sm rounded-pill" style={{ height: '40px' }}>
+                                    <source src={`${BACKEND_URL}/uploads/media/${media.choirRecording}`} type="audio/mpeg" />
+                                    Votre navigateur ne supporte pas l'élément audio.
+                                  </audio>
+                                </motion.div>
+                              </Col>
+                            )}
+
+                            {/* Vidéo Concert Chœur */}
+                            {media.choirVideo && (
+                              <Col md={12} className="text-start">
+                                <motion.div 
+                                  whileHover={{ scale: 1.01 }}
+                                  className="media-resource-card p-4 rounded-xl border border-light bg-light shadow-xs"
+                                  style={{ borderLeft: '4px solid #e74c3c' }}
+                                >
+                                  <div className="d-flex align-items-center mb-3">
+                                    <div className="bg-white p-3 rounded-lg shadow-sm me-3 text-danger">
+                                      <Video size={24} />
+                                    </div>
+                                    <div>
+                                      <div className="fw-bold text-dark">Vidéo Concert Chœur</div>
+                                      <Badge bg="white" text="dark" className="border px-2 py-1 text-uppercase mt-1 shadow-sm" style={{ fontSize: '0.65rem' }}>
+                                        {media.pupitre}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                  {media.choirVideo.startsWith('http') ? (
+                                    <Button
+                                      variant="outline-danger"
+                                      className="w-100 d-flex align-items-center justify-content-center fw-bold rounded-pill py-3 shadow-sm transition-all"
+                                      onClick={() => window.open(media.choirVideo, '_blank')}
+                                    >
+                                      <PlayCircle size={22} className="me-2" /> Visionner le concert (Lien externe)
+                                    </Button>
+                                  ) : (
+                                    <div className="overflow-hidden rounded-xl border shadow-sm bg-dark">
+                                      <video controls className="w-100" style={{ maxHeight: '450px' }}>
+                                        <source src={`${BACKEND_URL}/uploads/media/${media.choirVideo}`} type="video/mp4" />
+                                        Votre navigateur ne supporte pas la balise vidéo.
+                                      </video>
+                                    </div>
+                                  )}
+                                </motion.div>
+                              </Col>
+                            )}
                           </React.Fragment>
                         ))}
                     </Row>

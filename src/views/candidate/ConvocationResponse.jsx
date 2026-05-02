@@ -695,11 +695,50 @@ const RadioTitle = styled.div`
   }
 `;
 
-const RadioDescription = styled.div`
-  color: #6b7280;
-  font-size: 1.05rem;
-  line-height: 1.6;
-  font-weight: 500;
+const RadioDescription = styled.p`
+  margin: 0;
+  color: #718096;
+  font-size: 0.95rem;
+  line-height: 1.5;
+`;
+
+const ReasonContainer = styled(motion.div)`
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 16px;
+  border: 1px solid rgba(102, 126, 234, 0.1);
+`;
+
+const ReasonLabel = styled.label`
+  display: block;
+  margin-bottom: 0.75rem;
+  color: #4a5568;
+  font-weight: 600;
+  font-size: 1rem;
+`;
+
+const ReasonInput = styled.textarea`
+  width: 100%;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 2px solid rgba(226, 232, 240, 0.8);
+  background: white;
+  color: #1a202c;
+  font-size: 1rem;
+  min-height: 100px;
+  resize: vertical;
+  transition: all 0.3s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+  }
+
+  &::placeholder {
+    color: #a0aec0;
+  }
 `;
 
 // 🎨 **PERFECT TIME SELECTOR COMPONENTS**
@@ -917,6 +956,7 @@ const ConvocationResponse = () => {
   // Reschedule form state
   const [rescheduleType, setRescheduleType] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
+  const [rescheduleReason, setRescheduleReason] = useState('');
   const [availableTimes, setAvailableTimes] = useState([]);
   const [loadingTimes, setLoadingTimes] = useState(false);
   const [sessionInfo, setSessionInfo] = useState(null);
@@ -944,7 +984,7 @@ const ConvocationResponse = () => {
       setSuccess('');
 
       // Set appropriate success message based on status
-      if (data.status !== 'pending_response') {
+      if (data.status !== 'pending_response' && data.status !== 'expired') {
         setSuccess(data.message);
       }
     } catch (err) {
@@ -962,9 +1002,11 @@ const ConvocationResponse = () => {
         const data = await getConvocationResponse(candidateId);
         setConvocationData(data);
 
-        // Handle different statuses (REMOVED expired handling)
-        if (['confirmed', 'declined', 'rescheduled_different_day', 'rescheduled_same_day', 'expired_moved_pending'].includes(data.status)) {
-          setSuccess(data.message);
+        // Handle different statuses
+        if (['confirmed', 'declined', 'rescheduled_different_day', 'rescheduled_same_day', 'expired_moved_pending', 'expired'].includes(data.status)) {
+          if (data.status !== 'expired') {
+            setSuccess(data.message);
+          }
         }
       } catch (err) {
         setError(err.response?.data?.message || 'Erreur lors du chargement.');
@@ -1091,6 +1133,11 @@ const ConvocationResponse = () => {
 
   // 🎯 **Handle reschedule action**
   const handleReschedule = async () => {
+    if (convocationData && convocationData.isClosed) {
+      setError("Cette session d'audition est clôturée. Vous ne pouvez plus effectuer de modifications.");
+      return;
+    }
+
     if (!rescheduleType) {
       setError('Veuillez sélectionner une option de reprogrammation.');
       return;
@@ -1107,10 +1154,10 @@ const ConvocationResponse = () => {
       let result;
 
       if (rescheduleType === 'different_day') {
-        result = await rescheduleConvocationDifferentDay(candidateId);
+        result = await rescheduleConvocationDifferentDay(candidateId, rescheduleReason);
         setConvocationData((prev) => ({ ...prev, status: 'rescheduled_different_day' }));
       } else {
-        result = await rescheduleConvocationSameDay(candidateId, selectedTime);
+        result = await rescheduleConvocationSameDay(candidateId, selectedTime, rescheduleReason);
         setConvocationData((prev) => ({
           ...prev,
           status: 'rescheduled_same_day',
@@ -1140,6 +1187,7 @@ const ConvocationResponse = () => {
     setShowRescheduleModal(false);
     setRescheduleType('');
     setSelectedTime('');
+    setRescheduleReason('');
     setAvailableTimes([]);
     setSessionInfo(null);
     setError('');
@@ -1261,12 +1309,33 @@ const ConvocationResponse = () => {
               )}
             </AnimatePresence>
 
-            {/* Header Divider */}
             <HeaderDivider
               initial={{ opacity: 0, scaleX: 0 }}
               animate={{ opacity: 1, scaleX: 1 }}
               transition={{ duration: 0.8, delay: 0.7 }}
             />
+
+            {/* 🛑 NEW: Closed Session Alert */}
+            <AnimatePresence>
+              {convocationData && convocationData.isClosed && (
+                <AlertBox
+                  variant="warning"
+                  initial={{ opacity: 0, height: 0, y: -10 }}
+                  animate={{ opacity: 1, height: 'auto', y: 0 }}
+                  transition={{ duration: 0.4 }}
+                  style={{ marginBottom: '2rem' }}
+                >
+                  <ClockIcon />
+                  <div>
+                    <strong>Session d'audition clôturée</strong>
+                    <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>
+                      La date limite ({new Date(convocationData.closingDate).toLocaleDateString('fr-FR')}) est passée. 
+                      Vous ne pouvez plus modifier votre choix.
+                    </div>
+                  </div>
+                </AlertBox>
+              )}
+            </AnimatePresence>
 
             {/* Main Content - Pending Response */}
             {convocationData && convocationData.status === 'pending_response' && (
@@ -1338,58 +1407,24 @@ const ConvocationResponse = () => {
                   </InfoCard>
                 )}
 
-                {/* Action Buttons */}
-                <ButtonGroup>
-                  <ActionButton
-                    variant="success"
-                    onClick={handleConfirm}
-                    disabled={responding}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: 0.6 }}
-                  >
-                    {responding ? (
-                      <ButtonSpinner animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} />
-                    ) : (
-                      <CheckIcon />
-                    )}
-                    Confirmer ma présence
-                  </ActionButton>
-
-                  <ActionButton
-                    variant="warning"
-                    onClick={() => setShowRescheduleModal(true)}
-                    disabled={responding}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: 0.7 }}
-                  >
-                    <RefreshIcon />
-                    Demander un autre créneau
-                  </ActionButton>
-
-                  <ActionButton
-                    variant="danger"
-                    onClick={handleDecline}
-                    disabled={responding}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: 0.8 }}
-                  >
-                    {responding ? (
-                      <ButtonSpinner animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} />
-                    ) : (
-                      <XIcon />
-                    )}
-                    Je retirer ma candidature
-                  </ActionButton>
-                </ButtonGroup>
+                {/* Action Buttons - HIDDEN IF CLOSED */}
+                {!convocationData.isClosed && (
+                  <ButtonGroup>
+                    <ActionButton
+                      variant="warning"
+                      onClick={() => setShowRescheduleModal(true)}
+                      disabled={responding}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: 0.7 }}
+                    >
+                      <RefreshIcon />
+                      Modifier l'horaire ou la date
+                    </ActionButton>
+                  </ButtonGroup>
+                )}
 
                 {/* 🔧 UPDATED: Important Notes (removed 48h deadline reference) */}
                 <InfoCard
@@ -1516,7 +1551,45 @@ const ConvocationResponse = () => {
                 </SuccessDisplay>
               )}
 
-                      {/* ❌ Declined Status */}
+                      {/* ⌛ Expired Status */}
+            {convocationData && convocationData.status === 'expired' && (
+              <SuccessDisplay
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+              >
+                <StatusIcon
+                  variant="warning"
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+                >
+                  <ClockIcon />
+                </StatusIcon>
+                <SuccessTitle style={{ color: '#f59e0b' }}>Session Clôturée</SuccessTitle>
+                <SuccessMessage>
+                  La date limite ({convocationData.closingDate ? new Date(convocationData.closingDate).toLocaleDateString('fr-FR') : 'dépassée'}) pour répondre à cette convocation est passée. 
+                  L'audition est désormais clôturée et vous ne pouvez plus effectuer de modifications.
+                </SuccessMessage>
+                <InfoCard
+                  bgColor="rgba(255, 251, 235, 0.8)"
+                  border="1px solid rgba(245, 158, 11, 0.3)"
+                  accent="linear-gradient(180deg, #f59e0b, #d97706)"
+                >
+                  <DetailRow>
+                    <DetailLabel>
+                      <IconWrapper bgColor="rgba(245, 158, 11, 0.1)" color="#d97706">
+                        <InfoIcon />
+                      </IconWrapper>
+                      Statut de la session
+                    </DetailLabel>
+                    <DetailValue>Expiré / Clôturé</DetailValue>
+                  </DetailRow>
+                </InfoCard>
+              </SuccessDisplay>
+            )}
+
+            {/* ❌ Declined Status */}
             {convocationData && convocationData.status === 'declined' && (
               <DeclinedDisplay
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -1645,6 +1718,23 @@ const ConvocationResponse = () => {
                       </RadioContent>
                     </RadioOption>
                   </RadioGroup>
+
+                  <AnimatePresence>
+                    {rescheduleType && (
+                      <ReasonContainer
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                      >
+                        <ReasonLabel>Pourquoi souhaitez-vous changer ? (Facultatif)</ReasonLabel>
+                        <ReasonInput
+                          placeholder="Ex: Travail, cours, empêchement familial..."
+                          value={rescheduleReason}
+                          onChange={(e) => setRescheduleReason(e.target.value)}
+                        />
+                      </ReasonContainer>
+                    )}
+                  </AnimatePresence>
 
                   {/* ✨ ENHANCED TIME SELECTOR WITH SESSION INFO */}
                   <AnimatePresence>

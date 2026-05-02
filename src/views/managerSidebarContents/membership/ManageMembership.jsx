@@ -850,6 +850,16 @@ const ManageMembership = () => {
                           <tr className={openDetails[member._id] ? 'active-row' : ''}>
                             <td className="fw-bold" style={{ padding: '12px 8px' }}>
                               <span dangerouslySetInnerHTML={{ __html: highlightedName }} />
+                              {member.convocationStatus === 'RescheduleRequested' && (
+                                <Badge bg="warning" text="dark" className="ms-2" style={{ fontSize: '0.75rem' }}>
+                                  Report demandé (autre date)
+                                </Badge>
+                              )}
+                              {member.convocationStatus === 'RescheduledSameDay' && (
+                                <Badge bg="info" className="ms-2" style={{ fontSize: '0.75rem' }}>
+                                  Changement d'heure demandé
+                                </Badge>
+                              )}
                             </td>
                             <td style={{ padding: '12px 8px' }}>{member.height} cm</td>
                             <td style={{ padding: '12px 8px' }}>
@@ -1068,6 +1078,12 @@ const ManageMembership = () => {
                             <Badge bg="info" className="d-flex align-items-center gap-1">
                               <FaCalendarAlt size={10} /> {formatDate(member.auditionDate)}
                             </Badge>
+                          )}
+                          {member.convocationStatus === 'RescheduleRequested' && (
+                            <Badge bg="warning" text="dark">Report (autre date)</Badge>
+                          )}
+                          {member.convocationStatus === 'RescheduledSameDay' && (
+                            <Badge bg="info">Changement heure</Badge>
                           )}
                           {member.hasMusicalKnowledge && <Badge bg="warning">Musique ✓</Badge>}
                           {member.isActiveInOtherChoir && <Badge bg="warning">Autre chœur ✓</Badge>}
