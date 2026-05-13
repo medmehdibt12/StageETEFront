@@ -59,8 +59,16 @@ const useMenuItems = () => {
       type: 'item',
       url: '/admin/surveys',
       icon: 'feather icon-bar-chart-2'
+    },
+    {
+      id: 'manage-subgroups',
+      title: 'Sous-groupes',
+      type: 'item',
+      url: '/manager/subgroups',
+      icon: 'feather icon-layers'
     }
   ];
+
 
   const choristePages = [
     {
@@ -216,8 +224,16 @@ const useMenuItems = () => {
       type: 'item',
       url: '/admin/surveys',
       icon: 'feather icon-bar-chart-2'
+    },
+    {
+      id: 'manage-subgroups',
+      title: 'Sous-groupes',
+      type: 'item',
+      url: '/manager/subgroups',
+      icon: 'feather icon-layers'
     }
   ];
+
 
   const chefdechoeurPages = [
     {

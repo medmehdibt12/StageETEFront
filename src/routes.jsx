@@ -190,6 +190,14 @@ const routes = [
         path: '/manager/manage-chart',
         element: lazy(() => import('./views/managerSidebarContents/chart/ManageChart'))
       },
+      {
+        path: '/manager/subgroups',
+        element: lazy(() => import('./views/managerSidebarContents/subgroups/ManageSubgroups'))
+      },
+      {
+        path: '/manager/subgroups/:id',
+        element: lazy(() => import('./views/managerSidebarContents/subgroups/SubgroupDetails'))
+      },
 
       // 🔽 Chef Choeur Pages
       {
