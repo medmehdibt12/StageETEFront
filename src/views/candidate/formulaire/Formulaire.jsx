@@ -9,7 +9,7 @@ import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import logoCSO from '../../../assets/images/music.png';
+import logoCSO from '../../../assets/images/logo.svg';
 import { useSearchParams } from 'react-router-dom';
 import {
   applyForMembership,

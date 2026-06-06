@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card } from 'react-bootstrap';
 import Breadcrumb from '../../../layouts/AdminLayout/Breadcrumb';
-import logo from '../../../assets/images/music.png';
+import logo from '../../../assets/images/logo.svg';
 import AuthLogin from './JWTLogin';
 // import { getConfig } from '../../../services/config.service';
 

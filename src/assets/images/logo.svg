@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <!-- Modern Gradient representing harmony and premium look -->
+    <linearGradient id="csoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="50%" stop-color="#1d4ed8" />
+      <stop offset="100%" stop-color="#1e3a8a" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background Circle -->
+  <circle cx="100" cy="100" r="95" fill="url(#csoGradient)" />
+
+  <!-- Outer resonance ring representing the choir voices -->
+  <circle cx="100" cy="100" r="82" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.15" stroke-dasharray="10 5" />
+  
+  <!-- Stylized Clef + Waveform representing "Chœur Symphonique" -->
+  <g filter="url(#glow)">
+    <!-- Main spiral and stem of treble clef -->
+    <path d="M 100 150 
+             C 85 150, 75 140, 75 125
+             C 75 110, 90 95, 100 95
+             C 115 95, 125 110, 125 125
+             C 125 145, 100 160, 100 60
+             C 100 45, 108 30, 95 30
+             C 85 30, 80 40, 80 50
+             C 80 65, 105 85, 105 130
+             C 105 145, 95 155, 85 155
+             C 75 155, 70 148, 70 142" 
+          fill="none" 
+          stroke="#ffffff" 
+          stroke-width="5" 
+          stroke-linecap="round" 
+          stroke-linejoin="round" />
+          
+    <!-- Decorative bottom dot of the clef -->
+    <circle cx="70" cy="142" r="4.5" fill="#ffffff" />
+    
+    <!-- Abstract singing sound waves / choir harmony bars left & right -->
+    <path d="M 45 100 A 55 55 0 0 1 65 65" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-opacity="0.7" />
+    <path d="M 35 100 A 65 65 0 0 1 58 55" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-opacity="0.4" />
+    
+    <path d="M 155 100 A 55 55 0 0 0 135 135" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-opacity="0.7" />
+    <path d="M 165 100 A 65 65 0 0 0 142 145" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-opacity="0.4" />
+  </g>
+
+  <!-- Sleek text element at the bottom arc representing CSO -->
+  <text x="100" y="180" 
+        fill="#ffffff" 
+        font-family="'Open Sans', sans-serif" 
+        font-size="12" 
+        font-weight="bold" 
+        letter-spacing="5" 
+        text-anchor="middle" 
+        fill-opacity="0.9">CSO CHŒUR</text>
+</svg>

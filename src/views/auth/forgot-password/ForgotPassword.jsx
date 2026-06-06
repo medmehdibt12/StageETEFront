@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import { forgotPassword } from '../../../services/auth.service';
-import logo from '../../../assets/images/music.png';
+import logo from '../../../assets/images/logo.svg';
 
 const MySwal = withReactContent(Swal);
 
