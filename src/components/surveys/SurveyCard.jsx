@@ -109,10 +109,10 @@ const SurveyCard = ({ survey, onPublish, onClore, onDelete, onEdit, isAdmin = tr
             {statut === 'brouillon' && (
               <>
                 <Button size="sm" variant="outline-secondary" style={{ fontSize: '0.78rem' }} onClick={() => onEdit?.(survey)}>
-                  ✏️ Modifier
+                  Modifier
                 </Button>
                 <Button size="sm" variant="success" style={{ fontSize: '0.78rem' }} onClick={() => onPublish?.(survey)}>
-                  🚀 Publier
+                  Publier
                 </Button>
                 <Button size="sm" variant="outline-danger" style={{ fontSize: '0.78rem' }} onClick={() => onDelete?.(survey)}>
                   🗑️

@@ -259,10 +259,7 @@ const RescheduleCandidate = () => {
                       </td>
                       <td>
                         <Badge bg="primary">
-                          {request.requestedTime} -{' '}
-                          {request.requestedTime
-                            ? `${(parseInt(request.requestedTime.split(':')[0]) + 1).toString().padStart(2, '0')}:${request.requestedTime.split(':')[1]}`
-                            : ''}
+                          {request.requestedTime} - {request.requestedEndTime || ''}
                         </Badge>
                       </td>
                       <td>

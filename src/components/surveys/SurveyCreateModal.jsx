@@ -118,13 +118,53 @@ const SurveyCreateModal = ({ show, onHide, onCreated }) => {
     }
   };
 
-  const validateStep1 = () => {
-    const e = {};
-    if (!titre.trim()) e.titre = 'Le titre est obligatoire.';
-    if (!type) e.type = 'Veuillez choisir un type.';
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
+    const validateStep1 = () => {
+      const e = {};
+      if (!titre.trim()) e.titre = 'Le titre est obligatoire.';
+      if (!type) e.type = 'Veuillez choisir un type.';
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (!dateDebut) {
+        e.dateDebut = "La date de début est obligatoire.";
+      } else {
+        const [y, m, d_num] = dateDebut.split('-');
+        const d = new Date(y, m - 1, d_num);
+        d.setHours(0, 0, 0, 0);
+        
+        if (d < today) {
+          e.dateDebut = "La date de début doit être aujourd'hui ou une date ultérieure.";
+        }
+      }
+
+      if (!dateFin) {
+        e.dateFin = "La date de clôture est obligatoire.";
+      } else if (dateDebut && dateFin) {
+        const [sy, sm, sd] = dateDebut.split('-');
+        const start = new Date(sy, sm - 1, sd);
+        start.setHours(0, 0, 0, 0);
+        
+        const [ey, em, ed] = dateFin.split('-');
+        const end = new Date(ey, em - 1, ed);
+        end.setHours(0, 0, 0, 0);
+        
+        if (end <= start) {
+          e.dateFin = "La date de clôture doit être après la date de début.";
+        }
+      } else if (!dateDebut && dateFin) {
+        const [ey, em, ed] = dateFin.split('-');
+        const end = new Date(ey, em - 1, ed);
+        end.setHours(0, 0, 0, 0);
+        
+        if (end <= today) {
+          e.dateFin = "La date de clôture doit être après aujourd'hui.";
+        }
+      }
+
+      setErrors(e);
+      return Object.keys(e).length === 0;
+    };
 
   const validateStep2 = () => {
     if (questions.length === 0) {
@@ -178,7 +218,7 @@ const SurveyCreateModal = ({ show, onHide, onCreated }) => {
 
       if (publishNow && created._id) {
         await updateSurveyStatut(created._id, 'actif');
-        toast.success('Sondage créé et publié avec succès ! 🚀');
+        toast.success('Sondage créé et publié avec succès !');
       } else {
         toast.success('Sondage enregistré en brouillon.');
       }
@@ -307,11 +347,13 @@ const SurveyCreateModal = ({ show, onHide, onCreated }) => {
               <Row className="g-3">
                 <Col xs={12} md={6}>
                   <label style={{ fontWeight: 600, fontSize: '0.82rem', color: '#475569', marginBottom: 4, display: 'block' }}>Date de début</label>
-                  <input style={inputStyle} type="date" value={dateDebut} onChange={e => setDateDebut(e.target.value)} />
+                  <input style={{ ...inputStyle, borderColor: errors.dateDebut ? '#dc2626' : '#e2e8f0' }} type="date" value={dateDebut} onChange={e => { setDateDebut(e.target.value); setErrors(p => ({ ...p, dateDebut: undefined })); }} />
+                  {errors.dateDebut && <div style={{ color: '#dc2626', fontSize: '0.8rem', marginTop: 4 }}>{errors.dateDebut}</div>}
                 </Col>
                 <Col xs={12} md={6}>
                   <label style={{ fontWeight: 600, fontSize: '0.82rem', color: '#475569', marginBottom: 4, display: 'block' }}>Date de clôture</label>
-                  <input style={inputStyle} type="date" value={dateFin} onChange={e => setDateFin(e.target.value)} />
+                  <input style={{ ...inputStyle, borderColor: errors.dateFin ? '#dc2626' : '#e2e8f0' }} type="date" value={dateFin} onChange={e => { setDateFin(e.target.value); setErrors(p => ({ ...p, dateFin: undefined })); }} />
+                  {errors.dateFin && <div style={{ color: '#dc2626', fontSize: '0.8rem', marginTop: 4 }}>{errors.dateFin}</div>}
                 </Col>
               </Row>
             </div>
@@ -413,7 +455,7 @@ const SurveyCreateModal = ({ show, onHide, onCreated }) => {
                 style={{ padding: '14px 18px', display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer', background: publishNow ? '#f0fdf4' : '#fff' }}>
                 <div style={{ width: 18, height: 18, borderRadius: '50%', border: publishNow ? '5px solid #22c55e' : '2px solid #d1d5db', background: '#fff', flexShrink: 0 }} />
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.88rem', color: publishNow ? '#15803d' : '#374151' }}>🚀 Publier directement</div>
+                  <div style={{ fontWeight: 600, fontSize: '0.88rem', color: publishNow ? '#15803d' : '#374151' }}>Publier directement</div>
                   <div style={{ fontSize: '0.78rem', color: '#9ca3af' }}>Immédiatement visible par les choristes concernés</div>
                 </div>
               </div>
@@ -435,7 +477,7 @@ const SurveyCreateModal = ({ show, onHide, onCreated }) => {
         ) : (
           <Button size="sm" onClick={handleSubmit} disabled={submitting}
             style={{ borderRadius: 8, background: publishNow ? '#22c55e' : '#2E6DA4', border: 'none', fontWeight: 600, padding: '8px 20px' }}>
-            {submitting ? <><Spinner animation="border" size="sm" className="me-2" />Enregistrement...</> : publishNow ? '🚀 Créer et publier' : '💾 Enregistrer en brouillon'}
+            {submitting ? <><Spinner animation="border" size="sm" className="me-2" />Enregistrement...</> : publishNow ? 'Créer et publier' : '💾 Enregistrer en brouillon'}
           </Button>
         )}
       </Modal.Footer>

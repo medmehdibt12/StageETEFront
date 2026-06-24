@@ -15,7 +15,15 @@ const ManageSubgroups = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
+  const { register, handleSubmit, reset, setValue, getValues, formState: { errors } } = useForm();
+
+  const formatDateToLocalString = (isoString) => {
+    const d = new Date(isoString);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
 
   const fetchSubgroups = async () => {
     setLoading(true);
@@ -39,8 +47,8 @@ const ManageSubgroups = () => {
       setValue('name', subgroup.name);
       setValue('description', subgroup.description);
       setValue('type', subgroup.type);
-      setValue('startDate', new Date(subgroup.startDate).toISOString().split('T')[0]);
-      setValue('endDate', new Date(subgroup.endDate).toISOString().split('T')[0]);
+      setValue('startDate', formatDateToLocalString(subgroup.startDate));
+      setValue('endDate', formatDateToLocalString(subgroup.endDate));
       setValue('status', subgroup.status);
     } else {
       reset({
@@ -270,7 +278,23 @@ const ManageSubgroups = () => {
                   <Form.Label className="fw-bold">Date de début</Form.Label>
                   <Form.Control
                     type="date"
-                    {...register('startDate', { required: 'La date de début est requise' })}
+                    {...register('startDate', { 
+                      required: 'La date de début est requise',
+                      validate: value => {
+                        const [y, m, d] = value.split('-');
+                        const date = new Date(y, m - 1, d);
+                        date.setHours(0, 0, 0, 0);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        
+                        if (editingSubgroup) {
+                          const origStr = formatDateToLocalString(editingSubgroup.startDate);
+                          if (value === origStr) return true;
+                        }
+
+                        return date >= today || "La date de début doit être aujourd'hui ou une date ultérieure";
+                      }
+                    })}
                     isInvalid={!!errors.startDate}
                   />
                   <Form.Control.Feedback type="invalid">{errors.startDate?.message}</Form.Control.Feedback>
@@ -281,7 +305,22 @@ const ManageSubgroups = () => {
                   <Form.Label className="fw-bold">Date de fin</Form.Label>
                   <Form.Control
                     type="date"
-                    {...register('endDate', { required: 'La date de fin est requise' })}
+                    {...register('endDate', { 
+                      required: 'La date de fin est requise',
+                      validate: value => {
+                        const startDateValue = getValues('startDate');
+                        if (!startDateValue) return true;
+                        const [sy, sm, sd] = startDateValue.split('-');
+                        const start = new Date(sy, sm - 1, sd);
+                        start.setHours(0, 0, 0, 0);
+                        
+                        const [y, m, d] = value.split('-');
+                        const end = new Date(y, m - 1, d);
+                        end.setHours(0, 0, 0, 0);
+                        
+                        return end > start || "La date de fin doit être après la date de début";
+                      }
+                    })}
                     isInvalid={!!errors.endDate}
                   />
                   <Form.Control.Feedback type="invalid">{errors.endDate?.message}</Form.Control.Feedback>

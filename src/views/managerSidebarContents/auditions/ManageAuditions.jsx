@@ -2681,11 +2681,25 @@ const ManageAuditions = () => {
             const formData = new FormData(e.target);
             const pId = formData.get('paramId');
             const p = paramsList.find(x => x._id === pId);
+            const startTime = formData.get('startTime');
+            const endTime = formData.get('endTime');
+
+            // 🎯 Added Control: end time must be after start time
+            if (startTime && endTime) {
+              const startMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
+              let endMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]);
+              
+              if (endMinutes <= startMinutes) {
+                Swal.fire('Erreur', 'L\'heure de fin doit être après l\'heure de début', 'error');
+                return;
+              }
+            }
+
             handleManualAssign({
               paramId: pId,
               date: p.startDate,
-              startTime: formData.get('startTime'),
-              endTime: formData.get('endTime')
+              startTime: startTime,
+              endTime: endTime
             });
           }}>
             <Form.Group className="mb-3">
@@ -2707,16 +2721,41 @@ const ManageAuditions = () => {
                   <Form.Control 
                     type="time" 
                     name="startTime" 
+                    id="manualAssignStartTime"
                     required 
                     className="form-control-sm"
                     defaultValue={selectedCandidateToAssign?.requestedNewTime || '09:00'} 
+                    onChange={(e) => {
+                      const newStart = e.target.value;
+                      if (newStart) {
+                        const [h, m] = newStart.split(':').map(Number);
+                        let endH = h + 1;
+                        if (endH >= 24) endH = endH % 24;
+                        const newEnd = `${endH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                        const endInput = document.getElementById('manualAssignEndTime');
+                        if (endInput) endInput.value = newEnd;
+                      }
+                    }}
                   />
                 </Form.Group>
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label className="small fw-bold">Heure de fin</Form.Label>
-                  <Form.Control type="time" name="endTime" required className="form-control-sm" defaultValue="10:00" />
+                  <Form.Control 
+                    type="time" 
+                    name="endTime" 
+                    id="manualAssignEndTime"
+                    required 
+                    className="form-control-sm" 
+                    defaultValue={(() => {
+                      const start = selectedCandidateToAssign?.requestedNewTime || '09:00';
+                      const [h, m] = start.split(':').map(Number);
+                      let endH = h + 1;
+                      if (endH >= 24) endH = endH % 24;
+                      return `${endH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                    })()}
+                  />
                 </Form.Group>
               </Col>
             </Row>

@@ -6,7 +6,6 @@ import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import { forgotPassword } from '../../../services/auth.service';
-import logo from '../../../assets/images/logo.svg';
 
 const MySwal = withReactContent(Swal);
 
@@ -25,9 +24,6 @@ const ForgotPassword = () => {
           </div>
           <Card className="borderless text-center">
             <Card.Body>
-              <div className="mb-4">
-                <img src={logo} alt="CSO Logo" style={{ maxWidth: '120px', height: 'auto' }} />
-              </div>
               {isSubmitted ? (
                 <div className="text-center">
                   <div className="mb-4">

@@ -2,7 +2,6 @@
 import React from 'react';
 import { Card } from 'react-bootstrap';
 import Breadcrumb from '../../../layouts/AdminLayout/Breadcrumb';
-import logo from '../../../assets/images/logo.svg';
 import AuthLogin from './JWTLogin';
 // import { getConfig } from '../../../services/config.service';
 
@@ -39,9 +38,6 @@ const Signin1 = () => {
           </div>
           <Card className="borderless text-center">
             <Card.Body>
-              <div className="mb-4">
-                <img src={logo} alt="CSO Logo" style={{ maxWidth: '120px', height: 'auto' }} />
-              </div>
               <div className="mb-4">
                 <i className="feather icon-unlock auth-icon" />
               </div>
