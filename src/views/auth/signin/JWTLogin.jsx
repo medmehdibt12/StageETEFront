@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Row, Col, Alert, Button } from 'react-bootstrap';
 import * as Yup from 'yup';
 import { Formik } from 'formik';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { loginUnified } from '../../../services/auth.service';
 import { useAuth } from '../../../contexts/AuthContext';
 
@@ -65,6 +65,12 @@ const JWTLogin = () => {
               value={values.password}
             />
             {touched.password && errors.password && <small className="text-danger form-text">{errors.password}</small>}
+          </div>
+
+          <div className="text-start mb-4 mt-2">
+            <Link to="/forgot-password" style={{ fontSize: '0.9rem', fontWeight: 500, color: '#3f4d67' }}>
+              Mot de passe oublié ?
+            </Link>
           </div>
 
           {submitError && (

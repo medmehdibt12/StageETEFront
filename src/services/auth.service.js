@@ -21,6 +21,16 @@ export const getCurrentUser = async () => {
   return response.data;
 };
 
+export const forgotPassword = async (email) => {
+  const response = await api.post('/auth/forgot-password', { email });
+  return response.data;
+};
+
+export const resetPassword = async (data) => {
+  const response = await api.post('/auth/reset-password', data);
+  return response.data;
+};
+
 
 export const updateCurrentUser = async (data) => {
   const formData = new FormData();
@@ -64,6 +74,15 @@ export const checkEmailConfirmed = async (email) => {
 export const confirmEmailToken = async (token) => {
   const res = await api.get(`/auth/confirm-email?token=${token}`);
   return res.data; // Return the confirmation message
+};
+
+export const verifyGoogleToken = async (credential) => {
+  try {
+    const res = await api.post('/auth/google-verify', { credential });
+    return res.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Google verification failed' };
+  }
 };
 
 export const logout = () => {

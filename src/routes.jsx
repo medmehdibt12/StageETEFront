@@ -45,12 +45,30 @@ const routes = [
     element: lazy(() => import('./views/auth/signin/SignIn1'))
   },
   {
+    path: '/forgot-password',
+    guard: RedirectIfAuth,
+    element: lazy(() => import('./views/auth/forgot-password/ForgotPassword'))
+  },
+  {
+    path: '/reset-password',
+    guard: RedirectIfAuth,
+    element: lazy(() => import('./views/auth/reset-password/ResetPassword'))
+  },
+  {
     path: '/candidature/formulaire', // New route for Formulaire
     element: lazy(() => import('./views/candidate/formulaire/Formulaire'))
   },
   {
     path: '/confirm-email',
     element: lazy(() => import('./views/candidate/public/ConfirmEmailSuccess'))
+  },
+  {
+    path: '/email-sent',
+    element: lazy(() => import('./views/candidate/public/EmailSentSuccess'))
+  },
+  {
+    path: '/candidature/success',
+    element: lazy(() => import('./views/candidate/public/CandidatureSuccess'))
   },
   // 🎯 NEW: Public convocation response route (no auth required)
   {
@@ -104,6 +122,10 @@ const routes = [
         path: '/user/profile',
         element: lazy(() => import('./views/common/ProfilePage'))
       },
+      {
+        path: '/common/media-oeuvres',
+        element: lazy(() => import('./views/common/media/OeuvreMediaManager'))
+      },
 
       // 🔽 Choriste Pages
       {
@@ -121,6 +143,10 @@ const routes = [
       {
         path: '/choriste/concerts',
         element: lazy(() => import('./views/choristeSidebarContents/concert/ConcertsAvailability'))
+      },
+      {
+        path: '/choriste/concert-actuel-medias',
+        element: lazy(() => import('./views/choristeSidebarContents/concert/CurrentConcertOeuvres'))
       },
 
       // 🔽 Manager Pages
@@ -164,6 +190,14 @@ const routes = [
         path: '/manager/manage-chart',
         element: lazy(() => import('./views/managerSidebarContents/chart/ManageChart'))
       },
+      {
+        path: '/manager/subgroups',
+        element: lazy(() => import('./views/managerSidebarContents/subgroups/ManageSubgroups'))
+      },
+      {
+        path: '/manager/subgroups/:id',
+        element: lazy(() => import('./views/managerSidebarContents/subgroups/SubgroupDetails'))
+      },
 
       // 🔽 Chef Choeur Pages
       {
@@ -178,6 +212,24 @@ const routes = [
       {
         path: '/chefpupitre/final-participants',
         element: lazy(() => import('./views/chefpupitreSideBarContents/participants/PupitreFinalParticipants'))
+      },
+
+      // 🔽 Survey Module
+      {
+        path: '/admin/surveys',
+        element: lazy(() => import('./views/adminSidebarContents/surveys/SurveyListPage'))
+      },
+      {
+        path: '/admin/surveys/:id/resultats',
+        element: lazy(() => import('./views/adminSidebarContents/surveys/SurveyResultsPage'))
+      },
+      {
+        path: '/choriste/sondages',
+        element: lazy(() => import('./views/choristeSidebarContents/surveys/ChoristerSurveyListPage'))
+      },
+      {
+        path: '/choriste/sondages/:id/repondre',
+        element: lazy(() => import('./views/choristeSidebarContents/surveys/SurveyFormPage'))
       },
 
       {

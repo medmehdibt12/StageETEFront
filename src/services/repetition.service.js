@@ -99,3 +99,8 @@ export const modifyRepetitionForAllChoristes = async (repetitionId, modification
     throw error;
   }
 };
+// ✅ NEW: Cancel a repetition (admin/manager only)
+export const cancelRepetition = async (id, reason) => {
+  const res = await api.patch(`/repetition/${id}/cancel`, { reason });
+  return res.data;
+};

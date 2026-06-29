@@ -20,6 +20,7 @@ import Swal from 'sweetalert2';
 import { BACKEND_URL } from '../../../utils/axiosInstance';
 import { FaChevronLeft, FaChevronRight, FaAngleDoubleLeft, FaAngleDoubleRight } from 'react-icons/fa';
 import { Search } from 'lucide-react';
+import logo from '../../../assets/images/logo.svg';
 
 const ManageConcerts = () => {
   const [concerts, setConcerts] = useState([]);
@@ -390,7 +391,7 @@ const ManageConcerts = () => {
   
           <!-- Logo & Date -->
         <div class="prog-subheader">
-          <img src="../../src/assets/images/music.png" alt="CSO Logo" />
+          <img src="${logo}" alt="CSO Logo" />
           <p>
             Programme du ${formattedDate}
           

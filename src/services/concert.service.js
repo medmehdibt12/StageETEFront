@@ -94,3 +94,9 @@ export const getConcertStatusForChoriste = async (concertId, choristeId) => {
   const res = await api.get(`/concerts/${concertId}/status/${choristeId}`);
   return res.data;
 };
+
+// ✅ NEW: Get current concert with filtered oeuvres for connected choriste
+export const getCurrentConcertOeuvres = async () => {
+  const res = await api.get('/concerts/current-oeuvres');
+  return res.data;
+};

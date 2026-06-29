@@ -8,6 +8,7 @@ import { getRepetitionsByConcert } from '../../../services/repetition.service';
 import { Spinner, Button, Card, Row, Col, Badge, Container, InputGroup, Form } from 'react-bootstrap';
 import Select from 'react-select';
 import Swal from 'sweetalert2';
+import logo from '../../../assets/images/logo.svg';
 import {
   FaCalendarAlt,
   FaMapMarkerAlt,
@@ -213,7 +214,7 @@ const SeasonProgramme = () => {
         <div class="prog-modal-container">
           <div class="prog-header"><h1>Carthage Symphony Orchestra</h1></div>
           <div class="prog-subheader">
-            <img src="../../src/assets/images/music.png" alt="CSO Logo" />
+            <img src="${logo}" alt="CSO Logo" />
             <p>Programme du ${formattedDate}</p>
           </div>
           <div class="prog-body">

@@ -19,6 +19,13 @@ const useMenuItems = () => {
       icon: 'feather icon-music'
     },
     {
+      id: 'media-oeuvres',
+      title: 'Médias des Œuvres',
+      type: 'item',
+      icon: 'feather icon-play-circle',
+      url: '/common/media-oeuvres'
+    },
+    {
       id: 'manage-concerts',
       title: 'Gérer les concerts',
       type: 'item',
@@ -45,8 +52,23 @@ const useMenuItems = () => {
       type: 'item',
       url: '/admin/final-participants',
       icon: 'feather icon-award'
+    },
+    {
+      id: 'manage-surveys',
+      title: 'Sondages',
+      type: 'item',
+      url: '/admin/surveys',
+      icon: 'feather icon-bar-chart-2'
+    },
+    {
+      id: 'manage-subgroups',
+      title: 'Sous-groupes',
+      type: 'item',
+      url: '/manager/subgroups',
+      icon: 'feather icon-layers'
     }
   ];
+
 
   const choristePages = [
     {
@@ -55,6 +77,13 @@ const useMenuItems = () => {
       type: 'item',
       icon: 'feather icon-calendar',
       url: '/choriste/season-programme'
+    },
+    {
+      id: 'current-concert-media',
+      title: 'Carnet de Chant',
+      type: 'item',
+      icon: 'feather icon-headphones',
+      url: '/choriste/concert-actuel-medias'
     },
     {
       id: 'liste-repetitions',
@@ -77,23 +106,37 @@ const useMenuItems = () => {
       icon: 'feather icon-file-text',
       url: '/choriste/declare-conge'
     },
+    {
+      id: 'sondages',
+      title: 'Mes Sondages',
+      type: 'item',
+      icon: 'feather icon-clipboard',
+      url: '/choriste/sondages'
+    },
     ...(user?.isChefDePupitre
       ? [
-          {
-            id: 'manage-presences',
-            title: 'Gérer les présences',
-            type: 'item',
-            icon: 'feather icon-check-square',
-            url: '/chefpupitre/choriste-list-presence'
-          },
-          {
-            id: 'final-participant-pupitre',
-            title: 'Participants finaux aux concerts',
-            type: 'item',
-            icon: 'feather icon-award',
-            url: '/chefpupitre/final-participants'
-          }
-        ]
+        {
+          id: 'media-oeuvres',
+          title: 'Médias des Œuvres',
+          type: 'item',
+          icon: 'feather icon-play-circle',
+          url: '/common/media-oeuvres'
+        },
+        {
+          id: 'manage-presences',
+          title: 'Gérer les présences',
+          type: 'item',
+          icon: 'feather icon-check-square',
+          url: '/chefpupitre/choriste-list-presence'
+        },
+        {
+          id: 'final-participant-pupitre',
+          title: 'Participants finaux aux concerts',
+          type: 'item',
+          icon: 'feather icon-award',
+          url: '/chefpupitre/final-participants'
+        }
+      ]
       : [])
   ];
 
@@ -104,6 +147,13 @@ const useMenuItems = () => {
       type: 'item',
       icon: 'feather icon-calendar',
       url: '/program/season-programme'
+    },
+    {
+      id: 'media-oeuvres',
+      title: 'Médias des Œuvres',
+      type: 'item',
+      icon: 'feather icon-music',
+      url: '/common/media-oeuvres'
     },
     {
       id: 'gerer-conge',
@@ -167,8 +217,23 @@ const useMenuItems = () => {
       type: 'item',
       url: '/manager/reschedule-requests',
       icon: 'feather icon-refresh-cw'
+    },
+    {
+      id: 'manage-surveys',
+      title: 'Sondages',
+      type: 'item',
+      url: '/admin/surveys',
+      icon: 'feather icon-bar-chart-2'
+    },
+    {
+      id: 'manage-subgroups',
+      title: 'Sous-groupes',
+      type: 'item',
+      url: '/manager/subgroups',
+      icon: 'feather icon-layers'
     }
   ];
+
 
   const chefdechoeurPages = [
     {
@@ -177,6 +242,13 @@ const useMenuItems = () => {
       type: 'item',
       icon: 'feather icon-calendar',
       url: '/program/season-programme'
+    },
+    {
+      id: 'media-oeuvres',
+      title: 'Médias des Œuvres',
+      type: 'item',
+      icon: 'feather icon-music',
+      url: '/common/media-oeuvres'
     },
     {
       id: 'list-choriste',

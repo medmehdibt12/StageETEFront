@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { getRepetitions, markRepetitionPresence, markRepetitionAbsence } from '../../../services/repetition.service';
 import { Card, Row, Col, Button, Spinner, Form, InputGroup, Container, Badge } from 'react-bootstrap';
 import { CheckCircle, XCircle, Clock, MapPin, Calendar, Search } from 'lucide-react';
-import { FaChevronLeft, FaChevronRight, FaAngleDoubleLeft, FaAngleDoubleRight, FaUserCheck, FaCalendarAlt } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaAngleDoubleLeft, FaAngleDoubleRight, FaUserCheck, FaCalendarAlt, FaBan } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import Select from 'react-select';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -441,7 +441,7 @@ const RehearsalsList = () => {
                 );
 
                 // 6) Avant 75 % de la durée : les deux boutons sont actifs
-              } else if (!beyond75 && !pastEnd) {
+              } else if (!beyond75 && !pastEnd && !rep.isCancelled) {
                 actionButtons = (
                   <div className="d-grid gap-2">
                     <Button
@@ -466,7 +466,7 @@ const RehearsalsList = () => {
                 );
 
                 // 7) À partir de 75 % de la durée, on désactive "Je suis présent"
-              } else {
+              } else if (!rep.isCancelled) {
                 actionButtons = (
                   <div className="d-grid gap-2">
                     <Button variant="outline-secondary" disabled size="sm" style={{ borderRadius: '12px', opacity: 0.6 }}>
@@ -483,6 +483,12 @@ const RehearsalsList = () => {
                       Je suis absent
                     </Button>
                   </div>
+                );
+              } else {
+                actionButtons = (
+                  <Button variant="danger" disabled size="sm" className="w-100" style={{ borderRadius: '12px', fontWeight: '500' }}>
+                    <XCircle size={16} className="me-2" /> Répétition Annulée
+                  </Button>
                 );
               }
 
@@ -505,6 +511,11 @@ const RehearsalsList = () => {
                       // ✅ RED border for absent
                       ...(markedAbsent && {
                         border: '2px solid #dc2626'
+                      }),
+                      // ✅ GRAY for cancelled
+                      ...(rep.isCancelled && {
+                        border: '2px solid #6b7280',
+                        opacity: 0.8
                       })
                     }}
                     onMouseEnter={(e) => {
@@ -522,8 +533,10 @@ const RehearsalsList = () => {
                     <Card.Header
                       className="border-0 text-white d-flex align-items-center justify-content-between"
                       style={{
-                        background: isAutoAbsent
-                          ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' // Red for auto-absent
+                        background: rep.isCancelled
+                          ? 'linear-gradient(135deg, #4b5563 0%, #1f2937 100%)' // Dark gray for cancelled
+                          : isAutoAbsent
+                            ? 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' // Red for auto-absent
                           : markedPresent
                             ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' // Green for present
                             : markedAbsent
@@ -540,7 +553,11 @@ const RehearsalsList = () => {
                           {rep.location}
                         </span>
                       </div>
-                      {isAutoAbsent ? (
+                      {rep.isCancelled ? (
+                        <Badge bg="danger" text="white" className="ms-2">
+                          ANNULÉE
+                        </Badge>
+                      ) : isAutoAbsent ? (
                         <Badge bg="light" text="dark" className="ms-2">
                           Absent
                         </Badge>
@@ -559,8 +576,23 @@ const RehearsalsList = () => {
 
                     {/* ✅ CARD BODY */}
                     <Card.Body className="p-4">
+                      {/* ✅ CANCELLED NOTICE */}
+                      {rep.isCancelled && (
+                        <div className="alert alert-danger mb-3 p-3 shadow-xs" style={{ borderRadius: '12px', fontSize: '13px' }}>
+                          <div className="d-flex align-items-center mb-1">
+                            <FaBan size={16} className="me-2" />
+                            <strong>Répétition annulée</strong>
+                          </div>
+                          {rep.cancellationReason && (
+                            <div className="mt-1 ps-4 border-start border-danger-subtle">
+                              <em>" {rep.cancellationReason} "</em>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* ✅ SIMPLIFIED: Only auto-absent notice (no elimination) */}
-                      {isAutoAbsent && (
+                      {!rep.isCancelled && isAutoAbsent && (
                         <div className="alert alert-warning mb-3 p-3" style={{ borderRadius: '12px', fontSize: '13px' }}>
                           <div className="d-flex align-items-center">
                             <XCircle size={16} className="me-2" />

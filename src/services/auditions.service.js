@@ -1,5 +1,26 @@
 import api from '../utils/axiosInstance';
 
+// Audition CRUD
+export const listAuditions = async () => {
+  const res = await api.get('/auditions');
+  return res.data;
+};
+
+export const createAudition = async (data) => {
+  const res = await api.post('/auditions', data);
+  return res.data;
+};
+
+export const updateAudition = async (id, data) => {
+  const res = await api.put(`/auditions/${id}`, data);
+  return res.data;
+};
+
+export const deleteAudition = async (id) => {
+  const res = await api.delete(`/auditions/${id}`);
+  return res.data;
+};
+
 export const listAuditionParameters = async () => {
   const res = await api.get('/auditions/parameters');
   return res.data;
@@ -43,5 +64,10 @@ export const getPlanningDetails = async (paramsId) => {
 
 export const getConfirmedCandidatesForAudition = async (planningId) => {
   const res = await api.get(`/auditions/confirmed-candidates/${planningId}`);
+  return res.data;
+};
+
+export const assignCandidateToSlot = async (data) => {
+  const res = await api.post('/auditions/assign', data);
   return res.data;
 };

@@ -22,7 +22,10 @@ import {
   FaMicrophone,
   FaCheckCircle,
   FaSave,
-  FaTimes
+  FaTimes,
+  FaCopy,
+  FaCalendarPlus,
+  FaUser
 } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import {
@@ -32,7 +35,12 @@ import {
   deleteAuditionParameters,
   generateAuditions,
   checkPlanningExists,
-  getConfirmedCandidatesForAudition
+  getConfirmedCandidatesForAudition,
+  listAuditions,
+  createAudition,
+  updateAudition as updateAuditionAPI,
+  deleteAudition as deleteAuditionAPI,
+  assignCandidateToSlot as assignCandidateAPI
 } from '../../../services/auditions.service';
 
 import {
@@ -57,12 +65,22 @@ const ManageAuditions = () => {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [pauseError, setPauseError] = useState('');
   const [pendingCandidatesCount, setPendingCandidatesCount] = useState(0);
+  const [pendingCandidatesList, setPendingCandidatesList] = useState([]); // Store actual list
   const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [planningStatus, setPlanningStatus] = useState({});
   const [planningDetails, setPlanningDetails] = useState(null);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedCandidateToAssign, setSelectedCandidateToAssign] = useState(null);
   const [loadingPlanning, setLoadingPlanning] = useState(false);
   const [evaluations, setEvaluations] = useState({});
   const [loadingEvaluations, setLoadingEvaluations] = useState(false);
+
+  // Audition states
+  const [auditions, setAuditions] = useState([]);
+  const [selectedAudition, setSelectedAudition] = useState(null);
+  const [showAuditionModal, setShowAuditionModal] = useState(false);
+  const [editingAudition, setEditingAudition] = useState(null);
+  const [loadingAuditions, setLoadingAuditions] = useState(false);
 
   // Confirmed candidates count
   const [confirmedCounts, setConfirmedCounts] = useState({});
@@ -102,7 +120,9 @@ const ManageAuditions = () => {
     formState: { errors }
   } = useForm({
     defaultValues: {
+      nom: '',
       saison: currentYear,
+      closingDate: '',
       startDate: '',
       endDate: '',
       candidateCount: '',
@@ -131,6 +151,19 @@ const ManageAuditions = () => {
       remarque: '',
       note: '',
       decision: ''
+    }
+  });
+
+  // Form for Audition
+  const {
+    register: registerAudition,
+    handleSubmit: handleSubmitAudition,
+    reset: resetAudition,
+    formState: { errors: errorsAudition }
+  } = useForm({
+    defaultValues: {
+      nom: '',
+      saison: currentYear
     }
   });
 
@@ -188,18 +221,26 @@ const ManageAuditions = () => {
 
   // ✅ NEW: Main table filtering and pagination logic
   const getFilteredParams = () => {
-    if (!mainSearchQuery.trim()) return paramsList;
+    let filtered = paramsList;
+    if (mainSearchQuery.trim()) {
+      filtered = paramsList.filter((param) => {
+        const searchText = mainSearchQuery.toLowerCase();
+        const saison = param.saison?.toString().toLowerCase() || '';
+        const nom = param.nom?.toLowerCase() || '';
+        const candidateCount = param.candidateCount?.toString().toLowerCase() || '';
+        const startDate = new Date(param.startDate).toLocaleDateString('fr-FR').toLowerCase();
+        const endDate = new Date(param.endDate).toLocaleDateString('fr-FR').toLowerCase();
 
-    return paramsList.filter((param) => {
-      const searchText = mainSearchQuery.toLowerCase();
-      const saison = param.saison?.toString().toLowerCase() || '';
-      const candidateCount = param.candidateCount?.toString().toLowerCase() || '';
-      const startDate = new Date(param.startDate).toLocaleDateString('fr-FR').toLowerCase();
-      const endDate = new Date(param.endDate).toLocaleDateString('fr-FR').toLowerCase();
+        return (
+          nom.includes(searchText) || saison.includes(searchText) || candidateCount.includes(searchText) || startDate.includes(searchText) || endDate.includes(searchText)
+        );
+      });
+    }
 
-      return (
-        saison.includes(searchText) || candidateCount.includes(searchText) || startDate.includes(searchText) || endDate.includes(searchText)
-      );
+    // Sort by name (nom) then by startDate
+    return filtered.sort((a, b) => {
+      if (a.nom !== b.nom) return (a.nom || '').localeCompare(b.nom || '');
+      return new Date(a.startDate) - new Date(b.startDate);
     });
   };
 
@@ -288,6 +329,17 @@ const ManageAuditions = () => {
     }
     return true;
   };
+
+  // ✅ NEW: Auto-sync closingDate with endDate
+  useEffect(() => {
+    if (endDate) {
+      const currentClosing = watch('closingDate');
+      // If closing date is empty or before the new end date, auto-set it
+      if (!currentClosing || new Date(currentClosing) < new Date(endDate)) {
+        setValue('closingDate', endDate);
+      }
+    }
+  }, [endDate, setValue, watch]);
 
   // Handle Select field changes with validation
   const handleSelectChange = async (fieldName, selectedOption) => {
@@ -632,17 +684,19 @@ const ManageAuditions = () => {
     return <Badge bg={decisionColors[evaluation.decision] || 'secondary'}>{evaluation.decision}</Badge>;
   };
 
-  // Fetch pending candidates count
+  // Fetch pending candidates details
   const fetchPendingCandidates = async () => {
     setLoadingCandidates(true);
     try {
+      // We fetch "Pending" which now includes rescheduled candidates (thanks to our backend fix)
       const pendingData = await getMembershipSubmissions('Pending');
+      setPendingCandidatesList(pendingData);
       setPendingCandidatesCount(pendingData.length);
-      return pendingData.length;
+      return pendingData;
     } catch (error) {
-      // console.error('Error fetching pending candidates:', error);
       setPendingCandidatesCount(0);
-      return 0;
+      setPendingCandidatesList([]);
+      return [];
     } finally {
       setLoadingCandidates(false);
     }
@@ -750,14 +804,33 @@ const ManageAuditions = () => {
     return null;
   };
 
-  const fetchParams = async () => {
+  const fetchAuditions = async () => {
+    setLoadingAuditions(true);
+    try {
+      const data = await listAuditions();
+      setAuditions(data);
+    } catch (err) {
+      Swal.fire('Erreur', 'Impossible de charger les auditions.', 'error');
+    } finally {
+      setLoadingAuditions(false);
+      setLoading(false); // ✅ Fix: Reset main loading state as well
+    }
+  };
+
+  const fetchParams = async (auditionId = null) => {
     setLoading(true);
     try {
       const sets = await listAuditionParameters();
-      setParamsList(sets);
-      await checkAllPlanningStatus(sets);
-      await checkConfirmedCandidates(sets);
-    } catch {
+      // Filter by auditionId if provided, or by selectedAudition
+      const targetAuditionId = auditionId || selectedAudition?._id;
+      const filtered = targetAuditionId 
+        ? sets.filter(p => p.auditionId === targetAuditionId)
+        : sets;
+      
+      setParamsList(filtered);
+      await checkAllPlanningStatus(filtered);
+      await checkConfirmedCandidates(filtered);
+    } catch (err) {
       Swal.fire('Erreur', 'Impossible de récupérer les paramètres.', 'error');
     } finally {
       setLoading(false);
@@ -765,15 +838,147 @@ const ManageAuditions = () => {
   };
 
   useEffect(() => {
-    fetchParams();
-  }, []);
+    fetchAuditions();
+    fetchPendingCandidates();
 
-  const openCreate = async () => {
+    // 🔄 Auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      fetchAuditionsBackground();
+      if (selectedAudition) {
+        fetchParamsBackground(selectedAudition._id);
+      }
+      fetchPendingCandidatesBackground();
+      
+      if (showPlanningModal && selectedParam) {
+        refreshPlanningDetailsBackground(selectedParam._id);
+      }
+    }, 30000);
+
+    const handleFocus = () => {
+      fetchAuditions();
+      if (selectedAudition) {
+        fetchParams(selectedAudition._id);
+      }
+      fetchPendingCandidates();
+    };
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [showPlanningModal, selectedParam, selectedAudition]);
+
+  // Background fetchers (no loading spinners)
+  const fetchAuditionsBackground = async () => {
+    try {
+      const data = await listAuditions();
+      setAuditions(data);
+    } catch (err) { /* Silent fail for background */ }
+  };
+
+  const fetchParamsBackground = async (auditionId = null) => {
+    try {
+      const sets = await listAuditionParameters();
+      const targetAuditionId = auditionId || selectedAudition?._id;
+      const filtered = targetAuditionId 
+        ? sets.filter(p => p.auditionId === targetAuditionId)
+        : sets;
+      
+      setParamsList(filtered);
+      await checkAllPlanningStatus(filtered);
+      await checkConfirmedCandidates(filtered);
+    } catch (err) { /* Silent fail */ }
+  };
+
+  const fetchPendingCandidatesBackground = async () => {
+    try {
+      const pendingData = await getMembershipSubmissions('Pending');
+      setPendingCandidatesList(pendingData);
+      setPendingCandidatesCount(pendingData.length);
+    } catch (error) { /* Silent fail */ }
+  };
+
+  const refreshPlanningDetailsBackground = async (paramId) => {
+    try {
+      const details = await getConfirmedCandidatesForAudition(paramId);
+      setPlanningDetails(details);
+      // Also reload evaluations if needed
+      if (details) loadEvaluations(paramId);
+    } catch (error) { /* Silent fail */ }
+  };
+
+  const handleSelectAudition = (audition) => {
+    setSelectedAudition(audition);
+    setMainCurrentPage(0);
+    fetchParams(audition._id);
+  };
+
+  const handleBackToAuditions = () => {
+    setSelectedAudition(null);
+    fetchAuditions();
+  };
+
+  const openCreateAudition = () => {
+    setEditingAudition(null);
+    resetAudition({ nom: '', saison: currentYear });
+    setShowAuditionModal(true);
+  };
+
+  const openEditAudition = (e, audition) => {
+    e.stopPropagation();
+    setEditingAudition(audition);
+    resetAudition({ nom: audition.nom, saison: audition.saison });
+    setShowAuditionModal(true);
+  };
+
+  const handleSaveAudition = async (data) => {
+    try {
+      if (editingAudition) {
+        await updateAuditionAPI(editingAudition._id, data);
+        Swal.fire('Succès', 'Audition mise à jour.', 'success');
+      } else {
+        await createAudition(data);
+        Swal.fire('Succès', 'Audition créée.', 'success');
+      }
+      setShowAuditionModal(false);
+      fetchAuditions();
+    } catch (err) {
+      Swal.fire('Erreur', err.response?.data?.message || 'Erreur lors de la sauvegarde.', 'error');
+    }
+  };
+
+  const deleteAuditionHandler = async (e, id) => {
+    e.stopPropagation();
+    const result = await Swal.fire({
+      title: 'Supprimer cette audition ?',
+      text: 'Action irréversible.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Supprimer',
+      cancelButtonText: 'Annuler'
+    });
+    if (!result.isConfirmed) return;
+
+    try {
+      await deleteAuditionAPI(id);
+      Swal.fire('Supprimé', 'Audition supprimée.', 'success');
+      fetchAuditions();
+    } catch (err) {
+      Swal.fire('Erreur', err.response?.data?.message || 'Impossible de supprimer.', 'error');
+    }
+  };
+
+  const openCreate = () => {
+    if (!selectedAudition) {
+      Swal.fire('Info', 'Veuillez d\'abord sélectionner une audition.', 'info');
+      return;
+    }
     setEditingParam(null);
-    setPauseError('');
-    await fetchPendingCandidates();
     reset({
-      saison: currentYear,
+      nom: selectedAudition.nom, // Use audition name by default
+      saison: selectedAudition.saison,
+      closingDate: '',
       startDate: '',
       endDate: '',
       candidateCount: '',
@@ -789,9 +994,29 @@ const ManageAuditions = () => {
     setEditingParam(param);
     setPauseError('');
     reset({
+      nom: param.nom || '',
       saison: param.saison || currentYear,
+      closingDate: param.closingDate ? param.closingDate.slice(0, 10) : '',
       startDate: param.startDate ? param.startDate.slice(0, 10) : '',
       endDate: param.endDate ? param.endDate.slice(0, 10) : '',
+      candidateCount: param.candidateCount ? String(param.candidateCount) : '',
+      sessionStartTime: param.sessionStartTime || '08:00',
+      sessionEndTime: param.sessionEndTime || '',
+      debutPause: param.debutPause || '',
+      finPause: param.finPause || ''
+    });
+    setShowModal(true);
+  };
+
+  const openDuplicate = (param) => {
+    setEditingParam(null); // New record
+    setPauseError('');
+    reset({
+      nom: param.nom || '',
+      saison: param.saison || currentYear,
+      closingDate: param.closingDate ? param.closingDate.slice(0, 10) : '',
+      startDate: '', // Clear dates for the new session
+      endDate: '',
       candidateCount: param.candidateCount ? String(param.candidateCount) : '',
       sessionStartTime: param.sessionStartTime || '08:00',
       sessionEndTime: param.sessionEndTime || '',
@@ -862,7 +1087,7 @@ const ManageAuditions = () => {
 
       if (response.success) {
         setShowPreviewModal(false);
-        await fetchParams();
+        await fetchParams(selectedAudition._id);
 
         Swal.fire({
           icon: 'success',
@@ -887,6 +1112,29 @@ const ManageAuditions = () => {
     }
   };
 
+  const handleManualAssign = async (assignData) => {
+    try {
+      setLoading(true);
+      await assignCandidateAPI({
+        candidateId: selectedCandidateToAssign._id,
+        paramId: assignData.paramId,
+        date: assignData.date,
+        startTime: assignData.startTime,
+        endTime: assignData.endTime
+      });
+
+      Swal.fire('Succès', 'Candidat programmé manuellement.', 'success');
+      setShowAssignModal(false);
+      setSelectedCandidateToAssign(null);
+      await fetchParams(selectedAudition?._id);
+      await fetchPendingCandidates();
+    } catch (error) {
+      Swal.fire('Erreur', error.response?.data?.message || 'Impossible de programmer le candidat.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async (id) => {
     const result = await Swal.fire({
       title: 'Supprimer ce planning ?',
@@ -901,7 +1149,7 @@ const ManageAuditions = () => {
     try {
       await deleteAuditionParameters(id);
       Swal.fire('Supprimé', 'Paramètre supprimé.', 'success');
-      fetchParams();
+      fetchParams(selectedAudition._id);
     } catch {
       Swal.fire('Erreur', 'Impossible de supprimer.', 'error');
     }
@@ -917,7 +1165,9 @@ const ManageAuditions = () => {
 
     const payload = {
       ...data,
-      saison: Number(data.saison),
+      auditionId: selectedAudition._id, // Link to the selected audition
+      nom: selectedAudition.nom, // Copy name for backward compatibility
+      saison: Number(selectedAudition.saison),
       candidateCount: Number(data.candidateCount),
       debutPause: data.debutPause || null,
       finPause: data.finPause || null
@@ -965,139 +1215,237 @@ const ManageAuditions = () => {
       <Card className="shadow-sm">
         <Card.Header className="d-flex justify-content-between align-items-center">
           <div>
-            <h5 className="mb-1">Paramètres des Auditions</h5>
+            <h5 className="mb-1">
+              {selectedAudition ? (
+                <>
+                  <Button variant="link" className="p-0 me-3 text-decoration-none" onClick={handleBackToAuditions}>
+                    <FaChevronLeft />
+                  </Button>
+                  Sessions de : <span className="text-primary">{selectedAudition.nom}</span>
+                </>
+              ) : (
+                "Gestion des Auditions"
+              )}
+            </h5>
           </div>
-          <Button variant="primary" onClick={openCreate}>
-            <FaPlus className="me-2" /> Nouveau
+          <Button variant="primary" onClick={selectedAudition ? openCreate : openCreateAudition}>
+            <FaPlus className="me-2" /> {selectedAudition ? "Nouvelle Session" : "Nouvelle Audition"}
           </Button>
         </Card.Header>
 
         <Card.Body>
-          {/* ✅ NEW: Search Bar */}
-          <div className="mb-3 d-flex justify-content-start">
-            <InputGroup style={{ maxWidth: '400px' }}>
-              <InputGroup.Text>
-                <FaSearch />
-              </InputGroup.Text>
-              <Form.Control
-                type="text"
-                placeholder="Rechercher par saison, nb candidats, date..."
-                value={mainSearchQuery}
-                onChange={handleMainSearchChange}
-              />
-            </InputGroup>
-          </div>
-
-          {loading ? (
+          {loadingAuditions || loading ? (
             <div className="text-center py-5">
               <Spinner animation="border" variant="primary" />
+              <p className="mt-2 text-muted">Chargement...</p>
             </div>
+          ) : !selectedAudition ? (
+            /* --- Audition Grid View --- */
+            <Row className="g-4">
+              {auditions.map((audition) => (
+                <Col key={audition._id} xl={4} lg={6} md={6}>
+                  <Card 
+                    className="h-100 shadow-sm audition-card border-0" 
+                    style={{ 
+                      cursor: 'pointer', 
+                      background: 'linear-gradient(145deg, #ffffff, #f8f9fa)',
+                      transition: 'transform 0.2s',
+                      borderLeft: '5px solid #0d6efd'
+                    }}
+                    onClick={() => handleSelectAudition(audition)}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                  >
+                    <Card.Body>
+                      <div className="d-flex justify-content-between align-items-start mb-3">
+                        <Badge bg="primary" className="px-3 py-2">Saison {audition.saison}</Badge>
+                        <Dropdown onClick={(e) => e.stopPropagation()}>
+                          <Dropdown.Toggle as={Button} variant="link" className="p-0 text-muted border-0 shadow-none">
+                            <FaFilter />
+                          </Dropdown.Toggle>
+                          <Dropdown.Menu align="end">
+                            <Dropdown.Item onClick={(e) => openEditAudition(e, audition)}>
+                              <FaEdit className="me-2 text-warning" /> Modifier
+                            </Dropdown.Item>
+                            <Dropdown.Divider />
+                            <Dropdown.Item onClick={(e) => deleteAuditionHandler(e, audition._id)} className="text-danger">
+                              <FaTrash className="me-2" /> Supprimer
+                            </Dropdown.Item>
+                          </Dropdown.Menu>
+                        </Dropdown>
+                      </div>
+                      <h4 className="mb-2 fw-bold text-dark">{audition.nom}</h4>
+                      <p className="text-muted small mb-4">
+                        Créée le {new Date(audition.createdAt).toLocaleDateString('fr-FR')}
+                      </p>
+                      
+                      <div className="d-flex align-items-center justify-content-between mt-auto">
+                        <div className="d-flex align-items-center text-primary">
+                          <FaCalendarAlt className="me-2" />
+                          <span className="small">Gérer les plannings</span>
+                        </div>
+                        <FaChevronRight className="text-muted" />
+                      </div>
+                    </Card.Body>
+                  </Card>
+                </Col>
+              ))}
+              {auditions.length === 0 && (
+                <Col md={12} className="text-center py-5">
+                  <div className="text-muted">
+                    <FaMicrophone size={50} className="mb-3 opacity-25" />
+                    <p>Aucune audition configurée. Commencez par en créer une.</p>
+                  </div>
+                </Col>
+              )}
+            </Row>
           ) : (
+            /* --- Planning Table View --- */
             <>
-              <Table bordered hover responsive>
-                <thead>
+              {/* ✅ NEW: Reschedule Requests Summary */}
+              {pendingCandidatesList.some(c => c.convocationStatus === 'RescheduledSameDay' || c.convocationStatus === 'RescheduleRequested') && (
+                <div className="mb-4 p-3 border-start border-4 border-warning bg-light rounded shadow-sm">
+                  <div className="d-flex align-items-center mb-2">
+                    <div className="bg-warning text-white rounded-circle p-2 me-3" style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <FaClock />
+                    </div>
+                    <h6 className="mb-0 fw-bold">Demandes de reprogrammation</h6>
+                    <Badge bg="warning" text="dark" className="ms-2 rounded-pill">
+                      {pendingCandidatesList.filter(c => c.convocationStatus === 'RescheduledSameDay' || c.convocationStatus === 'RescheduleRequested').length}
+                    </Badge>
+                  </div>
+                  <div className="row g-2">
+                    {pendingCandidatesList
+                      .filter(c => c.convocationStatus === 'RescheduledSameDay' || c.convocationStatus === 'RescheduleRequested')
+                      .slice(0, 5)
+                      .map(c => (
+                        <div key={c._id} className="col-md-6 col-lg-4">
+                          <div className="p-2 border rounded bg-white d-flex justify-content-between align-items-center">
+                            <div>
+                              <div className="small fw-bold text-dark">{c.firstName} {c.lastName}</div>
+                              <div className="text-muted" style={{ fontSize: '11px' }}>
+                                {c.convocationStatus === 'RescheduledSameDay' ? `Souhait : ${c.requestedNewTime || 'Non précisé'}` : 'Changement de jour'}
+                              </div>
+                              {c.rescheduleReason && (
+                                <div className="text-info italic" style={{ fontSize: '10px', fontStyle: 'italic' }}>
+                                  💬 {c.rescheduleReason}
+                                </div>
+                              )}
+                            </div>
+                            <Button 
+                              size="sm" 
+                              variant="link" 
+                              className="p-0 text-primary" 
+                              title="Programmer manuellement"
+                              onClick={() => {
+                                setSelectedCandidateToAssign(c);
+                                setShowAssignModal(true);
+                              }}
+                            >
+                              <FaCalendarPlus />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    {pendingCandidatesList.filter(c => c.convocationStatus === 'RescheduledSameDay' || c.convocationStatus === 'RescheduleRequested').length > 5 && (
+                      <div className="col-12 text-center mt-2">
+                        <small className="text-muted">Et {pendingCandidatesList.filter(c => c.convocationStatus === 'RescheduledSameDay' || c.convocationStatus === 'RescheduleRequested').length - 5} autres...</small>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ✅ NEW: Search Bar */}
+              <div className="mb-3 d-flex justify-content-start">
+                <InputGroup style={{ maxWidth: '400px' }}>
+                  <InputGroup.Text>
+                    <FaSearch />
+                  </InputGroup.Text>
+                  <Form.Control
+                    type="text"
+                    placeholder="Rechercher par date, nb candidats..."
+                    value={mainSearchQuery}
+                    onChange={handleMainSearchChange}
+                  />
+                </InputGroup>
+              </div>
+
+              <Table bordered hover responsive className="align-middle">
+                <thead className="bg-light text-secondary small text-uppercase">
                   <tr>
-                    <th>Période</th>
-                    <th>Saison</th>
-                    <th>Nb candidats/heure</th>
+                    <th>Session</th>
+                    <th>Période d'audition</th>
+                    <th className="text-center">Candidats/h</th>
                     <th>Horaires</th>
                     <th>Pause</th>
-                    <th>Créé le</th>
-                    <th>Statut</th>
-                    <th>Actions</th>
+                    <th className="text-center">Statut</th>
+                    <th className="text-end">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {getPaginatedParams().map((p) => {
-                    const isGenerated = planningStatus[p._id] || false;
-                    const periode = `${new Date(p.startDate).toLocaleDateString('fr-FR')} → ${new Date(p.endDate).toLocaleDateString('fr-FR')}`;
-                    const highlightedPeriode = mainSearchQuery ? highlightSearchTerm(periode, mainSearchQuery) : periode;
-                    const highlightedSaison = mainSearchQuery
-                      ? highlightSearchTerm(p.saison?.toString() || '', mainSearchQuery)
-                      : p.saison || currentYear;
-                    const highlightedCandidateCount = mainSearchQuery
-                      ? highlightSearchTerm(p.candidateCount?.toString() || '', mainSearchQuery)
-                      : p.candidateCount;
+                  {(() => {
+                    const paginated = getPaginatedParams();
+                    
+                    return paginated.map((p) => {
+                      const isGenerated = planningStatus[p._id] || false;
+                      const isClosed = new Date() > new Date(p.closingDate);
 
-                    return (
-                      <tr key={p._id}>
-                        <td>
-                          <span dangerouslySetInnerHTML={{ __html: highlightedPeriode }} />
-                        </td>
-                        <td>
-                          <span dangerouslySetInnerHTML={{ __html: highlightedSaison }} />
-                        </td>
-                        <td>
-                          <span dangerouslySetInnerHTML={{ __html: highlightedCandidateCount }} />
-                        </td>
-                        <td>
-                          {p.sessionStartTime} – {p.sessionEndTime}
-                        </td>
-                        <td>{p.debutPause && p.finPause ? `${p.debutPause} - ${p.finPause}` : 'Aucune'}</td>
-                        <td>{new Date(p.createdAt).toLocaleDateString('fr-FR')}</td>
-                        <td>
-                          {isGenerated ? (
-                            <div className="d-flex flex-column align-items-start gap-1">
-                              <Badge bg="success">
-                                <FaUserCheck className="me-1" />
-                                Généré
-                              </Badge>
+                      return (
+                        <tr key={p._id}>
+                          <td className="ps-3 fw-bold text-primary">
+                            {p.startDate ? `Du ${new Date(p.startDate).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}` : 'Session'}
+                          </td>
+                          <td>
+                            <div className="small">
+                              {new Date(p.startDate).toLocaleDateString('fr-FR')} <FaChevronRight size={10} className="mx-1 text-muted" /> {new Date(p.endDate).toLocaleDateString('fr-FR')}
                             </div>
-                          ) : (
-                            <Badge bg="secondary">
-                              <FaClock className="me-1" />
-                              En attente
-                            </Badge>
-                          )}
-                        </td>
-                        <td>
-                          <div className="d-flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline-secondary"
-                              onClick={() => openEdit(p)}
-                              disabled={isGenerated}
-                              title={isGenerated ? 'Modification impossible après génération' : 'Modifier'}
-                            >
-                              <FaEdit />
-                            </Button>
-
-                            {isGenerated ? (
-                              <Button
-                                size="sm"
-                                variant="outline-info"
-                                onClick={() => openPlanningVisualization(p)}
-                                title={
-                                  loadingCounts
-                                    ? 'Vérification...'
-                                    : `Visualiser Planning (${confirmedCounts[p._id] || 0} confirmé${(confirmedCounts[p._id] || 0) > 1 ? 's' : ''})`
-                                }
-                              >
-                                {loadingCounts ? <Spinner size="sm" /> : <FaEye />}
-                              </Button>
+                          </td>
+                          <td className="text-center">
+                            <Badge bg="info" className="rounded-pill">{p.candidateCount}</Badge>
+                          </td>
+                          <td>{p.sessionStartTime} – {p.sessionEndTime}</td>
+                          <td>
+                            {p.debutPause && p.finPause ? (
+                              <span className="small text-muted"><FaClock className="me-1" />{p.debutPause} - {p.finPause}</span>
                             ) : (
-                              <Button
-                                size="sm"
-                                variant="outline-success"
-                                onClick={() => openGeneratePreview(p)}
-                                title="Générer le planning"
-                              >
-                                <FaCalendarAlt />
-                              </Button>
+                              <span className="text-muted small">Aucune</span>
                             )}
-
-                            {/* <Button size="sm" variant="outline-danger" onClick={() => handleDelete(p._id)} title="Supprimer">
-                              <FaTrash />
-                            </Button> */}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {getMainTotalItems() === 0 && !loading && (
+                          </td>
+                          <td className="text-center">
+                            <div className="d-flex flex-column align-items-center gap-1">
+                              {isGenerated ? (
+                                <Badge bg="success" className="px-2"><FaUserCheck className="me-1" />Généré</Badge>
+                              ) : (
+                                <Badge bg="secondary" className="px-2"><FaClock className="me-1" />En attente</Badge>
+                              )}
+                              {isClosed && (
+                                <Badge bg="danger" className="px-2"><FaTimes className="me-1" />Clôturé</Badge>
+                              )}
+                            </div>
+                          </td>
+                          <td className="text-end">
+                            <div className="d-flex gap-2 justify-content-end">
+                              {isGenerated ? (
+                                <Button size="sm" variant="outline-info" onClick={() => openPlanningVisualization(p)} title="Visualiser"><FaEye /></Button>
+                              ) : (
+                                <>
+                                  <Button size="sm" variant="outline-secondary" onClick={() => openEdit(p)} title="Modifier"><FaEdit /></Button>
+                                  <Button size="sm" variant="outline-success" onClick={() => openGeneratePreview(p)} title="Générer"><FaCalendarAlt /></Button>
+                                </>
+                              )}
+                              <Button size="sm" variant="outline-primary" onClick={() => openDuplicate(p)} title="Dupliquer"><FaCopy /></Button>
+                              <Button size="sm" variant="outline-danger" onClick={() => handleDelete(p._id)} title="Supprimer"><FaTrash /></Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                  {getMainTotalItems() === 0 && (
                     <tr>
-                      <td colSpan="8" className="text-center py-3">
-                        {mainSearchQuery ? `Aucun paramètre trouvé pour "${mainSearchQuery}"` : 'Aucun planning défini.'}
+                      <td colSpan="7" className="text-center py-4 text-muted">
+                        Aucun planning défini pour cette audition.
                       </td>
                     </tr>
                   )}
@@ -1220,17 +1568,48 @@ const ManageAuditions = () => {
         <Form noValidate onSubmit={handleSubmit(onSubmit)}>
           <Modal.Body>
             <Row className="mb-3">
-              <Col md={4}>
-                <Form.Group controlId="saison">
-                  <Form.Label>Saison</Form.Label>
-                  <Form.Control type="number" {...register('saison')} readOnly className="bg-light" />
-                  <Form.Text className="text-muted">
-                    <small>Année en cours (lecture seule)</small>
-                  </Form.Text>
+              <Col md={12}>
+                <div className="p-3 bg-light rounded border mb-2 d-flex align-items-center">
+                  <div className="bg-primary text-white rounded-circle p-2 me-3" style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <FaMicrophone />
+                  </div>
+                  <div>
+                    <h6 className="mb-0 text-dark">Planning pour : <strong>{selectedAudition?.nom}</strong></h6>
+                    <small className="text-muted">Saison {selectedAudition?.saison}</small>
+                  </div>
+                </div>
+              </Col>
+            </Row>
+
+            <Row className="mb-3">
+              <Col md={6}>
+                <Form.Group controlId="closingDate">
+                  <Form.Label>Date de clôture</Form.Label>
+                  <Form.Control
+                    type="date"
+                    min={watch('endDate') || today}
+                    {...register('closingDate', {
+                      required: 'Date de clôture requise',
+                      validate: (value) => {
+                        const selectedDate = new Date(value);
+                        const endDateValue = watch('endDate');
+                        
+                        if (endDateValue) {
+                          const endDate = new Date(endDateValue);
+                          if (selectedDate <= endDate) {
+                            return 'Doit être après la fin';
+                          }
+                        }
+                        return true;
+                      }
+                    })}
+                    isInvalid={!!errors.closingDate}
+                  />
+                  <Form.Control.Feedback type="invalid">{errors.closingDate?.message}</Form.Control.Feedback>
                 </Form.Group>
               </Col>
 
-              <Col md={4}>
+              <Col md={3}>
                 <Form.Group controlId="startDate">
                   <Form.Label>Date de début</Form.Label>
                   <Form.Control
@@ -1242,7 +1621,7 @@ const ManageAuditions = () => {
                         const selectedDate = new Date(value);
                         const todayDate = new Date(today);
                         if (selectedDate < todayDate) {
-                          return 'Date ne peut pas être dans le passé';
+                          return 'Date dans le passé';
                         }
                         return true;
                       }
@@ -1253,7 +1632,7 @@ const ManageAuditions = () => {
                 </Form.Group>
               </Col>
 
-              <Col md={4}>
+              <Col md={3}>
                 <Form.Group controlId="endDate">
                   <Form.Label>Date de fin</Form.Label>
                   <Form.Control
@@ -1269,15 +1648,8 @@ const ManageAuditions = () => {
                         const endDate = new Date(value);
 
                         if (endDate < startDate) {
-                          return 'Date de fin doit être ≥ date de début';
+                          return 'Date fin ≥ date début';
                         }
-
-                        const diffTime = endDate - startDate;
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        if (diffDays > 30) {
-                          return 'Période maximale: 30 jours';
-                        }
-
                         return true;
                       }
                     })}
@@ -1409,6 +1781,13 @@ const ManageAuditions = () => {
                   </Col>
                 </Row>
               </div>
+
+              {new Date() > new Date(selectedParam.closingDate) && (
+                <div className="alert alert-danger mb-3">
+                  <FaTimes className="me-2" />
+                  <strong>Attention:</strong> La date de clôture est déjà passée. Les candidats recevront une convocation expirée et ne pourront pas répondre.
+                </div>
+              )}
 
               <div className="alert alert-warning">
                 <strong>⚠️ Attention:</strong> Une fois le planning généré, vous ne pourrez plus modifier ces paramètres.
@@ -2214,6 +2593,180 @@ const ManageAuditions = () => {
             </Button>
           </Modal.Footer>
         </Form>
+      </Modal>
+      {/* --- Audition Management Modal --- */}
+      <Modal show={showAuditionModal} onHide={() => setShowAuditionModal(false)} centered>
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold">
+            {editingAudition ? 'Modifier l\'Audition' : 'Créer une Nouvelle Audition'}
+          </Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleSubmitAudition(handleSaveAudition)}>
+          <Modal.Body className="pt-4">
+            <Form.Group className="mb-4">
+              <Form.Label className="fw-semibold text-secondary">Nom de l'audition</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="ex: Auditions d'Automne 2026"
+                className="py-2 border-0 bg-light"
+                {...registerAudition('nom', { required: 'Le nom est obligatoire' })}
+                isInvalid={!!errorsAudition.nom}
+              />
+              <Form.Control.Feedback type="invalid">{errorsAudition.nom?.message}</Form.Control.Feedback>
+              <Form.Text className="text-muted">
+                Ce nom sera utilisé pour regrouper tous les plannings associés.
+              </Form.Text>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-semibold text-secondary">Saison (Année)</Form.Label>
+              <Form.Control
+                type="number"
+                placeholder={currentYear}
+                className="py-2 border-0 bg-light"
+                {...registerAudition('saison', { required: 'La saison est obligatoire' })}
+                isInvalid={!!errorsAudition.saison}
+              />
+              <Form.Control.Feedback type="invalid">{errorsAudition.saison?.message}</Form.Control.Feedback>
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer className="border-0 pt-0">
+            <Button variant="light" className="px-4 py-2" onClick={() => setShowAuditionModal(false)}>
+              Annuler
+            </Button>
+            <Button variant="primary" className="px-4 py-2 shadow-sm" type="submit">
+              {editingAudition ? 'Enregistrer les modifications' : 'Créer l\'audition'}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      {/* ✅ NEW: Manual Assignment Modal */}
+      <Modal show={showAssignModal} onHide={() => setShowAssignModal(false)} size="md">
+        <Modal.Header closeButton className="bg-light">
+          <Modal.Title className="h5 fw-bold">
+            <FaCalendarPlus className="me-2 text-primary" />
+            Programmation Manuelle
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          {selectedCandidateToAssign && (
+            <div className="mb-4 p-3 bg-primary bg-opacity-10 rounded border border-primary border-opacity-25">
+              <div className="d-flex align-items-center">
+                <div className="bg-primary text-white rounded-circle p-2 me-3" style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FaUser />
+                </div>
+                <div>
+                  <h6 className="mb-0 fw-bold">{selectedCandidateToAssign.firstName} {selectedCandidateToAssign.lastName}</h6>
+                  <small className="text-muted">{selectedCandidateToAssign.email}</small>
+                  {selectedCandidateToAssign.convocationStatus === 'RescheduledSameDay' && (
+                    <div className="mt-1">
+                      <Badge bg="warning" text="dark" style={{ fontSize: '10px' }}>
+                        Souhait : {selectedCandidateToAssign.requestedNewTime}
+                      </Badge>
+                    </div>
+                  )}
+                  {selectedCandidateToAssign.rescheduleReason && (
+                    <div className="mt-2 p-2 bg-white rounded border border-warning border-opacity-50 small italic">
+                      <strong>Motif :</strong> "{selectedCandidateToAssign.rescheduleReason}"
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <Form onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const pId = formData.get('paramId');
+            const p = paramsList.find(x => x._id === pId);
+            const startTime = formData.get('startTime');
+            const endTime = formData.get('endTime');
+
+            // 🎯 Added Control: end time must be after start time
+            if (startTime && endTime) {
+              const startMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
+              let endMinutes = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]);
+              
+              if (endMinutes <= startMinutes) {
+                Swal.fire('Erreur', 'L\'heure de fin doit être après l\'heure de début', 'error');
+                return;
+              }
+            }
+
+            handleManualAssign({
+              paramId: pId,
+              date: p.startDate,
+              startTime: startTime,
+              endTime: endTime
+            });
+          }}>
+            <Form.Group className="mb-3">
+              <Form.Label className="small fw-bold">Session de planning</Form.Label>
+              <Form.Select name="paramId" required className="form-control-sm">
+                <option value="">Sélectionner une session...</option>
+                {paramsList.map(p => (
+                  <option key={p._id} value={p._id}>
+                    Session du {new Date(p.startDate).toLocaleDateString('fr-FR')} ({p.nom})
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label className="small fw-bold">Heure de début</Form.Label>
+                  <Form.Control 
+                    type="time" 
+                    name="startTime" 
+                    id="manualAssignStartTime"
+                    required 
+                    className="form-control-sm"
+                    defaultValue={selectedCandidateToAssign?.requestedNewTime || '09:00'} 
+                    onChange={(e) => {
+                      const newStart = e.target.value;
+                      if (newStart) {
+                        const [h, m] = newStart.split(':').map(Number);
+                        let endH = h + 1;
+                        if (endH >= 24) endH = endH % 24;
+                        const newEnd = `${endH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                        const endInput = document.getElementById('manualAssignEndTime');
+                        if (endInput) endInput.value = newEnd;
+                      }
+                    }}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label className="small fw-bold">Heure de fin</Form.Label>
+                  <Form.Control 
+                    type="time" 
+                    name="endTime" 
+                    id="manualAssignEndTime"
+                    required 
+                    className="form-control-sm" 
+                    defaultValue={(() => {
+                      const start = selectedCandidateToAssign?.requestedNewTime || '09:00';
+                      const [h, m] = start.split(':').map(Number);
+                      let endH = h + 1;
+                      if (endH >= 24) endH = endH % 24;
+                      return `${endH.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                    })()}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <div className="d-grid mt-4">
+              <Button variant="primary" type="submit" disabled={loading}>
+                {loading ? <Spinner animation="border" size="sm" /> : 'Confirmer la programmation'}
+              </Button>
+            </div>
+          </Form>
+        </Modal.Body>
       </Modal>
     </Container>
   );

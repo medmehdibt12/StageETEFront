@@ -809,8 +809,10 @@ const ManageMembership = () => {
                 </p>
               </div>
             ) : (
-              <div className="border rounded">
-                <Table hover bordered responsive className="mb-0" style={{ backgroundColor: 'white' }}>
+              <div className="border rounded overflow-hidden">
+                {/* 🖥️ DESKTOP TABLE VIEW */}
+                <div className="desktop-table-view">
+                  <Table hover bordered responsive className="mb-0" style={{ backgroundColor: 'white' }}>
                   <thead>
                     <tr>
                       <SortableHeader field="name" currentSort={sortField} direction={sortDirection} onSort={handleSort}>
@@ -848,6 +850,16 @@ const ManageMembership = () => {
                           <tr className={openDetails[member._id] ? 'active-row' : ''}>
                             <td className="fw-bold" style={{ padding: '12px 8px' }}>
                               <span dangerouslySetInnerHTML={{ __html: highlightedName }} />
+                              {member.convocationStatus === 'RescheduleRequested' && (
+                                <Badge bg="warning" text="dark" className="ms-2" style={{ fontSize: '0.75rem' }}>
+                                  Report demandé (autre date)
+                                </Badge>
+                              )}
+                              {member.convocationStatus === 'RescheduledSameDay' && (
+                                <Badge bg="info" className="ms-2" style={{ fontSize: '0.75rem' }}>
+                                  Changement d'heure demandé
+                                </Badge>
+                              )}
                             </td>
                             <td style={{ padding: '12px 8px' }}>{member.height} cm</td>
                             <td style={{ padding: '12px 8px' }}>
@@ -1043,7 +1055,219 @@ const ManageMembership = () => {
                       );
                     })}
                   </tbody>
-                </Table>
+                  </Table>
+                </div>
+
+                {/* 📱 MOBILE CARD VIEW */}
+                <div className="mobile-cards-container">
+                  {paginatedData.map((member) => {
+                    const fullName = `${member.firstName} ${member.lastName}`;
+                    const isExpanded = !!openDetails[member._id];
+
+                    return (
+                      <div key={member._id} className={`candidate-mobile-card ${isExpanded ? 'is-expanded' : ''}`}>
+                        <div className="candidate-card-header">
+                          <h5 className="candidate-name" dangerouslySetInnerHTML={{ __html: filterText ? highlightSearchTerm(fullName, filterText) : fullName }} />
+                          <Badge bg={member.gender === 'Homme' ? 'info' : 'danger'} pill>
+                            {member.gender}
+                          </Badge>
+                        </div>
+
+                        <div className="candidate-badges">
+                          {tabType === 'scheduled' && member.auditionDate && (
+                            <Badge bg="info" className="d-flex align-items-center gap-1">
+                              <FaCalendarAlt size={10} /> {formatDate(member.auditionDate)}
+                            </Badge>
+                          )}
+                          {member.convocationStatus === 'RescheduleRequested' && (
+                            <Badge bg="warning" text="dark">Report (autre date)</Badge>
+                          )}
+                          {member.convocationStatus === 'RescheduledSameDay' && (
+                            <Badge bg="info">Changement heure</Badge>
+                          )}
+                          {member.hasMusicalKnowledge && <Badge bg="warning">Musique ✓</Badge>}
+                          {member.isActiveInOtherChoir && <Badge bg="warning">Autre chœur ✓</Badge>}
+                        </div>
+
+                        <div className="candidate-info-grid">
+                          <div className="card-info-item">
+                            <span className="card-info-label">Taille</span>
+                            <span className="card-info-value">{member.height} cm</span>
+                          </div>
+                          <div className="card-info-item">
+                            <span className="card-info-label">Âge</span>
+                            <span className="card-info-value">
+                              {Math.floor((new Date() - new Date(member.birthDate)) / (1000 * 60 * 60 * 24 * 365.25))} ans
+                            </span>
+                          </div>
+                          {tabType === 'scheduled' && member.auditionStartTime && (
+                            <div className="card-info-item">
+                              <span className="card-info-label">Horaire</span>
+                              <span className="card-info-value">
+                                {member.auditionStartTime} - {member.auditionEndTime}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="candidate-card-actions">
+                          <Button variant={isExpanded ? 'danger' : 'primary'} size="sm" onClick={() => toggleDetails(member._id)}>
+                            {isExpanded ? 'Masquer' : 'Voir détails'}
+                          </Button>
+                          {tabType === 'auditioned' && member.evaluationData && (
+                            <Button variant="outline-info" size="sm" onClick={() => openEvaluationModal(member.evaluationData)}>
+                              Évaluation
+                            </Button>
+                          )}
+                          {tabType === 'auditioned' && (
+                            <Button variant="outline-danger" size="sm" onClick={() => openRefuseModal(member._id)}>
+                              Refuser
+                            </Button>
+                          )}
+                        </div>
+
+                        {/* Mobile Expanded Details */}
+                        {isExpanded && (
+                          <div className="candidate-expanded-details mt-3 pt-3 border-top">
+                            {/* Personal & Identity */}
+                            <div className="details-section mb-3">
+                              <div className="details-section-header">
+                                <FaUser className="icon" />
+                                <h6>Personnel & Identité</h6>
+                              </div>
+                              <div className="details-section-content">
+                                <div className="info-item">
+                                  <span className="info-label">Email</span>
+                                  <span className="info-value text-break text-primary fw-500">{member.email}</span>
+                                </div>
+                                <div className="info-item">
+                                  <span className="info-label">Téléphone</span>
+                                  <span className="info-value">
+                                    {member.phoneCountryCode} {member.phone}
+                                  </span>
+                                </div>
+                                <div className="info-item">
+                                  <span className="info-label">Date de naissance</span>
+                                  <span className="info-value">{new Date(member.birthDate).toLocaleDateString('fr-FR')}</span>
+                                </div>
+                                <div className="info-item">
+                                  <span className="info-label">Identité</span>
+                                  <span className="info-value">
+                                    {member.identityType}: {member.identityNumber || '—'}
+                                  </span>
+                                </div>
+                                <div className="info-item">
+                                  <span className="info-label">Nationalité</span>
+                                  <span className="info-value">{member.nationality}</span>
+                                </div>
+                                <div className="info-item">
+                                  <span className="info-label">Taille</span>
+                                  <span className="info-value">{member.height} cm</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Musical Info */}
+                            <div className="details-section mb-3">
+                              <div className="details-section-header">
+                                <FaMusic className="icon" />
+                                <h6>Musique</h6>
+                              </div>
+                              <div className="details-section-content">
+                                <div className="info-item">
+                                  <span className="info-label">Connaissances musicales</span>
+                                  <Badge bg={member.hasMusicalKnowledge ? 'warning' : 'secondary'} className="w-fit">
+                                    {member.hasMusicalKnowledge ? 'Oui' : 'Non'}
+                                  </Badge>
+                                </div>
+                                {member.hasMusicalKnowledge && member.musicalExperience && (
+                                  <div className="info-item mt-2">
+                                    <span className="info-label">Expérience</span>
+                                    <span className="info-value small fst-italic">{member.musicalExperience}</span>
+                                  </div>
+                                )}
+                                <div className="info-item mt-2">
+                                  <span className="info-label">Active dans un autre chœur</span>
+                                  <Badge bg={member.isActiveInOtherChoir ? 'warning' : 'secondary'} className="w-fit">
+                                    {member.isActiveInOtherChoir ? 'Oui' : 'Non'}
+                                  </Badge>
+                                </div>
+                                {member.isActiveInOtherChoir && member.otherChoir && (
+                                  <div className="info-item mt-2">
+                                    <span className="info-label">Nom du chœur</span>
+                                    <span className="info-value">{member.otherChoir}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Professional Info */}
+                            <div className="details-section mb-3">
+                              <div className="details-section-header">
+                                <FaClock className="icon" />
+                                <h6>Professionnel</h6>
+                              </div>
+                              <div className="details-section-content">
+                                <div className="info-item">
+                                  <span className="info-label">Situation professionnelle</span>
+                                  <span className="info-value">{member.professionalSituation || 'Non spécifiée'}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Sponsorship */}
+                            <div className="details-section mb-3">
+                              <div className="details-section-header">
+                                <FaUserCheck className="icon" />
+                                <h6>Parrainage</h6>
+                              </div>
+                              <div className="details-section-content">
+                                <div className="info-item">
+                                  <span className="info-label">Statut</span>
+                                  <Badge bg={member.isSponsored ? 'success' : 'secondary'} className="w-fit">
+                                    {member.isSponsored ? 'Parrainé' : 'Non parrainé'}
+                                  </Badge>
+                                </div>
+                                {member.isSponsored && member.sponsorName && (
+                                  <div className="info-item mt-2">
+                                    <span className="info-label">Nom du parrain</span>
+                                    <span className="info-value">{member.sponsorName}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Motivation */}
+                            {member.motivation && (
+                              <div className="motivation-section mb-3">
+                                <div className="motivation-header">
+                                  <FaQuoteLeft className="quote-icon" />
+                                  <h6>Motivation</h6>
+                                </div>
+                                <div className="motivation-content">
+                                  <p className="small fst-italic">{member.motivation}</p>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Rejection Reason (if any) */}
+                            {member.rejectionReason && member.memberstatus === 'Refused' && (
+                              <div className="details-section mb-3 border border-danger">
+                                <div className="details-section-header bg-danger-subtle">
+                                  <FaTimes className="text-danger me-2" />
+                                  <h6 className="text-danger">Raison du refus</h6>
+                                </div>
+                                <div className="details-section-content">
+                                  <p className="small text-danger fw-500 mb-0">{member.rejectionReason}</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
 
                 {/* ✅ RESPONSIVE: Pagination */}
                 {filteredMemberships.length > 0 && (
