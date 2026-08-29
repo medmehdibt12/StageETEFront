@@ -155,6 +155,13 @@ const routes = [
         element: lazy(() => import('./views/common/season/SeasonProgramme'))
       },
       {
+        // Même composant que la page choriste "/choriste/concert-actuel-medias" : le rôle
+        // (manager/admin) est détecté côté backend, qui adapte alors la réponse (tous les
+        // pupitres visibles + possibilité de réordonner le programme jusqu'au jour du concert).
+        path: '/manager/concert-actuel-medias',
+        element: lazy(() => import('./views/choristeSidebarContents/concert/CurrentConcertOeuvres'))
+      },
+      {
         path: '/manager/manage-duty',
         element: lazy(() => import('./views/managerSidebarContents/record/ManageLeave'))
       },

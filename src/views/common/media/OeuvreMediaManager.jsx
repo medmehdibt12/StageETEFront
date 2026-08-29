@@ -6,6 +6,42 @@ import { useAuth } from '../../../contexts/AuthContext';
 import Swal from 'sweetalert2';
 import { BACKEND_URL } from '../../../utils/axiosInstance';
 
+// Construit une URL de fichier sans doubler le "/" entre BACKEND_URL et le chemin,
+// que BACKEND_URL se termine ou non par un slash (évite le bug "//uploads/media/...").
+const buildFileUrl = (folder, filename) => {
+  const base = (BACKEND_URL || '').replace(/\/+$/, '');
+  return `${base}/uploads/${folder}/${filename}`;
+};
+
+// Le backend stocke les fichiers sous la forme "<timestamp>-<nomOriginal.ext>"
+// (voir uploadMediaMiddleware.js). On retire ce préfixe pour le nom de téléchargement.
+const getOriginalFileName = (storedFilename) => {
+  if (!storedFilename) return storedFilename;
+  return storedFilename.replace(/^\d+-/, '');
+};
+
+// Déclenche un vrai téléchargement (fetch -> blob) : un simple <a download> ne force PAS
+// le téléchargement quand le fichier vient d'une autre origine (backend :5000 vs front :3000).
+const triggerDownload = async (filename) => {
+  try {
+    const url = buildFileUrl('media', filename);
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Échec du téléchargement (${response.status})`);
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = getOriginalFileName(filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    console.error('Erreur téléchargement:', filename, err);
+    Swal.fire('Erreur', 'Impossible de télécharger ce fichier.', 'error');
+  }
+};
+
 const PUPITRES = ['Tutti', 'Soprano', 'Alto', 'Ténor', 'Basse'];
 
 const MEDIA_TYPES = [
@@ -138,7 +174,11 @@ const OeuvreMediaManager = () => {
 
     setActionLoading(true);
     try {
-      const updatedOeuvre = await uploadOeuvreMedia(selectedOeuvre._id, formData);
+      // ⚠️ Le backend renvoie seulement { message, pupitreMedia }, pas l'œuvre complète.
+      // On fusionne donc avec selectedOeuvre existant pour ne pas perdre le _id (sinon
+      // le prochain appel part vers /oeuvres/undefined/media).
+      const response = await uploadOeuvreMedia(selectedOeuvre._id, formData);
+      const updatedOeuvre = { ...selectedOeuvre, pupitreMedia: response.pupitreMedia };
       setSelectedOeuvre(updatedOeuvre);
       setOeuvres(prev => prev.map(o => o._id === updatedOeuvre._id ? updatedOeuvre : o));
       setUploadFiles({});
@@ -168,7 +208,9 @@ const OeuvreMediaManager = () => {
     if (result.isConfirmed) {
       setActionLoading(true);
       try {
-        const updatedOeuvre = await deleteOeuvreMedia(selectedOeuvre._id, pupitre.toLowerCase(), mediaType);
+        // Même chose ici : la réponse ne contient pas l'_id, on fusionne.
+        const response = await deleteOeuvreMedia(selectedOeuvre._id, pupitre.toLowerCase(), mediaType);
+        const updatedOeuvre = { ...selectedOeuvre, pupitreMedia: response.pupitreMedia };
         setSelectedOeuvre(updatedOeuvre);
         setOeuvres(prev => prev.map(o => o._id === updatedOeuvre._id ? updatedOeuvre : o));
         Swal.fire('Supprimé!', 'Le média a été supprimé.', 'success');
@@ -204,7 +246,7 @@ const OeuvreMediaManager = () => {
               <div className="existing-media-preview">
                 {mediaType.id === 'audio' ? (
                   <audio controls className="w-100 mt-2 mb-3">
-                    <source src={`${BACKEND_URL}/uploads/media/${existingMedia}`} type="audio/mpeg" />
+                    <source src={buildFileUrl('media', existingMedia)} type="audio/mpeg" />
                     Votre navigateur ne supporte pas l'élément audio.
                   </audio>
                 ) : mediaType.id === 'video' ? (
@@ -217,7 +259,7 @@ const OeuvreMediaManager = () => {
                     </div>
                   ) : (
                     <video controls className="w-100 mt-2 mb-3" style={{ maxHeight: '200px', backgroundColor: '#000' }}>
-                      <source src={`${BACKEND_URL}/uploads/media/${existingMedia}`} type="video/mp4" />
+                      <source src={buildFileUrl('media', existingMedia)} type="video/mp4" />
                       Votre navigateur ne supporte pas la balise vidéo.
                     </video>
                   )
@@ -226,20 +268,19 @@ const OeuvreMediaManager = () => {
                     <Button
                       variant="outline-primary"
                       size="sm"
-                      onClick={() => window.open(`${BACKEND_URL}/uploads/media/${existingMedia}`, '_blank')}
+                      onClick={() => window.open(buildFileUrl('media', existingMedia), '_blank')}
                       className="w-50"
                     >
                       <Eye size={16} className="me-2" /> Aperçu
                     </Button>
-                    <a
-                      href={`${BACKEND_URL}/uploads/media/${existingMedia}`}
-                      download
-                      className="btn btn-primary btn-sm w-50"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => triggerDownload(existingMedia)}
+                      className="w-50"
                     >
                       <DownloadCloud size={16} className="me-2" /> Télécharger
-                    </a>
+                    </Button>
                   </div>
                 )}
 

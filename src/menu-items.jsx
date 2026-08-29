@@ -149,6 +149,13 @@ const useMenuItems = () => {
       url: '/program/season-programme'
     },
     {
+      id: 'current-concert-media',
+      title: 'Carnet de Chant',
+      type: 'item',
+      icon: 'feather icon-headphones',
+      url: '/manager/concert-actuel-medias'
+    },
+    {
       id: 'media-oeuvres',
       title: 'Médias des Œuvres',
       type: 'item',

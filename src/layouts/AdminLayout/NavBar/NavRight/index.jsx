@@ -7,6 +7,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { FiCopy, FiCheck } from 'react-icons/fi';
 import ChatList from './ChatList';
+import CandidatureNotificationBell from './CandidatureNotificationBell';
+import ChoristeActivityNotificationBell from './ChoristeActivityNotificationBell';
 import avatar1 from '../../../../assets/images/user/avatar-1.jpg';
 import avatar2 from '../../../../assets/images/user/avatar-2.jpg';
 import { logout } from '../../../../services/auth.service';
@@ -193,6 +195,8 @@ const NavRight = () => {
   return (
     <>
       <ListGroup as="ul" bsPrefix=" " className="navbar-nav ml-auto">
+        {['manager', 'admin', 'chef de choeur'].includes(user?.role) && <CandidatureNotificationBell />}
+        {user?.role === 'choriste' && <ChoristeActivityNotificationBell />}
         <ListGroup.Item as="li" bsPrefix=" ">
           <Dropdown align="end" className="drp-user">
             <Dropdown.Toggle as={Link} variant="link" to="#">
