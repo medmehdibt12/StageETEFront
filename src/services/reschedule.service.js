@@ -1,21 +1,21 @@
 // services/adminRescheduleService.js
-import api from '../utils/axiosInstance';
+import api from "../utils/axiosInstance";
 
 // 🎯 GET: Fetch all reschedule requests (both types)
 export const getAllRescheduleRequests = async () => {
-  const res = await api.get('/reschedule/requests');
+  const res = await api.get("/reschedule/requests");
   return res.data;
 };
 
 // 🎯 GET: Fetch reschedule statistics for dashboard
 export const getRescheduleStatistics = async () => {
-  const res = await api.get('/reschedule/statistics');
+  const res = await api.get("/reschedule/statistics");
   return res.data;
 };
 
 // 🎯 GET: Fetch only same-day reschedule requests
 export const getSameDayRescheduleRequests = async () => {
-  const res = await api.get('/reschedule/same-day-requests');
+  const res = await api.get("/reschedule/same-day-requests");
   return res.data;
 };
 
@@ -26,9 +26,9 @@ export const approveSameDayReschedule = async (candidateId) => {
 };
 
 // 🎯 POST: Reject same-day reschedule request
-export const rejectSameDayReschedule = async (candidateId, reason = '') => {
+export const rejectSameDayReschedule = async (candidateId, reason = "") => {
   const res = await api.post(`/reschedule/reject/${candidateId}`, {
-    reason
+    reason,
   });
   return res.data;
 };
@@ -39,7 +39,7 @@ export const getRescheduleRequestsCount = async () => {
   return {
     sameDayCount: stats.sameDayReschedule,
     differentDayCount: stats.differentDayReschedule,
-    totalPending: stats.sameDayReschedule + stats.differentDayReschedule
+    totalPending: stats.sameDayReschedule + stats.differentDayReschedule,
   };
 };
 
@@ -58,7 +58,7 @@ export const bulkApproveRequests = async (candidateIds) => {
 };
 
 // 🎯 Helper: Reject multiple requests (bulk action)
-export const bulkRejectRequests = async (candidateIds, reason = '') => {
+export const bulkRejectRequests = async (candidateIds, reason = "") => {
   const results = [];
   for (const candidateId of candidateIds) {
     try {
@@ -69,4 +69,20 @@ export const bulkRejectRequests = async (candidateIds, reason = '') => {
     }
   }
   return results;
+};
+
+export const acceptDifferentDayReschedule = async (candidateId) => {
+  const res = await api.post(`/reschedule/accept-different-day/${candidateId}`);
+  return res.data;
+};
+
+export const rejectDifferentDayReschedule = async (
+  candidateId,
+  reason = "",
+) => {
+  const res = await api.post(
+    `/reschedule/reject-different-day/${candidateId}`,
+    { reason },
+  );
+  return res.data;
 };

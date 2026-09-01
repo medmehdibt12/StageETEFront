@@ -9,15 +9,24 @@ import {
   FaAngleDoubleLeft,
   FaAngleDoubleRight,
   FaSearch,
-  FaTimes as FaClear
+  FaTimes as FaClear,
+  FaCalendarPlus
 } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import { getSameDayRescheduleRequests, approveSameDayReschedule, rejectSameDayReschedule } from '../../../services/reschedule.service';
+import {
+  getAllRescheduleRequests,
+  approveSameDayReschedule,
+  rejectSameDayReschedule,
+  acceptDifferentDayReschedule,
+  rejectDifferentDayReschedule
+} from '../../../services/reschedule.service';
 
 const RescheduleCandidate = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const navigate = useNavigate();
 
   // 🔍 Search functionality
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,12 +36,29 @@ const RescheduleCandidate = () => {
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const pageSizeOptions = [5, 10, 25, 50];
 
+  // ✅ Fusionne les deux types de demandes (même jour / jour différent) en une seule liste,
+  // avec un champ "type" pour les distinguer à l'affichage et dans les actions possibles.
+  const normalizeRequests = (response) => {
+    const sameDay = (response.sameDayRequests || []).map((r) => ({
+      ...r,
+      type: 'sameDay'
+    }));
+    const differentDay = (response.differentDayRequests || []).map((r) => ({
+      ...r,
+      type: 'differentDay'
+    }));
+    // Les plus récentes en premier
+    return [...sameDay, ...differentDay].sort(
+      (a, b) => new Date(b.requestDate || 0) - new Date(a.requestDate || 0)
+    );
+  };
+
   // Load data
   const loadData = async () => {
     try {
       setLoading(true);
-      const response = await getSameDayRescheduleRequests();
-      setRequests(response.requests || []);
+      const response = await getAllRescheduleRequests();
+      setRequests(normalizeRequests(response));
     } catch (error) {
       console.error('Error loading requests:', error);
       Swal.fire('Erreur', 'Impossible de charger les demandes.', 'error');
@@ -58,7 +84,7 @@ const RescheduleCandidate = () => {
     });
   };
 
-  // Handle approve with loading dialog
+  // Handle approve with loading dialog (uniquement pour les demandes "même jour")
   const handleApprove = async (candidateId, candidateName) => {
     const result = await Swal.fire({
       title: 'Confirmer',
@@ -70,7 +96,6 @@ const RescheduleCandidate = () => {
     });
 
     if (result.isConfirmed) {
-      // 🎯 Show loading dialog
       Swal.fire({
         title: 'Traitement en cours...',
         text: "Approbation et envoi de l'email de confirmation",
@@ -87,7 +112,9 @@ const RescheduleCandidate = () => {
         setProcessing(true);
         await approveSameDayReschedule(candidateId);
 
-        // 🎯 Close loading and show success
+        // ✅ Retrait immédiat de la ligne, sans attendre le re-fetch complet
+        setRequests((prev) => prev.filter((r) => r.candidateId !== candidateId));
+
         await Swal.fire({
           title: 'Approuvé!',
           text: `La demande de ${candidateName} a été approuvée et un email de confirmation a été envoyé.`,
@@ -95,9 +122,8 @@ const RescheduleCandidate = () => {
           confirmButtonText: 'OK'
         });
 
-        await loadData();
+        loadData(); // resynchronisation en arrière-plan, sans bloquer l'UI
       } catch (error) {
-        // 🎯 Close loading and show error
         Swal.fire('Erreur', "Erreur lors de l'approbation.", 'error');
       } finally {
         setProcessing(false);
@@ -105,7 +131,7 @@ const RescheduleCandidate = () => {
     }
   };
 
-  // Handle reject with loading dialog
+  // Handle reject with loading dialog (uniquement pour les demandes "même jour")
   const handleReject = async (candidateId, candidateName) => {
     const { value: reason } = await Swal.fire({
       title: 'Rejeter',
@@ -118,7 +144,6 @@ const RescheduleCandidate = () => {
     });
 
     if (reason !== undefined) {
-      // 🎯 Show loading dialog
       Swal.fire({
         title: 'Traitement en cours...',
         text: "Rejet de la demande et envoi de l'email de notification",
@@ -135,7 +160,8 @@ const RescheduleCandidate = () => {
         setProcessing(true);
         await rejectSameDayReschedule(candidateId, reason);
 
-        // 🎯 Close loading and show success
+        setRequests((prev) => prev.filter((r) => r.candidateId !== candidateId));
+
         await Swal.fire({
           title: 'Rejeté',
           text: `La demande de ${candidateName} a été rejetée et le candidat a été informé par email.`,
@@ -143,14 +169,106 @@ const RescheduleCandidate = () => {
           confirmButtonText: 'OK'
         });
 
-        await loadData();
+        loadData();
       } catch (error) {
-        // 🎯 Close loading and show error
         Swal.fire('Erreur', 'Erreur lors du rejet.', 'error');
       } finally {
         setProcessing(false);
       }
     }
+  };
+
+  // ✅ Accepter une demande "jour différent" : le candidat reste en liste d'attente
+  const handleAcceptDifferentDay = async (candidateId, candidateName) => {
+    const result = await Swal.fire({
+      title: 'Confirmer',
+      text: `Accepter la demande de ${candidateName} ? Il restera en liste d'attente pour une nouvelle date.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Accepter',
+      cancelButtonText: 'Annuler'
+    });
+
+    if (result.isConfirmed) {
+      Swal.fire({
+        title: 'Traitement en cours...',
+        text: 'Envoi de la confirmation par email',
+        icon: 'info',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading()
+      });
+
+      try {
+        setProcessing(true);
+        await acceptDifferentDayReschedule(candidateId);
+
+        setRequests((prev) => prev.filter((r) => r.candidateId !== candidateId));
+
+        await Swal.fire({
+          title: 'Accepté !',
+          text: `${candidateName} reste en liste d'attente et a été notifié(e) par email.`,
+          icon: 'success',
+          confirmButtonText: 'OK'
+        });
+        loadData();
+      } catch (error) {
+        Swal.fire('Erreur', "Erreur lors de l'acceptation.", 'error');
+      } finally {
+        setProcessing(false);
+      }
+    }
+  };
+
+  // ✅ Refuser une demande "jour différent" : aucune date compatible, fin de la candidature
+  const handleRejectDifferentDay = async (candidateId, candidateName) => {
+    const { value: reason } = await Swal.fire({
+      title: 'Refuser',
+      input: 'textarea',
+      inputLabel: 'Raison (optionnel)',
+      inputPlaceholder: 'Aucune date compatible pour cette session...',
+      showCancelButton: true,
+      confirmButtonText: 'Refuser',
+      cancelButtonText: 'Annuler'
+    });
+
+    if (reason !== undefined) {
+      Swal.fire({
+        title: 'Traitement en cours...',
+        text: "Envoi de l'email de refus",
+        icon: 'info',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading()
+      });
+
+      try {
+        setProcessing(true);
+        await rejectDifferentDayReschedule(candidateId, reason);
+
+        // ✅ C'est ici que la ligne "fatiha mahjoub" doit disparaître immédiatement
+        setRequests((prev) => prev.filter((r) => r.candidateId !== candidateId));
+
+        await Swal.fire({
+          title: 'Refusé',
+          text: `${candidateName} a été notifié(e) par email.`,
+          icon: 'info',
+          confirmButtonText: 'OK'
+        });
+        loadData();
+      } catch (error) {
+        Swal.fire('Erreur', 'Erreur lors du refus.', 'error');
+      } finally {
+        setProcessing(false);
+      }
+    }
+  };
+
+  // Bouton complémentaire : programmer manuellement dès maintenant (optionnel, en plus d'Accepter/Refuser)
+  const handleGoToManualAssign = () => {
+    navigate('/manager/manage-auditions');
   };
 
   // 🔍 Updated pagination logic with filtered data
@@ -169,10 +287,9 @@ const RescheduleCandidate = () => {
   // 🔍 Handle search change and reset pagination
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
-    setCurrentPage(0); // Reset to first page when searching
+    setCurrentPage(0);
   };
 
-  // 🔍 Clear search
   const clearSearch = () => {
     setSearchTerm('');
     setCurrentPage(0);
@@ -191,8 +308,8 @@ const RescheduleCandidate = () => {
   const isFirstPage = () => currentPage === 0;
   const isLastPage = () => currentPage >= getTotalPages() - 1;
 
-  // Format date
   const formatDate = (dateString) => {
+    if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('fr-FR');
   };
 
@@ -208,7 +325,6 @@ const RescheduleCandidate = () => {
         </Card.Header>
 
         <Card.Body>
-          {/* 🔍 Search Bar */}
           {/* 🔍 Search Bar */}
           <div className="mb-3 d-flex justify-content-start">
             <InputGroup style={{ maxWidth: '400px' }}>
@@ -233,9 +349,11 @@ const RescheduleCandidate = () => {
               <Table bordered hover responsive>
                 <thead>
                   <tr>
+                    <th>Type</th>
                     <th>Candidat</th>
-                    <th>Créneau actuel</th>
+                    <th>Ancien créneau</th>
                     <th>Créneau demandé</th>
+                    <th>Motif</th>
                     <th>Date demande</th>
                     <th>Actions</th>
                   </tr>
@@ -243,6 +361,12 @@ const RescheduleCandidate = () => {
                 <tbody>
                   {getPaginatedRequests().map((request) => (
                     <tr key={request.candidateId}>
+                      {/* ✅ Badge distinguant les deux types de demande */}
+                      <td>
+                        <Badge bg={request.type === 'sameDay' ? 'warning' : 'info'} text="dark">
+                          {request.type === 'sameDay' ? 'Même jour' : 'Jour différent'}
+                        </Badge>
+                      </td>
                       <td>
                         <div>
                           <strong>
@@ -252,53 +376,107 @@ const RescheduleCandidate = () => {
                           <small className="text-muted">{request.candidate.email}</small>
                         </div>
                       </td>
+                      {/* ✅ Ancien créneau — vient de previousSlotDate/StartTime/EndTime (archivé côté backend) */}
                       <td>
-                        <Badge bg="secondary">
-                          {request.currentSlot?.startTime} - {request.currentSlot?.endTime}
-                        </Badge>
+                        {request.currentSlot ? (
+                          <Badge bg="secondary">
+                            {formatDate(request.currentSlot.date)} · {request.currentSlot.startTime} - {request.currentSlot.endTime}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted small">Non renseigné</span>
+                        )}
+                      </td>
+                      {/* ✅ Créneau demandé — uniquement pertinent pour "même jour" */}
+                      <td>
+                        {request.type === 'sameDay' ? (
+                          <Badge bg="primary">
+                            {request.requestedTime} - {request.requestedEndTime || ''}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted small">Jour à redéfinir</span>
+                        )}
+                      </td>
+                      {/* ✅ Motif donné par le candidat, s'il en a précisé un */}
+                      <td>
+                        {request.rescheduleReason ? (
+                          <span className="fst-italic small">"{request.rescheduleReason}"</span>
+                        ) : (
+                          <span className="text-muted small">—</span>
+                        )}
                       </td>
                       <td>
-                        <Badge bg="primary">
-                          {request.requestedTime} - {request.requestedEndTime || ''}
-                        </Badge>
-                      </td>
-                      <td>
-                        <Badge bg="warning" text="dark">
+                        <Badge bg="light" text="dark" className="border">
                           {formatDate(request.requestDate)}
                         </Badge>
                       </td>
+                      {/* ✅ Actions différentes selon le type */}
                       <td>
-                        <div className="d-flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline-success"
-                            onClick={() =>
-                              handleApprove(request.candidateId, `${request.candidate.firstName} ${request.candidate.lastName}`)
-                            }
-                            disabled={processing}
-                            title="Approuver"
-                          >
-                            <FaCheck />
-                          </Button>
+                        {request.type === 'sameDay' ? (
+                          <div className="d-flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline-success"
+                              onClick={() =>
+                                handleApprove(request.candidateId, `${request.candidate.firstName} ${request.candidate.lastName}`)
+                              }
+                              disabled={processing}
+                              title="Approuver"
+                            >
+                              <FaCheck />
+                            </Button>
 
-                          <Button
-                            size="sm"
-                            variant="outline-danger"
-                            onClick={() =>
-                              handleReject(request.candidateId, `${request.candidate.firstName} ${request.candidate.lastName}`)
-                            }
-                            disabled={processing}
-                            title="Rejeter"
-                          >
-                            <FaTimes />
-                          </Button>
-                        </div>
+                            <Button
+                              size="sm"
+                              variant="outline-danger"
+                              onClick={() =>
+                                handleReject(request.candidateId, `${request.candidate.firstName} ${request.candidate.lastName}`)
+                              }
+                              disabled={processing}
+                              title="Rejeter"
+                            >
+                              <FaTimes />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="d-flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline-success"
+                              onClick={() =>
+                                handleAcceptDifferentDay(request.candidateId, `${request.candidate.firstName} ${request.candidate.lastName}`)
+                              }
+                              disabled={processing}
+                              title="Accepter — reste en liste d'attente"
+                            >
+                              <FaCheck />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline-danger"
+                              onClick={() =>
+                                handleRejectDifferentDay(request.candidateId, `${request.candidate.firstName} ${request.candidate.lastName}`)
+                              }
+                              disabled={processing}
+                              title="Refuser — aucune date compatible"
+                            >
+                              <FaTimes />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline-primary"
+                              onClick={handleGoToManualAssign}
+                              title="Programmer manuellement dès maintenant"
+                            >
+                              <FaCalendarPlus />
+                            </Button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
                   {getTotalItems() === 0 && !loading && (
                     <tr>
-                      <td colSpan="5" className="text-center py-3">
+                      <td colSpan="7" className="text-center py-3">
                         {searchTerm ? `Aucune demande trouvée pour "${searchTerm}"` : 'Aucune demande de reprogrammation.'}
                       </td>
                     </tr>
@@ -306,7 +484,7 @@ const RescheduleCandidate = () => {
                 </tbody>
               </Table>
 
-              {/* Responsive Pagination Only */}
+              {/* Pagination */}
               {getTotalPages() > 0 && (
                 <div className="d-flex flex-column flex-md-row justify-content-between align-items-center p-2 p-md-3 border-top bg-light gap-2">
                   <div className="d-flex align-items-center order-2 order-md-1">

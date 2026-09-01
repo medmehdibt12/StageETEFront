@@ -50,9 +50,8 @@ import {
   getTessitureOptions,
   getCandidateCharterStatus
 } from '../../../services/evaluation.service';
-
 import { getMembershipSubmissions } from '../../../services/accounts.service';
-
+import { rejectSameDayReschedule, rejectDifferentDayReschedule } from '../../../services/reschedule.service';
 const ManageAuditions = () => {
   const [paramsList, setParamsList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1130,6 +1129,48 @@ const ManageAuditions = () => {
       await fetchPendingCandidates();
     } catch (error) {
       Swal.fire('Erreur', error.response?.data?.message || 'Impossible de programmer le candidat.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Refuser directement depuis la modale de programmation manuelle,
+  // sans avoir besoin d'aller sur la page dédiée aux reprogrammations.
+  const handleRejectFromModal = async () => {
+    if (!selectedCandidateToAssign) return;
+
+    const { value: reason, isConfirmed } = await Swal.fire({
+      title: 'Refuser cette demande ?',
+      input: 'textarea',
+      inputLabel: 'Raison (optionnel)',
+      inputPlaceholder: 'Aucun créneau compatible...',
+      showCancelButton: true,
+      confirmButtonText: 'Refuser',
+      cancelButtonText: 'Annuler',
+      confirmButtonColor: '#dc3545'
+    });
+
+    if (!isConfirmed) return;
+
+    try {
+      setLoading(true);
+      const candidateId = selectedCandidateToAssign._id;
+
+      // Le traitement diffère selon le type de demande :
+      // - "même jour" → repasse en liste d'attente pour un nouveau jour
+      // - "jour différent" → aucune date compatible, la candidature se termine
+      if (selectedCandidateToAssign.convocationStatus === 'RescheduledSameDay') {
+        await rejectSameDayReschedule(candidateId, reason);
+      } else {
+        await rejectDifferentDayReschedule(candidateId, reason);
+      }
+
+      Swal.fire('Refusé', 'Le candidat a été notifié par email.', 'success');
+      setShowAssignModal(false);
+      setSelectedCandidateToAssign(null);
+      await fetchPendingCandidates();
+    } catch (error) {
+      Swal.fire('Erreur', error.response?.data?.message || 'Impossible de refuser la demande.', 'error');
     } finally {
       setLoading(false);
     }
@@ -2642,7 +2683,7 @@ const ManageAuditions = () => {
       </Modal>
 
       {/* ✅ NEW: Manual Assignment Modal */}
-      <Modal show={showAssignModal} onHide={() => setShowAssignModal(false)} size="md">
+      <Modal show={showAssignModal} onHide={() => setShowAssignModal(false)} size="md" enforceFocus={false}>
         <Modal.Header closeButton className="bg-light">
           <Modal.Title className="h5 fw-bold">
             <FaCalendarPlus className="me-2 text-primary" />
@@ -2760,8 +2801,11 @@ const ManageAuditions = () => {
               </Col>
             </Row>
 
-            <div className="d-grid mt-4">
-              <Button variant="primary" type="submit" disabled={loading}>
+            <div className="d-flex gap-2 mt-4">
+              <Button variant="outline-danger" onClick={handleRejectFromModal} disabled={loading} style={{ flex: '0 0 auto' }}>
+                Refuser
+              </Button>
+              <Button variant="primary" type="submit" disabled={loading} className="flex-grow-1">
                 {loading ? <Spinner animation="border" size="sm" /> : 'Confirmer la programmation'}
               </Button>
             </div>
