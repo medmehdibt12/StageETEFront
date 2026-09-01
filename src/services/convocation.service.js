@@ -49,3 +49,13 @@ export const rescheduleConvocationDifferentDay = async (candidateId, reason = nu
 export const rescheduleConvocationSameDay = async (candidateId, newStartTime, reason = null) => {
   return await handleConvocationResponse(candidateId, 'reschedule', 'same_day', newStartTime, reason);
 };
+
+// 🆕 NEW: Helper: candidate keeps their original day/slot after a "day change" refusal
+export const confirmStayOnOriginalDay = async (candidateId) => {
+  return await handleConvocationResponse(candidateId, 'confirm_stay_original_day');
+};
+
+// 🆕 NEW: Helper: candidate still prefers a different day after a "day change" refusal
+export const declineStayOnOriginalDay = async (candidateId) => {
+  return await handleConvocationResponse(candidateId, 'decline_stay_original_day');
+};

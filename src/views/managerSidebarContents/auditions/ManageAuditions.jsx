@@ -1344,7 +1344,7 @@ const ManageAuditions = () => {
             /* --- Planning Table View --- */
             <>
               {/* ✅ NEW: Reschedule Requests Summary */}
-              {pendingCandidatesList.some(c => c.convocationStatus === 'RescheduledSameDay' || c.convocationStatus === 'RescheduleRequested') && (
+              {pendingCandidatesList.some(c => ['RescheduledSameDay', 'RescheduleRequested', 'RescheduledSameDayRejected'].includes(c.convocationStatus)) && (
                 <div className="mb-4 p-3 border-start border-4 border-warning bg-light rounded shadow-sm">
                   <div className="d-flex align-items-center mb-2">
                     <div className="bg-warning text-white rounded-circle p-2 me-3" style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1352,12 +1352,12 @@ const ManageAuditions = () => {
                     </div>
                     <h6 className="mb-0 fw-bold">Demandes de reprogrammation</h6>
                     <Badge bg="warning" text="dark" className="ms-2 rounded-pill">
-                      {pendingCandidatesList.filter(c => c.convocationStatus === 'RescheduledSameDay' || c.convocationStatus === 'RescheduleRequested').length}
+                      {pendingCandidatesList.filter(c => ['RescheduledSameDay', 'RescheduleRequested', 'RescheduledSameDayRejected'].includes(c.convocationStatus)).length}
                     </Badge>
                   </div>
                   <div className="row g-2">
                     {pendingCandidatesList
-                      .filter(c => c.convocationStatus === 'RescheduledSameDay' || c.convocationStatus === 'RescheduleRequested')
+                      .filter(c => ['RescheduledSameDay', 'RescheduleRequested', 'RescheduledSameDayRejected'].includes(c.convocationStatus))
                       .slice(0, 5)
                       .map(c => (
                         <div key={c._id} className="col-md-6 col-lg-4">
@@ -1365,7 +1365,9 @@ const ManageAuditions = () => {
                             <div>
                               <div className="small fw-bold text-dark">{c.firstName} {c.lastName}</div>
                               <div className="text-muted" style={{ fontSize: '11px' }}>
-                                {c.convocationStatus === 'RescheduledSameDay' ? `Souhait : ${c.requestedNewTime || 'Non précisé'}` : 'Changement de jour'}
+                                {c.convocationStatus === 'RescheduledSameDay' && `Souhait : ${c.requestedNewTime || 'Non précisé'}`}
+                                {c.convocationStatus === 'RescheduleRequested' && 'Changement de jour'}
+                                {c.convocationStatus === 'RescheduledSameDayRejected' && 'Changement de créneau refusé — à replacer'}
                               </div>
                               {c.rescheduleReason && (
                                 <div className="text-info italic" style={{ fontSize: '10px', fontStyle: 'italic' }}>
@@ -1388,9 +1390,9 @@ const ManageAuditions = () => {
                           </div>
                         </div>
                       ))}
-                    {pendingCandidatesList.filter(c => c.convocationStatus === 'RescheduledSameDay' || c.convocationStatus === 'RescheduleRequested').length > 5 && (
+                    {pendingCandidatesList.filter(c => ['RescheduledSameDay', 'RescheduleRequested', 'RescheduledSameDayRejected'].includes(c.convocationStatus)).length > 5 && (
                       <div className="col-12 text-center mt-2">
-                        <small className="text-muted">Et {pendingCandidatesList.filter(c => c.convocationStatus === 'RescheduledSameDay' || c.convocationStatus === 'RescheduleRequested').length - 5} autres...</small>
+                        <small className="text-muted">Et {pendingCandidatesList.filter(c => ['RescheduledSameDay', 'RescheduleRequested', 'RescheduledSameDayRejected'].includes(c.convocationStatus)).length - 5} autres...</small>
                       </div>
                     )}
                   </div>

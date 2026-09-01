@@ -12,6 +12,8 @@ import {
   declineConvocation,
   rescheduleConvocationDifferentDay,
   rescheduleConvocationSameDay,
+  confirmStayOnOriginalDay,
+  declineStayOnOriginalDay,
   getAvailableTimes
 } from '../../services/convocation.service';
 
@@ -1068,6 +1070,47 @@ const ConvocationResponse = () => {
     }
   };
 
+  // 🎯 **Handle "stay on original day" confirmation, after a day-change refusal**
+  const handleStayOriginalDay = async () => {
+    try {
+      setResponding(true);
+      setError('');
+      const result = await confirmStayOnOriginalDay(candidateId);
+      setSuccess(result.message);
+      setConvocationData((prev) => ({ ...prev, status: 'confirmed' }));
+    } catch (err) {
+      if (err.response?.data?.alreadyResponded) {
+        await refreshConvocationData();
+      } else if (err.response?.status === 409) {
+        setError(err.response?.data?.message || "Ce créneau n'est plus disponible.");
+        await refreshConvocationData();
+      } else {
+        setError(err.response?.data?.message || 'Erreur lors de la confirmation.');
+      }
+    } finally {
+      setResponding(false);
+    }
+  };
+
+  // 🎯 **Handle "I still want a different day" after a day-change refusal**
+  const handleDeclineStayOriginalDay = async () => {
+    try {
+      setResponding(true);
+      setError('');
+      const result = await declineStayOnOriginalDay(candidateId);
+      setSuccess(result.message);
+      setConvocationData((prev) => ({ ...prev, status: 'waitlisted' }));
+    } catch (err) {
+      if (err.response?.data?.alreadyResponded) {
+        await refreshConvocationData();
+      } else {
+        setError(err.response?.data?.message || 'Erreur lors de la mise à jour.');
+      }
+    } finally {
+      setResponding(false);
+    }
+  };
+
   // 🎯 **Handle decline action**
   const handleDecline = async () => {
     const result = await Swal.fire({
@@ -1645,6 +1688,101 @@ const ConvocationResponse = () => {
                     <DetailValue>En attente d'une nouvelle convocation</DetailValue>
                   </DetailRow>
                 </InfoCard>
+              </SuccessDisplay>
+            )}
+
+            {/* 🔄 NEW: back on the waitlist after declining to keep the original day/slot */}
+            {convocationData && convocationData.status === 'waitlisted' && (
+              <SuccessDisplay
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+              >
+                <StatusIcon
+                  variant="info"
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+                >
+                  <InfoIcon />
+                </StatusIcon>
+                <SuccessTitle style={{ color: '#3b82f6' }}>En liste d'attente</SuccessTitle>
+                <SuccessMessage>
+                  Votre candidature reste active. Nous vous recontacterons dès qu'un nouveau créneau sera disponible.
+                </SuccessMessage>
+              </SuccessDisplay>
+            )}
+
+            {/* 🔄 NEW: day-change request was refused — ask if candidate wants to keep original slot */}
+            {convocationData && convocationData.status === 'day_change_denied_awaiting_confirm' && (
+              <SuccessDisplay
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+              >
+                <StatusIcon
+                  variant="info"
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+                >
+                  <InfoIcon />
+                </StatusIcon>
+                <SuccessTitle style={{ color: '#3b82f6' }}>Votre changement de jour n'a pas pu être accepté</SuccessTitle>
+                <SuccessMessage>
+                  Souhaitez-vous rester sur votre créneau d'origine, ou préférez-vous rester en liste d'attente pour un autre jour ?
+                </SuccessMessage>
+
+                {convocationData.previousSlot && (
+                  <InfoCard
+                    bgColor="rgba(224, 242, 254, 0.8)"
+                    border="1px solid rgba(2, 132, 199, 0.3)"
+                    accent="linear-gradient(180deg, #0284c7, #0369a1)"
+                  >
+                    <DetailRow>
+                      <DetailLabel>
+                        <IconWrapper bgColor="rgba(2, 132, 199, 0.1)" color="#0369a1">
+                          <InfoIcon />
+                        </IconWrapper>
+                        Créneau d'origine
+                      </DetailLabel>
+                      <DetailValue>
+                        {new Date(convocationData.previousSlot.date).toLocaleDateString('fr-FR')} — {convocationData.previousSlot.startTime} à {convocationData.previousSlot.endTime}
+                      </DetailValue>
+                    </DetailRow>
+                  </InfoCard>
+                )}
+
+                {error && <div style={{ color: '#dc2626', marginTop: '1rem', fontWeight: 600 }}>{error}</div>}
+
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2rem', flexWrap: 'wrap' }}>
+                  <ActionButton
+                    variant="primary"
+                    onClick={handleStayOriginalDay}
+                    disabled={responding}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {responding ? (
+                      <ButtonSpinner animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} />
+                    ) : (
+                      <CheckIcon />
+                    )}
+                    Rester sur ce créneau
+                  </ActionButton>
+                  <ActionButton
+                    variant="secondary"
+                    onClick={handleDeclineStayOriginalDay}
+                    disabled={responding}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <XIcon />
+                    Je préfère un autre jour
+                  </ActionButton>
+                </div>
               </SuccessDisplay>
             )}
           </Card>
